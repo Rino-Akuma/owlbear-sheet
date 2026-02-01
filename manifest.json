@@ -5,8 +5,8 @@
   "description": "Лист персонажа для D&D 5e на Owlbear Rodeo",
   "action": {
     "title": "Лист персонажа",
-    "icon": "https://rino-akuma.github.io/owlbear-sheet/icon.svg",
-    "popover": "https://rino-akuma.github.io/owlbear-sheet/sheet.html",
+    "icon": "/icon.svg",
+    "popover": "/sheet.html",
     "width": 900,
     "height": 700
   }
