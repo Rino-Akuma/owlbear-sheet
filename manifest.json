@@ -1,7 +1,12 @@
 {
   "name": "Лист персонажа D&D 5e (RU)",
-  "id": "owlbear-5e-sheet-ru",
   "version": "0.1.0",
-  "type": "panel",
-  "entry": "https://Rino-Akuma.github.io/owlbear-sheet/sheet.html"
+  "manifest_version": 1,
+  "description": "Лист персонажа для D&D 5e (RU)",
+  "action": {
+    "title": "Лист персонажа",
+    "popover": "sheet.html",
+    "width": 900,
+    "height": 700
+  }
 }
