@@ -1,0 +1,13 @@
+export default {
+  name: "Лист персонажа D&D 5e (RU)",
+  version: "0.1.0",
+  manifest_version: 1,
+  description: "Лист персонажа для D&D 5e",
+  action: {
+    title: "Лист персонажа",
+    icon: "/icon.svg",
+    popover: "/sheet.html",
+    width: 900,
+    height: 700
+  }
+};
