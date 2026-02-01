@@ -5,9 +5,9 @@
   "description": "Лист персонажа для D&D 5e (RU)",
   "action": {
     "title": "Лист персонажа",
+    "icon": "https://rino-akuma.github.io/owlbear-sheet/icon.svg",
     "popover": "https://rino-akuma.github.io/owlbear-sheet/sheet.html",
     "width": 900,
-    "height": 700,
-    "icon": "https://rino-akuma.github.io/owlbear-sheet/icon.svg"
+    "height": 700
   }
 }
