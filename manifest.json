@@ -7,6 +7,7 @@
     "title": "Лист персонажа",
     "popover": "https://rino-akuma.github.io/owlbear-sheet/sheet.html",
     "width": 900,
-    "height": 700
+    "height": 700,
+    "icon": "icon.svg"
   }
 }
