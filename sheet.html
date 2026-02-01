@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Owlbear Sheet – D&D 5e (RU)</title>
+<style>
+body{
+    font-family: Arial, sans-serif;
+    background:#f2f2f2;
+    margin:0;
+    padding:10px;
+}
+.sheet{
+    background:white;
+    padding:12px;
+    border-radius:8px;
+    max-width:900px;
+    margin:auto;
+    box-shadow:0 0 5px rgba(0,0,0,.1);
+}
+.row{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+}
+.block{
+    border:1px solid #ccc;
+    padding:8px;
+    border-radius:6px;
+    margin-bottom:8px;
+}
+.flex{
+    display:flex;
+    gap:6px;
+    align-items:center;
+}
+.column{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+}
+input{
+    padding:4px;
+}
+.small{
+    width:60px;
+}
+.stat-box{
+    width:110px;
+    text-align:center;
+}
+.circle{
+    width:18px;
+    height:18px;
+    border:1px solid black;
+    border-radius:50%;
+    cursor:pointer;
+    display:inline-block;
+}
+.circle.filled{
+    background:black;
+}
+.circle.double{
+    background:black;
+    box-shadow: inset 0 0 0 3px white;
+}
+.skill{
+    display:flex;
+    align-items:center;
+    gap:6px;
+}
+.passive{
+    font-weight:bold;
+}
+</style>
+</head>
+<body>
+
+<div class="sheet">
+
+<h3>Персонаж</h3>
+<div class="row block">
+  <div class="column">
+    <label>Имя</label>
+    <input id="name">
+  </div>
+  <div class="column">
+    <label>Класс</label>
+    <input id="class">
+  </div>
+  <div class="column">
+    <label>Подкласс</label>
+    <input id="subclass">
+  </div>
+  <div class="column">
+    <label>Раса</label>
+    <input id="race">
+  </div>
+  <div class="column">
+    <label>Уровень</label>
+    <input id="level" type="number" value="1" min="1" max="20" class="small" onchange="updatePB()">
+  </div>
+  <div class="column">
+    <label>Бонус мастерства</label>
+    <input id="pb" class="small" readonly>
+  </div>
+</div>
+
+<h3>Здоровье и броня</h3>
+<div class="row block">
+  <div class="column">
+    <label>Текущие ХП</label>
+    <input id="hp" class="small">
+  </div>
+  <div class="column">
+    <label>Макс ХП</label>
+    <input id="maxhp" class="small">
+  </div>
+  <div class="column">
+    <label>Временные ХП</label>
+    <input id="temphp" class="small">
+  </div>
+  <div class="column">
+    <label>Броня (AC)</label>
+    <input id="ac" class="small">
+  </div>
+</div>
+
+<h3>Характеристики</h3>
+<div class="row block" id="stats"></div>
+
+<h3>Спасброски</h3>
+<div class="block" id="saves"></div>
+
+<h3>Навыки</h3>
+<div class="block" id="skills"></div>
+
+<h3>Пассивные значения</h3>
+<div class="block">
+  <div>Мудрость (Восприятие): <span id="passPer" class="passive">10</span></div>
+  <div>Мудрость (Проницательность): <span id="passIns" class="passive">10</span></div>
+  <div>Интеллект (Анализ): <span id="passInv" class="passive">10</span></div>
+</div>
+
+</div>
+
+<script>
+const stats = [
+  "Сила","Ловкость","Телосложение",
+  "Интеллект","Мудрость","Харизма"
+];
+
+const skills = {
+ "Сила":["Атлетика"],
+ "Ловкость":["Акробатика","Ловкость рук","Скрытность"],
+ "Телосложение":[],
+ "Интеллект":["Анализ","История","Магия","Природа","Религия"],
+ "Мудрость":["Восприятие","Выживание","Медицина","Проницательность","Уход за животными"],
+ "Харизма":["Выступление","Запугивание","Обман","Убеждение"]
+};
+
+const pbTable = {
+1:2,2:2,3:2,4:2,
+5:3,6:3,7:3,8:3,
+9:4,10:4,11:4,12:4,
+13:5,14:5,15:5,16:5,
+17:6,18:6,19:6,20:6
+};
+
+function mod(v){ return Math.floor((v-10)/2); }
+
+function updatePB(){
+  let lvl = document.getElementById("level").value;
+  document.getElementById("pb").value = pbTable[lvl] || 2;
+  recalcAll();
+}
+
+function toggleCircle(el){
+  if(!el.classList.contains("filled")){
+    el.classList.add("filled");
+    el.dataset.state = "1";
+  } else if(el.dataset.state=="1"){
+    el.classList.add("double");
+    el.dataset.state = "2";
+  } else {
+    el.classList.remove("filled","double");
+    el.dataset.state = "0";
+  }
+  recalcAll();
+}
+
+function recalcAll(){
+  let pb = parseInt(document.getElementById("pb").value);
+
+  stats.forEach(s=>{
+    let val = parseInt(document.getElementById(s+"_val").value||10);
+    document.getElementById(s+"_mod").innerText = (mod(val)>=0?"+":"")+mod(val);
+  });
+
+  stats.forEach(s=>{
+    let base = mod(parseInt(document.getElementById(s+"_val").value||10));
+    let circle = document.getElementById("save_"+s);
+    let bonus = circle.dataset.state=="1" ? pb : (circle.dataset.state=="2" ? pb*2 : 0);
+    document.getElementById("save_res_"+s).innerText = (base+bonus>=0?"+":"")+(base+bonus);
+  });
+
+  Object.keys(skills).forEach(stat=>{
+    skills[stat].forEach(skill=>{
+      let base = mod(parseInt(document.getElementById(stat+"_val").value||10));
+      let circle = document.getElementById("skill_"+skill);
+      let bonus = circle.dataset.state=="1" ? pb : (circle.dataset.state=="2" ? pb*2 : 0);
+      document.getElementById("skill_res_"+skill).innerText = (base+bonus>=0?"+":"")+(base+bonus);
+    });
+  });
+
+  let wisMod = mod(parseInt(document.getElementById("Мудрость_val").value||10));
+  let intMod = mod(parseInt(document.getElementById("Интеллект_val").value||10));
+
+  document.getElementById("passPer").innerText = 10 + wisMod + (document.getElementById("skill_Восприятие").dataset.state!="0"?pb:0);
+  document.getElementById("passIns").innerText = 10 + wisMod + (document.getElementById("skill_Проницательность").dataset.state!="0"?pb:0);
+  document.getElementById("passInv").innerText = 10 + intMod + (document.getElementById("skill_Анализ").dataset.state!="0"?pb:0);
+}
+
+let statDiv = document.getElementById("stats");
+stats.forEach(s=>{
+  let d = document.createElement("div");
+  d.className="stat-box";
+  d.innerHTML = `
+  <div>${s}</div>
+  <input id="${s}_val" type="number" value="10" onchange="recalcAll()" class="small"><br>
+  <div id="${s}_mod">+0</div>
+  `;
+  statDiv.appendChild(d);
+});
+
+let saveDiv = document.getElementById("saves");
+stats.forEach(s=>{
+  let d = document.createElement("div");
+  d.className="flex";
+  d.innerHTML = `
+  <div class="circle" id="save_${s}" data-state="0" onclick="toggleCircle(this)"></div>
+  <div>${s}</div>
+  <div id="save_res_${s}">+0</div>
+  `;
+  saveDiv.appendChild(d);
+});
+
+let skillDiv = document.getElementById("skills");
+Object.keys(skills).forEach(stat=>{
+  skills[stat].forEach(skill=>{
+    let d = document.createElement("div");
+    d.className="skill";
+    d.innerHTML = `
+    <div class="circle" id="skill_${skill}" data-state="0" onclick="toggleCircle(this)"></div>
+    <div>${skill} (${stat})</div>
+    <div id="skill_res_${skill}">+0</div>
+    `;
+    skillDiv.appendChild(d);
+  });
+});
+
+updatePB();
+</script>
+</body>
+</html>
