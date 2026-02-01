@@ -150,6 +150,7 @@ body{
 </div>
 
 <div class="container">
+
 <!-- ====== ЛЕВА КОЛОНКА ====== -->
 <div class="col">
 
@@ -173,6 +174,21 @@ body{
   <span id="skill_athletics" class="dot"></span>
   <div>Атлетика</div>
 </div>
+</div>
+</div>
+
+<!-- ТЕЛОСЛОЖЕНИЕ -->
+<div class="stat-box">
+<div class="stat-title">Телосложение</div>
+<div class="stat-top">
+  <input id="con_val" class="stat-val" type="number">
+  <input id="con_mod" class="stat-mod" readonly>
+</div>
+
+<div class="row">
+  <div class="skill-num" id="save_con_num">0</div>
+  <span id="save_con" class="dot"></span>
+  <div>Спасбросок Телосложения</div>
 </div>
 </div>
 
@@ -283,7 +299,7 @@ body{
 </div>
 
 <script>
-const stats = ["str","dex","int","wis","cha"];
+const stats = ["str","dex","con","int","wis","cha"];
 
 function calcPB(lvl){
   if(lvl<=4) return 2;
@@ -327,7 +343,7 @@ function recalc(){
     document.getElementById(s+"_mod").value = mod(v);
   });
 
-  // спаскидки
+  // спаскидки (включно з Телосложением)
   stats.forEach(s=>{
     let base = mod(parseInt(document.getElementById(s+"_val").value)||10);
     let st = document.getElementById("save_"+s).dataset.state;
