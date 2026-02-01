@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Owlbear Sheet – D&D 5e (RU)</title>
+<title>Owlbear Sheet – D&D 5e RU</title>
 <style>
 body{
     font-family: Arial, sans-serif;
@@ -11,43 +11,49 @@ body{
     padding:10px;
 }
 .sheet{
-    background:white;
-    padding:12px;
-    border-radius:8px;
-    max-width:900px;
+    max-width:950px;
     margin:auto;
-    box-shadow:0 0 5px rgba(0,0,0,.1);
-}
-.row{
     display:flex;
+    flex-direction:column;
     gap:8px;
-    flex-wrap:wrap;
 }
+.row{display:flex; gap:8px; flex-wrap:wrap;}
 .block{
-    border:1px solid #ccc;
     padding:8px;
     border-radius:6px;
     margin-bottom:8px;
+    background:rgba(255,255,255,0.7);
 }
-.flex{
-    display:flex;
-    gap:6px;
-    align-items:center;
-}
-.column{
-    display:flex;
-    flex-direction:column;
-    gap:6px;
-}
+.column{display:flex; flex-direction:column; gap:4px;}
 input{
     padding:4px;
+    border-radius:4px;
+    border:1px solid #999;
+    background:rgba(255,255,255,0.7);
 }
-.small{
-    width:60px;
-}
+.small{width:60px;}
 .stat-box{
-    width:110px;
-    text-align:center;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    width:70px;
+}
+.stat-square{
+    width:50px;
+    height:50px;
+    border:1px solid #333;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;
+}
+.stat-rect{
+    width:50px;
+    height:20px;
+    border-top:1px solid #333;
+    display:flex;
+    align-items:center;
+    justify-content:center;
 }
 .circle{
     width:18px;
@@ -57,83 +63,49 @@ input{
     cursor:pointer;
     display:inline-block;
 }
-.circle.filled{
-    background:black;
-}
-.circle.double{
-    background:black;
-    box-shadow: inset 0 0 0 3px white;
-}
-.skill{
-    display:flex;
-    align-items:center;
-    gap:6px;
-}
-.passive{
-    font-weight:bold;
-}
+.circle.filled{background:black;}
+.skill{display:flex; align-items:center; gap:4px;}
+.flex-wrap{display:flex; gap:8px; flex-wrap:wrap;}
+.passive{font-weight:bold;}
+.armor-options{display:flex; gap:8px; align-items:center;}
 </style>
 </head>
 <body>
 
 <div class="sheet">
-
 <h3>Персонаж</h3>
 <div class="row block">
-  <div class="column">
-    <label>Имя</label>
-    <input id="name">
-  </div>
-  <div class="column">
-    <label>Класс</label>
-    <input id="class">
-  </div>
-  <div class="column">
-    <label>Подкласс</label>
-    <input id="subclass">
-  </div>
-  <div class="column">
-    <label>Раса</label>
-    <input id="race">
-  </div>
-  <div class="column">
-    <label>Уровень</label>
-    <input id="level" type="number" value="1" min="1" max="20" class="small" onchange="updatePB()">
-  </div>
-  <div class="column">
-    <label>Бонус мастерства</label>
-    <input id="pb" class="small" readonly>
-  </div>
+  <div class="column"><label>Имя</label><input id="name"></div>
+  <div class="column"><label>Класс</label><input id="class"></div>
+  <div class="column"><label>Подкласс</label><input id="subclass"></div>
+  <div class="column"><label>Раса</label><input id="race"></div>
+  <div class="column"><label>Уровень</label><input id="level" type="number" value="1" min="1" max="20" class="small" onchange="updatePB()"></div>
+  <div class="column"><label>Бонус мастерства</label><input id="pb" class="small" readonly></div>
 </div>
 
 <h3>Здоровье и броня</h3>
 <div class="row block">
-  <div class="column">
-    <label>Текущие ХП</label>
-    <input id="hp" class="small">
-  </div>
-  <div class="column">
-    <label>Макс ХП</label>
-    <input id="maxhp" class="small">
-  </div>
-  <div class="column">
-    <label>Временные ХП</label>
-    <input id="temphp" class="small">
-  </div>
+  <div class="column"><label>Текущие ХП</label><input id="hp" class="small"></div>
+  <div class="column"><label>Макс ХП</label><input id="maxhp" class="small"></div>
+  <div class="column"><label>Временные ХП</label><input id="temphp" class="small"></div>
   <div class="column">
     <label>Броня (AC)</label>
     <input id="ac" class="small">
+    <div class="armor-options">
+      <label><input type="checkbox" id="walk"> Кроки звичайні</label>
+      <label><input type="checkbox" id="swim"> Якщо пливеш</label>
+    </div>
   </div>
 </div>
 
 <h3>Характеристики</h3>
-<div class="row block" id="stats"></div>
+<div class="row block" id="stats-container"></div>
 
-<h3>Спасброски</h3>
-<div class="block" id="saves"></div>
-
-<h3>Навыки</h3>
-<div class="block" id="skills"></div>
+<h3>Навыки и спаски</h3>
+<div class="row block">
+  <div class="column" id="left-stats"></div>
+  <div class="column" id="right-stats"></div>
+</div>
 
 <h3>Пассивные значения</h3>
 <div class="block">
@@ -141,15 +113,10 @@ input{
   <div>Мудрость (Проницательность): <span id="passIns" class="passive">10</span></div>
   <div>Интеллект (Анализ): <span id="passInv" class="passive">10</span></div>
 </div>
-
 </div>
 
 <script>
-const stats = [
-  "Сила","Ловкость","Телосложение",
-  "Интеллект","Мудрость","Харизма"
-];
-
+const stats = ["Сила","Интеллект","Харизма","Ловкость","Мудрость","Телосложение"];
 const skills = {
  "Сила":["Атлетика"],
  "Ловкость":["Акробатика","Ловкость рук","Скрытность"],
@@ -158,39 +125,29 @@ const skills = {
  "Мудрость":["Восприятие","Выживание","Медицина","Проницательность","Уход за животными"],
  "Харизма":["Выступление","Запугивание","Обман","Убеждение"]
 };
+const pbTable = {1:2,2:2,3:2,4:2,5:3,6:3,7:3,8:3,9:4,10:4,11:4,12:4,13:5,14:5,15:5,16:5,17:6,18:6,19:6,20:6};
+function mod(v){return Math.floor((v-10)/2);}
 
-const pbTable = {
-1:2,2:2,3:2,4:2,
-5:3,6:3,7:3,8:3,
-9:4,10:4,11:4,12:4,
-13:5,14:5,15:5,16:5,
-17:6,18:6,19:6,20:6
-};
-
-function mod(v){ return Math.floor((v-10)/2); }
+// Збереження
+function saveData(){localStorage.setItem("sheetData", JSON.stringify(getAllData()));}
+function loadData(){const d=JSON.parse(localStorage.getItem("sheetData")||"{}");setAllData(d);}
 
 function updatePB(){
-  let lvl = document.getElementById("level").value;
-  document.getElementById("pb").value = pbTable[lvl] || 2;
+  let lvl = parseInt(document.getElementById("level").value||1);
+  document.getElementById("pb").value = pbTable[lvl]||2;
   recalcAll();
+  saveData();
 }
 
 function toggleCircle(el){
-  if(!el.classList.contains("filled")){
-    el.classList.add("filled");
-    el.dataset.state = "1";
-  } else if(el.dataset.state=="1"){
-    el.classList.add("double");
-    el.dataset.state = "2";
-  } else {
-    el.classList.remove("filled","double");
-    el.dataset.state = "0";
-  }
+  el.classList.toggle("filled");
+  el.dataset.state = el.dataset.state=="1" ? "0" : "1"; // тільки один раз бонус
   recalcAll();
+  saveData();
 }
 
 function recalcAll(){
-  let pb = parseInt(document.getElementById("pb").value);
+  let pb = parseInt(document.getElementById("pb").value||2);
 
   stats.forEach(s=>{
     let val = parseInt(document.getElementById(s+"_val").value||10);
@@ -200,7 +157,7 @@ function recalcAll(){
   stats.forEach(s=>{
     let base = mod(parseInt(document.getElementById(s+"_val").value||10));
     let circle = document.getElementById("save_"+s);
-    let bonus = circle.dataset.state=="1" ? pb : (circle.dataset.state=="2" ? pb*2 : 0);
+    let bonus = circle.dataset.state=="1" ? pb : 0;
     document.getElementById("save_res_"+s).innerText = (base+bonus>=0?"+":"")+(base+bonus);
   });
 
@@ -208,7 +165,7 @@ function recalcAll(){
     skills[stat].forEach(skill=>{
       let base = mod(parseInt(document.getElementById(stat+"_val").value||10));
       let circle = document.getElementById("skill_"+skill);
-      let bonus = circle.dataset.state=="1" ? pb : (circle.dataset.state=="2" ? pb*2 : 0);
+      let bonus = circle.dataset.state=="1" ? pb : 0;
       document.getElementById("skill_res_"+skill).innerText = (base+bonus>=0?"+":"")+(base+bonus);
     });
   });
@@ -216,49 +173,75 @@ function recalcAll(){
   let wisMod = mod(parseInt(document.getElementById("Мудрость_val").value||10));
   let intMod = mod(parseInt(document.getElementById("Интеллект_val").value||10));
 
-  document.getElementById("passPer").innerText = 10 + wisMod + (document.getElementById("skill_Восприятие").dataset.state!="0"?pb:0);
-  document.getElementById("passIns").innerText = 10 + wisMod + (document.getElementById("skill_Проницательность").dataset.state!="0"?pb:0);
-  document.getElementById("passInv").innerText = 10 + intMod + (document.getElementById("skill_Анализ").dataset.state!="0"?pb:0);
+  document.getElementById("passPer").innerText = 10 + wisMod + (document.getElementById("skill_Восприятие").dataset.state=="1"?pb:0);
+  document.getElementById("passIns").innerText = 10 + wisMod + (document.getElementById("skill_Проницательность").dataset.state=="1"?pb:0);
+  document.getElementById("passInv").innerText = 10 + intMod + (document.getElementById("skill_Анализ").dataset.state=="1"?pb:0);
 }
 
-let statDiv = document.getElementById("stats");
-stats.forEach(s=>{
-  let d = document.createElement("div");
-  d.className="stat-box";
-  d.innerHTML = `
-  <div>${s}</div>
-  <input id="${s}_val" type="number" value="10" onchange="recalcAll()" class="small"><br>
-  <div id="${s}_mod">+0</div>
-  `;
-  statDiv.appendChild(d);
-});
+// Генерація полів
+function createStatBox(s){
+  return `
+  <div class="stat-box">
+    <div class="stat-square"><input id="${s}_val" type="number" value="10" style="width:100%;border:none;text-align:center;background:none;" onchange="recalcAll();saveData()"></div>
+    <div class="stat-rect" id="${s}_mod">+0</div>
+    <div class="circle" id="save_${s}" data-state="0" onclick="toggleCircle(this)"></div>
+    <div id="save_res_${s}">+0</div>
+  </div>`;
+}
 
-let saveDiv = document.getElementById("saves");
-stats.forEach(s=>{
-  let d = document.createElement("div");
-  d.className="flex";
-  d.innerHTML = `
-  <div class="circle" id="save_${s}" data-state="0" onclick="toggleCircle(this)"></div>
-  <div>${s}</div>
-  <div id="save_res_${s}">+0</div>
-  `;
-  saveDiv.appendChild(d);
-});
-
-let skillDiv = document.getElementById("skills");
-Object.keys(skills).forEach(stat=>{
-  skills[stat].forEach(skill=>{
-    let d = document.createElement("div");
-    d.className="skill";
-    d.innerHTML = `
+function createSkillBox(skill){return `
+  <div class="skill">
     <div class="circle" id="skill_${skill}" data-state="0" onclick="toggleCircle(this)"></div>
-    <div>${skill} (${stat})</div>
+    <div>${skill}</div>
     <div id="skill_res_${skill}">+0</div>
-    `;
-    skillDiv.appendChild(d);
-  });
+  </div>`;}
+
+// Розподіл по колонках
+let leftStats=document.getElementById("left-stats");
+let rightStats=document.getElementById("right-stats");
+
+["Сила","Интеллект","Харизма"].forEach(s=>{
+  leftStats.innerHTML+=createStatBox(s);
+  skills[s].forEach(sk=>leftStats.innerHTML+=createSkillBox(sk));
 });
 
+["Ловкость","Мудрость","Телосложение"].forEach(s=>{
+  rightStats.innerHTML+=createStatBox(s);
+  skills[s].forEach(sk=>rightStats.innerHTML+=createSkillBox(sk));
+});
+
+function getAllData(){
+  let data={};
+  ["name","class","subclass","race","level","pb","hp","maxhp","temphp","ac"].forEach(id=>data[id]=document.getElementById(id).value);
+  ["walk","swim"].forEach(id=>data[id]=document.getElementById(id).checked);
+  stats.forEach(s=>{
+    data[s+"_val"]=document.getElementById(s+"_val").value;
+    data["save_"+s]=document.getElementById("save_"+s).dataset.state;
+  });
+  Object.keys(skills).forEach(stat=>skills[stat].forEach(sk=>{
+    data["skill_"+sk]=document.getElementById("skill_"+sk).dataset.state;
+  }));
+  return data;
+}
+
+function setAllData(d){
+  ["name","class","subclass","race","level","pb","hp","maxhp","temphp","ac"].forEach(id=>{if(d[id]!=undefined)document.getElementById(id).value=d[id]});
+  ["walk","swim"].forEach(id=>{if(d[id]!=undefined)document.getElementById(id).checked=d[id]});
+  stats.forEach(s=>{
+    if(d[s+"_val"]!=undefined)document.getElementById(s+"_val").value=d[s+"_val"];
+    if(d["save_"+s]!=undefined)document.getElementById("save_"+s).dataset.state=d["save_"+s];
+    if(d["save_"+s]=="1")document.getElementById("save_"+s).classList.add("filled"); else document.getElementById("save_"+s).classList.remove("filled");
+  });
+  Object.keys(skills).forEach(stat=>skills[stat].forEach(sk=>{
+    if(d["skill_"+sk]!=undefined){
+      document.getElementById("skill_"+sk).dataset.state=d["skill_"+sk];
+      if(d["skill_"+sk]=="1") document.getElementById("skill_"+sk).classList.add("filled"); else document.getElementById("skill_"+sk).classList.remove("filled");
+    }
+  }));
+  recalcAll();
+}
+
+loadData();
 updatePB();
 </script>
 </body>
