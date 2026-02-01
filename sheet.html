@@ -10,32 +10,13 @@ body{
   padding:8px;
 }
 
-/* ======= НОВА СМУГА НАД ІМ’ЯМ ======= */
-.topbar{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap:8px;
-  margin-bottom:8px;
-}
-
-.topbar .field{
+/* ======= ВДОХНОВЕНИЕ НАД ИМЕНЕМ ======= */
+.inspiration-bar{
   display:flex;
   align-items:center;
   gap:6px;
-}
-
-/* квадрат для ініціативи */
-.init-box{
-  width:48px;
-  height:48px;
-  text-align:center;
-  font-size:20px;
-  background:rgba(255,255,255,0.15);
-  border:1px solid #777;
-  border-radius:6px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  margin-bottom:6px;
+  font-size:12px;
 }
 
 /* ======= HEADER ======= */
@@ -58,6 +39,22 @@ body{
   color:white;
   border:1px solid #555;
   border-radius:4px;
+}
+
+/* ======= КВАДРАТ ИНИЦИАТИВЫ ======= */
+.ac-row{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.init-square{
+  width:36px;
+  height:32px;
+  text-align:center;
+  font-size:14px;
+  background:rgba(255,255,255,0.15);
+  border:1px solid #777;
+  border-radius:6px;
 }
 
 /* ======= STATS LAYOUT ======= */
@@ -159,16 +156,10 @@ body{
 
 <h3>Лист персонажа</h3>
 
-<!-- ===== НОВИЙ БЛОК НАД ІМ’ЯМ ===== -->
-<div class="topbar">
-  <div class="field">
-    <input id="inspiration" type="checkbox">
-    <label>Натхнення</label>
-  </div>
-  <div class="field">
-    <label>Ініціатива</label>
-    <div class="init-box" id="initiative">+0</div>
-  </div>
+<!-- НАТХНЕННЯ НАД ІМ’ЯМ -->
+<div class="inspiration-bar">
+  <input type="checkbox" id="inspiration">
+  <label for="inspiration">Натхнення</label>
 </div>
 
 <div class="header">
@@ -184,7 +175,16 @@ body{
   <div class="field"><label>Текущие ХП</label><input id="hp" type="number"></div>
   <div class="field"><label>Макс ХП</label><input id="maxhp" type="number"></div>
   <div class="field"><label>Временные ХП</label><input id="temphp" type="number"></div>
-  <div class="field"><label>Броня (AC)</label><input id="ac" type="number"></div>
+
+  <!-- БРОНЯ + ИНИЦИАТИВА -->
+  <div class="field">
+    <label>Броня (AC) / Инициатива</label>
+    <div class="ac-row">
+      <input id="ac" type="number">
+      <input id="initiative" class="init-square" readonly>
+    </div>
+  </div>
+
   <div class="field"><label>Перемещение</label><input id="move" type="number"></div>
   <div class="field"><label>Перемещение в воде</label><input id="swim" type="number"></div>
 </div>
@@ -383,9 +383,8 @@ function recalc(){
     document.getElementById(s+"_mod").value = mod(v);
   });
 
-  // ініціатива = модифікатор ловкості
-  let dexMod = mod(parseInt(dex_val.value)||10);
-  initiative.textContent = (dexMod>=0?"+":"")+dexMod;
+  // ИНИЦИАТИВА = мод ловкости
+  initiative.value = mod(parseInt(dex_val.value)||10);
 
   // спаскидки
   stats.forEach(s=>{
@@ -426,28 +425,21 @@ function recalc(){
 // сохранение
 function save(){
   let data = {};
-  document.querySelectorAll("input").forEach(i=>{
-    if(i.type==="checkbox") data[i.id]=i.checked;
-    else data[i.id]=i.value;
-  });
+  document.querySelectorAll("input").forEach(i=>data[i.id]=i.value);
   document.querySelectorAll(".dot").forEach(d=>data[d.id]=d.dataset.state||"0");
+  data["inspiration"] = inspiration.checked;
   localStorage.setItem("owlbear_sheet",JSON.stringify(data));
 }
 
 // загрузка
 function load(){
   let d = JSON.parse(localStorage.getItem("owlbear_sheet")||"{}");
-
-  document.querySelectorAll("input").forEach(i=>{
-    if(i.type==="checkbox"){
-      if(d[i.id]!==undefined) i.checked = d[i.id];
-    } else if(d[i.id]) i.value=d[i.id];
-  });
-
+  document.querySelectorAll("input").forEach(i=>{ if(d[i.id]) i.value=d[i.id];});
   document.querySelectorAll(".dot").forEach(dot=>{
     if(d[dot.id]) dot.dataset.state=d[dot.id];
     dot.classList.toggle("filled", dot.dataset.state!="0");
   });
+  inspiration.checked = d["inspiration"]==="true" || d["inspiration"]===true;
 }
 
 document.querySelectorAll("input").forEach(i=>{
