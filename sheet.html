@@ -1,233 +1,351 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>Owlbear Sheet – D&D 5e RU</title>
 <style>
 body{
-    font-family: Arial, sans-serif;
-    background:#f2f2f2;
-    margin:0;
-    padding:10px;
+  font-family: Arial, sans-serif;
+  background:#1e1f22;
+  color:#e6e6e6;
+  padding:8px;
 }
-.sheet{
-    max-width:1000px;
-    margin:auto;
-    display:flex;
-    flex-direction:column;
-    gap:8px;
+
+/* ======= HEADER ======= */
+.header{
+  display:grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
+  gap:6px;
+  margin-bottom:10px;
 }
-.row{display:flex; gap:8px; flex-wrap:wrap;}
-.block{
-    padding:8px;
-    border-radius:6px;
-    margin-bottom:8px;
-    background:rgba(255,255,255,0.7);
+.field{
+  background:#2b2d31;
+  border:1px solid #444;
+  padding:4px;
+  border-radius:6px;
 }
-.column{display:flex; flex-direction:column; gap:4px;}
-input{
-    padding:4px;
-    border-radius:4px;
-    border:1px solid #999;
-    background:rgba(255,255,255,0.7);
+.field label{font-size:11px; opacity:.8;}
+.field input{
+  width:100%;
+  background:rgba(255,255,255,0.15);
+  color:white;
+  border:1px solid #555;
+  border-radius:4px;
 }
-.small{width:60px;}
-.stat-frame{
-    border:1px solid #666;
-    border-radius:6px;
-    padding:6px;
-    margin-bottom:6px;
-    display:flex;
-    flex-direction:column;
-    gap:4px;
-    background:rgba(255,255,255,0.6);
+
+/* ======= STATS LAYOUT ======= */
+.container{
+  display:grid;
+  grid-template-columns: 1fr 0.8fr 1fr;
+  gap:16px;
 }
+
+/* Колонки */
+.col{display:flex; flex-direction:column; gap:10px;}
+
+/* Рамка блока характеристики */
+.stat-box{
+  border:1px solid #666;
+  border-radius:8px;
+  padding:6px;
+  background:#24262a;
+}
+
+/* Назва характеристики */
+.stat-title{
+  text-align:center;
+  font-weight:bold;
+  margin-bottom:4px;
+}
+
+/* Квадрат + прямокутник модифікатора */
 .stat-top{
-    display:flex;
-    gap:4px;
-    align-items:center;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:0;
 }
-.stat-label{
-    font-weight:bold;
-    text-align:center;
+.stat-val{
+  width:48px;
+  height:48px;
+  text-align:center;
+  font-size:22px;
+  background:rgba(255,255,255,0.15);
+  border:1px solid #777;
 }
-.stat-square{
-    width:50px;
-    height:50px;
-    border:1px solid #333;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-weight:bold;
+.stat-mod{
+  width:40px;
+  height:48px;
+  text-align:center;
+  font-size:18px;
+  background:rgba(255,255,255,0.15);
+  border:1px solid #777;
+  border-left:none;
 }
-.stat-rect{
-    width:50px;
-    height:30px;
-    border-top:1px solid #333;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    margin-left:-1px;
+
+/* Кругляшки */
+.dot{
+  width:16px;
+  height:16px;
+  border:1px solid #aaa;
+  border-radius:50%;
+  display:inline-block;
+  cursor:pointer;
+  margin-right:4px;
 }
-.skill, .save{
-    display:flex; align-items:center; gap:6px;
-    padding-left:6px;
-    margin-bottom:4px;
+.dot.filled{background:#7dd3fc;}
+
+/* Список спасків і навичок */
+.list{
+  margin-top:6px;
+  font-size:13px;
 }
-.circle{
-    width:18px;
-    height:18px;
-    border:1px solid black;
-    border-radius:50%;
-    cursor:pointer;
-    display:inline-block;
+.row{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin:4px 0;
 }
-.circle.filled{background:black;}
-.passive-frame{
-    border:1px solid #666;
-    border-radius:6px;
-    padding:6px;
-    margin-top:12px;
-    background:rgba(255,255,255,0.6);
+
+/* Пасивні навички */
+.passive-box{
+  border:1px solid #666;
+  border-radius:8px;
+  padding:6px;
+  background:#24262a;
 }
-.left-block{flex:1; display:flex; flex-direction:column; gap:8px;}
-.right-block{flex:1; display:flex; flex-direction:column; gap:8px; margin-left:30px;}
-.armor-row{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
 </style>
 </head>
 <body>
 
-<div class="sheet">
+<h3>Лист персонажа</h3>
 
-<h3>Персонаж</h3>
-<div class="row block">
-  <div class="column"><label>Имя</label><input id="name"></div>
-  <div class="column"><label>Класс</label><input id="class"></div>
-  <div class="column"><label>Подкласс</label><input id="subclass"></div>
-  <div class="column"><label>Раса</label><input id="race"></div>
-  <div class="column"><label>Уровень</label><input id="level" type="number" value="1" min="1" max="20" class="small" onchange="updatePB()"></div>
-  <div class="column"><label>Бонус мастерства</label><input id="pb" class="small" readonly></div>
+<div class="header">
+  <div class="field">
+    <label>Имя</label>
+    <input id="name">
+  </div>
+  <div class="field">
+    <label>Класс</label>
+    <input id="class">
+  </div>
+  <div class="field">
+    <label>Подкласс</label>
+    <input id="subclass">
+  </div>
+  <div class="field">
+    <label>Раса</label>
+    <input id="race">
+  </div>
+  <div class="field">
+    <label>Уровень</label>
+    <input id="level" type="number" min="1" value="1">
+  </div>
+  <div class="field">
+    <label>Бонус мастерства</label>
+    <input id="pb" readonly>
+  </div>
 </div>
 
-<h3>ХП, броня и перемещение</h3>
-<div class="row block armor-row">
-  <div class="column"><label>Текущие ХП</label><input id="hp" class="small"></div>
-  <div class="column"><label>Макс ХП</label><input id="maxhp" class="small"></div>
-  <div class="column"><label>Временные ХП</label><input id="temphp" class="small"></div>
-  <div class="column"><label>Броня (AC)</label><input id="ac" class="small"></div>
-  <div class="column"><label>Перемещение</label><input id="move" class="small"></div>
-  <div class="column"><label>Перемещение в воде</label><input id="swim" class="small"></div>
+<div class="header">
+  <div class="field">
+    <label>Текущие ХП</label>
+    <input id="hp" type="number">
+  </div>
+  <div class="field">
+    <label>Макс ХП</label>
+    <input id="maxhp" type="number">
+  </div>
+  <div class="field">
+    <label>Временные ХП</label>
+    <input id="temphp" type="number">
+  </div>
+  <div class="field">
+    <label>Броня (AC)</label>
+    <input id="ac" type="number">
+  </div>
+  <div class="field">
+    <label>Перемещение</label>
+    <input id="move" type="number">
+  </div>
+  <div class="field">
+    <label>Перемещение в воде</label>
+    <input id="swim" type="number">
+  </div>
 </div>
 
-<h3>Характеристики, спаскидки и навыки</h3>
-<div class="row">
-  <div class="left-block" id="left-stats"></div>
-  <div class="right-block" id="right-stats"></div>
+<div class="container">
+<!-- ====== ЛЕВА КОЛОНКА ====== -->
+<div class="col">
+  <!-- СИЛА -->
+  <div class="stat-box">
+    <div class="stat-title">Сила</div>
+    <div class="stat-top">
+      <input id="str_val" class="stat-val" type="number">
+      <input id="str_mod" class="stat-mod" readonly>
+    </div>
+    <div class="list">
+      <div class="row"><span id="save_str" class="dot"></span> Спасбросок Силы</div>
+      <div class="row"><span id="skill_athletics" class="dot"></span> Атлетика</div>
+    </div>
+  </div>
+
+  <!-- ИНТЕЛЛЕКТ -->
+  <div class="stat-box">
+    <div class="stat-title">Интеллект</div>
+    <div class="stat-top">
+      <input id="int_val" class="stat-val" type="number">
+      <input id="int_mod" class="stat-mod" readonly>
+    </div>
+    <div class="list">
+      <div class="row"><span id="save_int" class="dot"></span> Спасбросок Интеллекта</div>
+      <div class="row"><span id="skill_arcana" class="dot"></span> Магия</div>
+      <div class="row"><span id="skill_history" class="dot"></span> История</div>
+      <div class="row"><span id="skill_nature" class="dot"></span> Природа</div>
+      <div class="row"><span id="skill_religion" class="dot"></span> Религия</div>
+      <div class="row"><span id="skill_investigation" class="dot"></span> Анализ</div>
+    </div>
+  </div>
+
+  <!-- ХАРИЗМА -->
+  <div class="stat-box">
+    <div class="stat-title">Харизма</div>
+    <div class="stat-top">
+      <input id="cha_val" class="stat-val" type="number">
+      <input id="cha_mod" class="stat-mod" readonly>
+    </div>
+    <div class="list">
+      <div class="row"><span id="save_cha" class="dot"></span> Спасбросок Харизмы</div>
+      <div class="row"><span id="skill_deception" class="dot"></span> Обман</div>
+      <div class="row"><span id="skill_intimidation" class="dot"></span> Запугивание</div>
+      <div class="row"><span id="skill_performance" class="dot"></span> Выступление</div>
+      <div class="row"><span id="skill_persuasion" class="dot"></span> Убеждение</div>
+    </div>
+  </div>
 </div>
 
-<h3>Пассивные навыки</h3>
-<div class="passive-frame">
-  <div>Мудрость (Восприятие): <span id="passPer">10</span></div>
-  <div>Мудрость (Проницательность): <span id="passIns">10</span></div>
-  <div>Интеллект (Анализ): <span id="passInv">10</span></div>
-</div>
+<!-- ====== СЕРЕДИНА (порожня) ====== -->
+<div></div>
 
+<!-- ====== ПРАВА КОЛОНКА ====== -->
+<div class="col">
+  <!-- ЛОВКОСТЬ -->
+  <div class="stat-box">
+    <div class="stat-title">Ловкость</div>
+    <div class="stat-top">
+      <input id="dex_val" class="stat-val" type="number">
+      <input id="dex_mod" class="stat-mod" readonly>
+    </div>
+    <div class="list">
+      <div class="row"><span id="save_dex" class="dot"></span> Спасбросок Ловкости</div>
+      <div class="row"><span id="skill_acrobatics" class="dot"></span> Акробатика</div>
+      <div class="row"><span id="skill_sleight" class="dot"></span> Ловкость рук</div>
+      <div class="row"><span id="skill_stealth" class="dot"></span> Скрытность</div>
+    </div>
+  </div>
+
+  <!-- МУДРОСТЬ -->
+  <div class="stat-box">
+    <div class="stat-title">Мудрость</div>
+    <div class="stat-top">
+      <input id="wis_val" class="stat-val" type="number">
+      <input id="wis_mod" class="stat-mod" readonly>
+    </div>
+    <div class="list">
+      <div class="row"><span id="save_wis" class="dot"></span> Спасбросок Мудрости</div>
+      <div class="row"><span id="skill_perception" class="dot"></span> Восприятие</div>
+      <div class="row"><span id="skill_insight" class="dot"></span> Проницательность</div>
+      <div class="row"><span id="skill_medicine" class="dot"></span> Медицина</div>
+      <div class="row"><span id="skill_survival" class="dot"></span> Выживание</div>
+      <div class="row"><span id="skill_animal" class="dot"></span> Уход за животными</div>
+    </div>
+  </div>
+
+  <!-- ПАССИВНЫЕ -->
+  <div class="passive-box">
+    <div><b>Пассивные навыки</b></div>
+    <div>Восприятие: <span id="pass_perception"></span></div>
+    <div>Проницательность: <span id="pass_insight"></span></div>
+    <div>Анализ: <span id="pass_investigation"></span></div>
+  </div>
+</div>
 </div>
 
 <script>
-const stats=[
-  {id:"Сила", label:"Сила"},
-  {id:"Ловкость", label:"Ловкость"},
-  {id:"Телосложение", label:"Телосложение"},
-  {id:"Интеллект", label:"Интеллект"},
-  {id:"Мудрость", label:"Мудрость"},
-  {id:"Харизма", label:"Харизма"}
-];
+const stats = ["str","dex","con","int","wis","cha"];
 
-const skills={
- "Сила":["Атлетика"],
- "Ловкость":["Акробатика","Ловкость рук","Скрытность"],
- "Телосложение":[],
- "Интеллект":["Анализ","История","Магия","Природа","Религия"],
- "Мудрость":["Восприятие","Выживание","Медицина","Проницательность","Уход за животными"],
- "Харизма":["Выступление","Запугивание","Обман","Убеждение"]
-};
+// PB по уровню
+function calcPB(lvl){
+  if(lvl<=4) return 2;
+  if(lvl<=8) return 3;
+  if(lvl<=12) return 4;
+  if(lvl<=16) return 5;
+  return 6;
+}
 
-const pbTable={1:2,2:2,3:2,4:2,5:3,6:3,7:3,8:3,9:4,10:4,11:4,12:4,13:5,14:5,15:5,16:5,17:6,18:6,19:6,20:6};
+// модификатор
+function mod(v){ return Math.floor((v-10)/2); }
 
-function mod(v){return Math.floor((v-10)/2);}
+// сохранение
+function save(){
+  let data = {};
+  document.querySelectorAll("input").forEach(i=>data[i.id]=i.value);
+  document.querySelectorAll(".dot").forEach(d=>data[d.id]=d.dataset.state||"0");
+  localStorage.setItem("owlbear_sheet",JSON.stringify(data));
+}
 
-function saveData(){localStorage.setItem("sheetData",JSON.stringify(getAllData()));}
-function loadData(){let d=JSON.parse(localStorage.getItem("sheetData")||"{}");setAllData(d);}
-
-function updatePB(){let lvl=parseInt(document.getElementById("level").value||1);document.getElementById("pb").value=pbTable[lvl]||2;recalcAll();saveData();}
-
-function toggleCircle(el){el.dataset.state=el.dataset.state=="1"?"0":"1";el.classList.toggle("filled");recalcAll();saveData();}
-
-function recalcAll(){
-  let pb=parseInt(document.getElementById("pb").value||2);
-  stats.forEach(s=>{
-    let val=parseInt(document.getElementById(s.id+"_val").value||10);
-    document.getElementById(s.id+"_mod").innerText=(mod(val)>=0?"+":"")+mod(val);
+// загрузка
+function load(){
+  let d = JSON.parse(localStorage.getItem("owlbear_sheet")||"{}");
+  document.querySelectorAll("input").forEach(i=>{ if(d[i.id]) i.value=d[i.id];});
+  document.querySelectorAll(".dot").forEach(dot=>{
+    if(d[dot.id]) dot.dataset.state=d[dot.id];
+    dot.classList.toggle("filled", dot.dataset.state=="1");
   });
+  recalc();
+}
+
+// кругляшки
+document.querySelectorAll(".dot").forEach(dot=>{
+  dot.dataset.state="0";
+  dot.onclick=()=>{
+    if(dot.id.startsWith("save_")){
+      dot.dataset.state = dot.dataset.state=="0"?"1":"0";
+    } else {
+      dot.dataset.state = (parseInt(dot.dataset.state)+1)%3;
+    }
+    dot.classList.toggle("filled", dot.dataset.state!="0");
+    recalc(); save();
+  }
+});
+
+// перерасчет
+function recalc(){
+  let lvl = parseInt(level.value)||1;
+  pb.value = calcPB(lvl);
+
   stats.forEach(s=>{
-    let base=mod(parseInt(document.getElementById(s.id+"_val").value||10));
-    let circle=document.getElementById("save_"+s.id);
-    let bonus=circle.dataset.state=="1"?pb:0;
-    document.getElementById("save_res_"+s.id).innerText=(base+bonus>=0?"+":"")+(base+bonus);
+    let v = parseInt(document.getElementById(s+"_val").value)||10;
+    document.getElementById(s+"_mod").value = mod(v);
   });
-  Object.keys(skills).forEach(stat=>skills[stat].forEach(skill=>{
-    let base=mod(parseInt(document.getElementById(stat+"_val").value||10));
-    let circle=document.getElementById("skill_"+skill);
-    let bonus=circle.dataset.state=="1"?pb:0;
-    document.getElementById("skill_res_"+skill).innerText=(base+bonus>=0?"+":"")+(base+bonus);
-  }));
-  let wisMod=mod(parseInt(document.getElementById("Мудрость_val").value||10));
-  let intMod=mod(parseInt(document.getElementById("Интеллект_val").value||10));
-  document.getElementById("passPer").innerText=10+wisMod+(document.getElementById("skill_Восприятие").dataset.state=="1"?pb:0);
-  document.getElementById("passIns").innerText=10+wisMod+(document.getElementById("skill_Проницательность").dataset.state=="1"?pb:0);
-  document.getElementById("passInv").innerText=10+intMod+(document.getElementById("skill_Анализ").dataset.state=="1"?pb:0);
+
+  // пассивные
+  let wis = mod(parseInt(wis_val.value)||10);
+  let intm = mod(parseInt(int_val.value)||10);
+
+  pass_perception.textContent = 10 + wis + (document.getElementById("skill_perception").dataset.state!="0"?parseInt(pb.value):0);
+  pass_insight.textContent = 10 + wis + (document.getElementById("skill_insight").dataset.state!="0"?parseInt(pb.value):0);
+  pass_investigation.textContent = 10 + intm + (document.getElementById("skill_investigation").dataset.state!="0"?parseInt(pb.value):0);
+
+  save();
 }
 
-function createStatFrame(s){
-  let html=`<div class="stat-frame">
-    <div class="stat-label">${s.label}</div>
-    <div class="stat-top">
-      <div class="stat-square"><input id="${s.id}_val" type="number" value="10" style="width:100%;border:none;text-align:center;background:none;" onchange="recalcAll();saveData()"></div>
-      <div class="stat-rect" id="${s.id}_mod">+0</div>
-    </div>
-    <div class="save"><div class="circle" id="save_${s.id}" data-state="0" onclick="toggleCircle(this)"></div> <div id="save_res_${s.id}">+0</div></div>`;
-  skills[s.id].forEach(sk=>html+=`<div class="skill"><div class="circle" id="skill_${sk}" data-state="0" onclick="toggleCircle(this)"></div> ${sk} <div id="skill_res_${sk}">+0</div></div>`);
-  html+="</div>"; return html;
-}
+// авто-сохранение
+document.querySelectorAll("input").forEach(i=>{
+  i.addEventListener("input", recalc);
+});
 
-let left=document.getElementById("left-stats");
-let right=document.getElementById("right-stats");
-["Сила","Интеллект","Харизма"].forEach(id=>left.innerHTML+=createStatFrame(stats.find(s=>s.id==id)));
-["Ловкость","Мудрость","Телосложение"].forEach(id=>right.innerHTML+=createStatFrame(stats.find(s=>s.id==id)));
-
-function getAllData(){
-  let data={};
-  ["name","class","subclass","race","level","pb","hp","maxhp","temphp","ac","move","swim"].forEach(id=>data[id]=document.getElementById(id).value);
-  stats.forEach(s=>{data[s.id+"_val"]=document.getElementById(s.id+"_val").value;data["save_"+s.id]=document.getElementById("save_"+s.id).dataset.state;});
-  Object.keys(skills).forEach(stat=>skills[stat].forEach(sk=>{data["skill_"+sk]=document.getElementById("skill_"+sk).dataset.state;}));
-  return data;
-}
-
-function setAllData(d){
-  ["name","class","subclass","race","level","pb","hp","maxhp","temphp","ac","move","swim"].forEach(id=>{if(d[id]!=undefined)document.getElementById(id).value=d[id];});
-  stats.forEach(s=>{
-    if(d[s.id+"_val"]!=undefined)document.getElementById(s.id+"_val").value=d[s.id+"_val"];
-    if(d["save_"+s.id]!=undefined){document.getElementById("save_"+s.id).dataset.state=d["save_"+s.id];document.getElementById("save_"+s.id).classList.toggle("filled",d["save_"+s.id]=="1");}
-  });
-  Object.keys(skills).forEach(stat=>skills[stat].forEach(sk=>{
-    if(d["skill_"+sk]!=undefined){document.getElementById("skill_"+sk).dataset.state=d["skill_"+sk];document.getElementById("skill_"+sk).classList.toggle("filled",d["skill_"+sk]=="1");}
-  }));
-  recalcAll();
-}
-
-loadData();
-updatePB();
+load();
+recalc();
 </script>
 </body>
 </html>
