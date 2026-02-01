@@ -5,7 +5,7 @@
   "description": "Лист персонажа для D&D 5e (RU)",
   "action": {
     "title": "Лист персонажа",
-    "popover": "https://Rino-Akuma.github.io/owlbear-sheet/sheet.html",
+    "popover": "https://rino-akuma.github.io/owlbear-sheet/sheet.html",
     "width": 900,
     "height": 700
   }
