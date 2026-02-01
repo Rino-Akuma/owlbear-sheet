@@ -1,407 +1,540 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8"/>
 <style>
-body{
-  font-family: Arial, sans-serif;
-  background:#1e1f22;
-  color:#e6e6e6;
-  padding:8px;
+:root{
+  --bg:#1e1e1e;
+  --panel:#252525;
+  --border:#555;
+  --text:#e6e6e6;
+  --muted:#aaa;
+  --accent:#4fa3ff;
 }
 
-/* ======= HEADER ======= */
-.header{
-  display:grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
-  gap:6px;
-  margin-bottom:10px;
+/* ===== БАЗА ===== */
+body{
+  margin:0;
+  font-family: Arial, sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  font-size:14px;
 }
-.field{
-  background:#2b2d31;
-  border:1px solid #444;
-  padding:4px;
-  border-radius:6px;
+
+.sheet{
+  padding:10px;
+  max-width:900px;
+  margin:auto;
 }
-.field label{font-size:11px; opacity:.8;}
-.field input{
-  width:100%;
+
+/* ===== ПОЛЯ ВВОДА (ПОЛУПРОЗРАЧНЫЕ И СОХРАНЯЕМЫЕ) ===== */
+input, select{
   background:rgba(255,255,255,0.15);
   color:white;
-  border:1px solid #555;
+  border:1px solid var(--border);
   border-radius:4px;
+  padding:4px;
 }
 
-/* ======= STATS LAYOUT ======= */
-.container{
+input[type=number]{ width:60px; }
+
+.small{ width:80px; }
+.mid{ width:140px; }
+.large{ width:220px; }
+
+/* ===== ШАПКА ===== */
+.top-row{
   display:grid;
-  grid-template-columns: 1fr 0.8fr 1fr;
-  gap:16px;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap:8px;
+  margin-bottom:10px;
 }
 
-/* Колонки */
-.col{display:flex; flex-direction:column; gap:10px;}
-
-/* Рамка блока характеристики */
-.stat-box{
-  border:1px solid #666;
-  border-radius:8px;
-  padding:6px;
-  background:#24262a;
+/* ===== БЛОКИ HP / AC / MOVE / INIT ===== */
+.stats-bar{
+  display:grid;
+  grid-template-columns: repeat(7,1fr);
+  gap:8px;
+  margin-bottom:12px;
+  padding:8px;
+  border:1px solid var(--border);
+  border-radius:6px;
+  background:var(--panel);
 }
 
-/* Назва характеристики */
-.stat-title{
-  text-align:center;
-  font-weight:bold;
-  margin-bottom:4px;
+/* ===== ДВЕ КОЛОНКИ ===== */
+.columns{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:40px; /* Правая колонка чуть дальше */
 }
 
-/* Квадрат + прямокутник модифікатора */
-.stat-top{
+/* ===== РАМКИ ХАРАКТЕРИСТИК ===== */
+.attr-frame{
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:8px;
+  margin-bottom:10px;
+  background:var(--panel);
+}
+
+.attr-header{
   display:flex;
-  justify-content:center;
   align-items:center;
-  gap:0;
+  gap:6px;
 }
-.stat-val{
-  width:48px;
-  height:48px;
-  text-align:center;
-  font-size:22px;
-  background:rgba(255,255,255,0.15);
-  border:1px solid #777;
+
+/* квадрат + прямоугольник модификатора */
+.attr-box{
+  display:flex;
+  align-items:center;
 }
-.stat-mod{
-  width:40px;
-  height:48px;
+.attr-box input{
   text-align:center;
+}
+.attr-box .val{
+  width:50px;
+  height:50px;
   font-size:18px;
-  background:rgba(255,255,255,0.15);
-  border:1px solid #777;
+}
+.attr-box .mod{
+  width:50px;
+  height:30px;
   border-left:none;
 }
 
-/* Кругляшки */
-.dot{
+/* ===== КРУЖКИ ПРОФЫ ===== */
+.circle{
   width:16px;
   height:16px;
-  border:1px solid #aaa;
+  border:1px solid var(--border);
   border-radius:50%;
-  display:inline-block;
   cursor:pointer;
-  margin-right:6px;
+  display:inline-block;
+  margin-left:6px;
 }
-.dot.filled{background:#7dd3fc;}
+.circle.filled{
+  background:var(--accent);
+}
 
-/* Рядок навички/спаска */
-.row{
-  display:grid;
-  grid-template-columns: 26px 20px 1fr;
+/* ===== СПАСБРОСКИ И НАВЫКИ ===== */
+.save, .skill{
+  display:flex;
   align-items:center;
   gap:6px;
-  margin:6px 0;
+  margin-top:6px;
 }
 
-/* Число навички */
-.skill-num{
-  width:26px;
-  text-align:center;
-  background:rgba(255,255,255,0.15);
-  border:1px solid #777;
-  border-radius:4px;
-  font-size:13px;
+.skill-list{
+  margin-top:6px;
+  margin-left:10px;
 }
 
-/* Відступ навичок від спасків */
-.skills{
-  margin-top:10px;
+.skill-list .skill{
+  margin-top:8px; /* чуть больше расстояние */
 }
 
-/* Пасивні навички */
-.passive-box{
-  border:1px solid #666;
-  border-radius:8px;
-  padding:6px;
-  background:#24262a;
+/* ===== ПАССИВНЫЕ ===== */
+.passive-frame{
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:8px;
+  background:var(--panel);
+}
+
+/* ===== ИНИЦИАТИВА И ВДОХНОВЕНИЕ ===== */
+.init-insp{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.insp-box{
+  display:flex;
+  align-items:center;
+  gap:4px;
 }
 </style>
 </head>
+
 <body>
+<div class="sheet">
 
-<h3>Лист персонажа</h3>
-
-<div class="header">
-  <div class="field"><label>Имя</label><input id="name"></div>
-  <div class="field"><label>Класс</label><input id="class"></div>
-  <div class="field"><label>Подкласс</label><input id="subclass"></div>
-  <div class="field"><label>Раса</label><input id="race"></div>
-  <div class="field"><label>Уровень</label><input id="level" type="number" min="1" value="1"></div>
-  <div class="field"><label>Бонус мастерства</label><input id="pb" readonly></div>
+<!-- ===== ШАПКА ===== -->
+<div class="top-row">
+  <div>Имя: <input id="name" class="large"></div>
+  <div>Класс: <input id="class" class="mid"></div>
+  <div>Подкласс: <input id="subclass" class="mid"></div>
+  <div>Раса: <input id="race" class="mid"></div>
 </div>
 
-<div class="header">
-  <div class="field"><label>Текущие ХП</label><input id="hp" type="number"></div>
-  <div class="field"><label>Макс ХП</label><input id="maxhp" type="number"></div>
-  <div class="field"><label>Временные ХП</label><input id="temphp" type="number"></div>
-  <div class="field"><label>Броня (AC)</label><input id="ac" type="number"></div>
-  <div class="field"><label>Перемещение</label><input id="move" type="number"></div>
-  <div class="field"><label>Перемещение в воде</label><input id="swim" type="number"></div>
+<!-- ===== УРОВЕНЬ ===== -->
+<div style="margin-bottom:10px;">
+  Уровень:
+  <select id="level"></select>
+  Бонус мастерства: <span id="profBonus">+2</span>
 </div>
 
-<div class="container">
+<!-- ===== HP / AC / MOVE / INIT ===== -->
+<div class="stats-bar">
+  <div>ХП: <input type="number" id="hp"></div>
+  <div>Макс ХП: <input type="number" id="maxHp"></div>
+  <div>Врем. ХП: <input type="number" id="tempHp"></div>
+  <div>Броня: <input type="number" id="ac"></div>
+  <div>Перемещение: <input type="number" id="move"></div>
+  <div>Перемещение в воде: <input type="number" id="swim"></div>
 
-<!-- ====== ЛЕВА КОЛОНКА ====== -->
-<div class="col">
+  <div class="init-insp">
+    Инициатива: <span id="initiative">+0</span>
+    <div class="insp-box">
+      <input type="checkbox" id="inspiration"> Вдохновение
+    </div>
+  </div>
+</div>
+
+<!-- ===== КОЛОНКИ ===== -->
+<div class="columns">
+
+<!-- ===== ЛЕВАЯ КОЛОНКА ===== -->
+<div>
 
 <!-- СИЛА -->
-<div class="stat-box">
-<div class="stat-title">Сила</div>
-<div class="stat-top">
-  <input id="str_val" class="stat-val" type="number">
-  <input id="str_mod" class="stat-mod" readonly>
-</div>
+<div class="attr-frame" id="strFrame">
+  <div class="attr-header">
+    <b>Сила</b>
+    <div class="attr-box">
+      <input type="number" class="val" id="str">
+      <input type="text" class="mod" id="strMod" readonly>
+    </div>
+  </div>
 
-<div class="row">
-  <div class="skill-num" id="save_str_num">0</div>
-  <span id="save_str" class="dot"></span>
-  <div>Спасбросок Силы</div>
-</div>
+  <div class="save">
+    Спасбросок Силы: <span id="strSave">0</span>
+    <div class="circle" data-target="strSave"></div>
+  </div>
 
-<div class="skills">
-<div class="row">
-  <div class="skill-num" id="athletics_num">0</div>
-  <span id="skill_athletics" class="dot"></span>
-  <div>Атлетика</div>
-</div>
-</div>
-</div>
-
-<!-- ТЕЛОСЛОЖЕНИЕ -->
-<div class="stat-box">
-<div class="stat-title">Телосложение</div>
-<div class="stat-top">
-  <input id="con_val" class="stat-val" type="number">
-  <input id="con_mod" class="stat-mod" readonly>
-</div>
-
-<div class="row">
-  <div class="skill-num" id="save_con_num">0</div>
-  <span id="save_con" class="dot"></span>
-  <div>Спасбросок Телосложения</div>
-</div>
+  <div class="skill-list">
+    <div class="skill">Атлетика: <span id="athletics">0</span>
+      <div class="circle" data-target="athletics"></div>
+    </div>
+  </div>
 </div>
 
 <!-- ИНТЕЛЛЕКТ -->
-<div class="stat-box">
-<div class="stat-title">Интеллект</div>
-<div class="stat-top">
-  <input id="int_val" class="stat-val" type="number">
-  <input id="int_mod" class="stat-mod" readonly>
-</div>
+<div class="attr-frame" id="intFrame">
+  <div class="attr-header">
+    <b>Интеллект</b>
+    <div class="attr-box">
+      <input type="number" class="val" id="int">
+      <input type="text" class="mod" id="intMod" readonly>
+    </div>
+  </div>
 
-<div class="row">
-  <div class="skill-num" id="save_int_num">0</div>
-  <span id="save_int" class="dot"></span>
-  <div>Спасбросок Интеллекта</div>
-</div>
+  <div class="save">
+    Спасбросок Интеллекта: <span id="intSave">0</span>
+    <div class="circle" data-target="intSave"></div>
+  </div>
 
-<div class="skills">
-<div class="row"><div class="skill-num" id="investigation_num">0</div><span id="skill_investigation" class="dot"></span><div>Анализ</div></div>
-<div class="row"><div class="skill-num" id="arcana_num">0</div><span id="skill_arcana" class="dot"></span><div>Магия</div></div>
-<div class="row"><div class="skill-num" id="history_num">0</div><span id="skill_history" class="dot"></span><div>История</div></div>
-<div class="row"><div class="skill-num" id="nature_num">0</div><span id="skill_nature" class="dot"></span><div>Природа</div></div>
-<div class="row"><div class="skill-num" id="religion_num">0</div><span id="skill_religion" class="dot"></span><div>Религия</div></div>
-</div>
+  <div class="skill-list">
+    <div class="skill">Анализ: <span id="investigation">0</span>
+      <div class="circle" data-target="investigation"></div>
+    </div>
+    <div class="skill">История: <span id="history">0</span>
+      <div class="circle" data-target="history"></div>
+    </div>
+    <div class="skill">Магия: <span id="arcana">0</span>
+      <div class="circle" data-target="arcana"></div>
+    </div>
+    <div class="skill">Природа: <span id="nature">0</span>
+      <div class="circle" data-target="nature"></div>
+    </div>
+    <div class="skill">Религия: <span id="religion">0</span>
+      <div class="circle" data-target="religion"></div>
+    </div>
+  </div>
 </div>
 
 <!-- ХАРИЗМА -->
-<div class="stat-box">
-<div class="stat-title">Харизма</div>
-<div class="stat-top">
-  <input id="cha_val" class="stat-val" type="number">
-  <input id="cha_mod" class="stat-mod" readonly>
+<div class="attr-frame" id="chaFrame">
+  <div class="attr-header">
+    <b>Харизма</b>
+    <div class="attr-box">
+      <input type="number" class="val" id="cha">
+      <input type="text" class="mod" id="chaMod" readonly>
+    </div>
+  </div>
+
+  <div class="save">
+    Спасбросок Харизмы: <span id="chaSave">0</span>
+    <div class="circle" data-target="chaSave"></div>
+  </div>
+
+  <div class="skill-list">
+    <div class="skill">Выступление: <span id="performance">0</span>
+      <div class="circle" data-target="performance"></div>
+    </div>
+    <div class="skill">Запугивание: <span id="intimidation">0</span>
+      <div class="circle" data-target="intimidation"></div>
+    </div>
+    <div class="skill">Обман: <span id="deception">0</span>
+      <div class="circle" data-target="deception"></div>
+    </div>
+    <div class="skill">Убеждение: <span id="persuasion">0</span>
+      <div class="circle" data-target="persuasion"></div>
+    </div>
+  </div>
+</div>
 </div>
 
-<div class="row">
-  <div class="skill-num" id="save_cha_num">0</div>
-  <span id="save_cha" class="dot"></span>
-  <div>Спасбросок Харизмы</div>
-</div>
-
-<div class="skills">
-<div class="row"><div class="skill-num" id="deception_num">0</div><span id="skill_deception" class="dot"></span><div>Обман</div></div>
-<div class="row"><div class="skill-num" id="intimidation_num">0</div><span id="skill_intimidation" class="dot"></span><div>Запугивание</div></div>
-<div class="row"><div class="skill-num" id="performance_num">0</div><span id="skill_performance" class="dot"></span><div>Выступление</div></div>
-<div class="row"><div class="skill-num" id="persuasion_num">0</div><span id="skill_persuasion" class="dot"></span><div>Убеждение</div></div>
-</div>
-</div>
-</div>
-
-<!-- СЕРЕДИНА -->
-<div></div>
-
-<!-- ====== ПРАВА КОЛОНКА ====== -->
-<div class="col">
+<!-- ===== ПРАВАЯ КОЛОНКА ===== -->
+<div>
 
 <!-- ЛОВКОСТЬ -->
-<div class="stat-box">
-<div class="stat-title">Ловкость</div>
-<div class="stat-top">
-  <input id="dex_val" class="stat-val" type="number">
-  <input id="dex_mod" class="stat-mod" readonly>
+<div class="attr-frame" id="dexFrame">
+  <div class="attr-header">
+    <b>Ловкость</b>
+    <div class="attr-box">
+      <input type="number" class="val" id="dex">
+      <input type="text" class="mod" id="dexMod" readonly>
+    </div>
+  </div>
+
+  <div class="save">
+    Спасбросок Ловкости: <span id="dexSave">0</span>
+    <div class="circle" data-target="dexSave"></div>
+  </div>
+
+  <div class="skill-list">
+    <div class="skill">Акробатика: <span id="acrobatics">0</span>
+      <div class="circle" data-target="acrobatics"></div>
+    </div>
+    <div class="skill">Ловкость рук: <span id="sleight">0</span>
+      <div class="circle" data-target="sleight"></div>
+    </div>
+    <div class="skill">Скрытность: <span id="stealth">0</span>
+      <div class="circle" data-target="stealth"></div>
+    </div>
+  </div>
 </div>
 
-<div class="row">
-  <div class="skill-num" id="save_dex_num">0</div>
-  <span id="save_dex" class="dot"></span>
-  <div>Спасбросок Ловкости</div>
-</div>
+<!-- ТЕЛОСЛОЖЕНИЕ -->
+<div class="attr-frame" id="conFrame">
+  <div class="attr-header">
+    <b>Телосложение</b>
+    <div class="attr-box">
+      <input type="number" class="val" id="con">
+      <input type="text" class="mod" id="conMod" readonly>
+    </div>
+  </div>
 
-<div class="skills">
-<div class="row"><div class="skill-num" id="acrobatics_num">0</div><span id="skill_acrobatics" class="dot"></span><div>Акробатика</div></div>
-<div class="row"><div class="skill-num" id="sleight_num">0</div><span id="skill_sleight" class="dot"></span><div>Ловкость рук</div></div>
-<div class="row"><div class="skill-num" id="stealth_num">0</div><span id="skill_stealth" class="dot"></span><div>Скрытность</div></div>
-</div>
+  <div class="save">
+    Спасбросок Телосложения: <span id="conSave">0</span>
+    <div class="circle" data-target="conSave"></div>
+  </div>
 </div>
 
 <!-- МУДРОСТЬ -->
-<div class="stat-box">
-<div class="stat-title">Мудрость</div>
-<div class="stat-top">
-  <input id="wis_val" class="stat-val" type="number">
-  <input id="wis_mod" class="stat-mod" readonly>
-</div>
+<div class="attr-frame" id="wisFrame">
+  <div class="attr-header">
+    <b>Мудрость</b>
+    <div class="attr-box">
+      <input type="number" class="val" id="wis">
+      <input type="text" class="mod" id="wisMod" readonly>
+    </div>
+  </div>
 
-<div class="row">
-  <div class="skill-num" id="save_wis_num">0</div>
-  <span id="save_wis" class="dot"></span>
-  <div>Спасбросок Мудрости</div>
-</div>
+  <div class="save">
+    Спасбросок Мудрости: <span id="wisSave">0</span>
+    <div class="circle" data-target="wisSave"></div>
+  </div>
 
-<div class="skills">
-<div class="row"><div class="skill-num" id="perception_num">0</div><span id="skill_perception" class="dot"></span><div>Восприятие</div></div>
-<div class="row"><div class="skill-num" id="insight_num">0</div><span id="skill_insight" class="dot"></span><div>Проницательность</div></div>
-<div class="row"><div class="skill-num" id="medicine_num">0</div><span id="skill_medicine" class="dot"></span><div>Медицина</div></div>
-<div class="row"><div class="skill-num" id="survival_num">0</div><span id="skill_survival" class="dot"></span><div>Выживание</div></div>
-<div class="row"><div class="skill-num" id="animal_num">0</div><span id="skill_animal" class="dot"></span><div>Уход за животными</div></div>
-</div>
+  <div class="skill-list">
+    <div class="skill">Восприятие: <span id="perception">0</span>
+      <div class="circle" data-target="perception"></div>
+    </div>
+    <div class="skill">Выживание: <span id="survival">0</span>
+      <div class="circle" data-target="survival"></div>
+    </div>
+    <div class="skill">Медицина: <span id="medicine">0</span>
+      <div class="circle" data-target="medicine"></div>
+    </div>
+    <div class="skill">Проницательность: <span id="insight">0</span>
+      <div class="circle" data-target="insight"></div>
+    </div>
+    <div class="skill">Уход за животными: <span id="animal">0</span>
+      <div class="circle" data-target="animal"></div>
+    </div>
+  </div>
 </div>
 
 <!-- ПАССИВНЫЕ -->
-<div class="passive-box">
-<b>Пассивные навыки</b>
-<div>Восприятие: <span id="pass_perception"></span></div>
-<div>Проницательность: <span id="pass_insight"></span></div>
-<div>Анализ: <span id="pass_investigation"></span></div>
+<div class="passive-frame">
+  <b>Пассивные</b>
+  <div>Мудрость (Восприятие): <span id="passPer"></span></div>
+  <div>Мудрость (Проницательность): <span id="passIns"></span></div>
+  <div>Интеллект (Анализ): <span id="passInv"></span></div>
+</div>
+
 </div>
 </div>
 </div>
 
 <script>
-const stats = ["str","dex","con","int","wis","cha"];
+// ===== УРОВЕНЬ -> БОНУС МАСТЕРСТВА =====
+const profByLevel = [2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6];
 
-function calcPB(lvl){
-  if(lvl<=4) return 2;
-  if(lvl<=8) return 3;
-  if(lvl<=12) return 4;
-  if(lvl<=16) return 5;
-  return 6;
+const fields = [
+"name","class","subclass","race",
+"hp","maxHp","tempHp","ac","move","swim",
+"str","dex","con","int","wis","cha","inspiration"
+];
+
+const skillTargets = [
+"strSave","dexSave","conSave","intSave","wisSave","chaSave",
+"athletics","acrobatics","sleight","stealth",
+"investigation","history","arcana","nature","religion",
+"perception","survival","medicine","insight","animal",
+"performance","intimidation","deception","persuasion"
+];
+
+const KEY = "owlbear-sheet-data";
+
+// ===== ИНИЦИАЛИЗАЦИЯ УРОВНЕЙ =====
+const levelSel = document.getElementById("level");
+for(let i=1;i<=20;i++){
+  let o=document.createElement("option");
+  o.value=i; o.text=i;
+  levelSel.appendChild(o);
+}
+levelSel.value = 1;
+
+// ===== МОДИФИКАТОР =====
+function mod(v){
+  v = parseInt(v)||0;
+  return Math.floor((v-10)/2);
 }
 
-function mod(v){ return Math.floor((v-10)/2); }
+// ===== СОХРАНЕНИЕ =====
+function saveAll(){
+  const data = {};
+  fields.forEach(f=>{
+    const el = document.getElementById(f);
+    if(el.type==="checkbox") data[f] = el.checked;
+    else data[f] = el.value;
+  });
+  // сохраняем кружки
+  document.querySelectorAll(".circle").forEach(c=>{
+    data["circ_"+c.dataset.target] = c.classList.contains("filled") ?
+      (c.dataset.state||0) : 0;
+  });
 
-const skillMap = {
-  str:["athletics"],
-  dex:["acrobatics","sleight","stealth"],
-  int:["investigation","arcana","history","nature","religion"],
-  wis:["perception","insight","medicine","survival","animal"],
-  cha:["deception","intimidation","performance","persuasion"]
-};
+  localStorage.setItem(KEY, JSON.stringify(data));
+}
 
-// кругляшки
-document.querySelectorAll(".dot").forEach(dot=>{
-  dot.dataset.state="0";
-  dot.onclick=()=>{
-    if(dot.id.startsWith("save_")){
-      dot.dataset.state = dot.dataset.state=="0"?"1":"0";
-    } else {
-      dot.dataset.state = (parseInt(dot.dataset.state)+1)%3;
+// ===== ЗАГРУЗКА =====
+function loadAll(){
+  const raw = localStorage.getItem(KEY);
+  if(!raw) return;
+  const data = JSON.parse(raw);
+
+  fields.forEach(f=>{
+    const el = document.getElementById(f);
+    if(el.type==="checkbox") el.checked = !!data[f];
+    else if(data[f]!==undefined) el.value = data[f];
+  });
+
+  document.querySelectorAll(".circle").forEach(c=>{
+    const st = data["circ_"+c.dataset.target];
+    if(st){
+      c.classList.add("filled");
+      c.dataset.state = st;
     }
-    dot.classList.toggle("filled", dot.dataset.state!="0");
-    recalc();
-  }
-});
+  });
+}
 
+// ===== ОБНОВЛЕНИЕ ВСЕГО =====
 function recalc(){
-  let lvl = parseInt(level.value)||1;
-  pb.value = calcPB(lvl);
+  const lvl = parseInt(levelSel.value)||1;
+  const prof = profByLevel[lvl-1];
+  document.getElementById("profBonus").textContent = "+"+prof;
 
-  // модифікатори
-  stats.forEach(s=>{
-    let v = parseInt(document.getElementById(s+"_val").value)||10;
-    document.getElementById(s+"_mod").value = mod(v);
+  const STR = mod(str.value);
+  const DEX = mod(dex.value);
+  const CON = mod(con.value);
+  const INT = mod(int.value);
+  const WIS = mod(wis.value);
+  const CHA = mod(cha.value);
+
+  strMod.value = (STR>=0?"+":"")+STR;
+  dexMod.value = (DEX>=0?"+":"")+DEX;
+  conMod.value = (CON>=0?"+":"")+CON;
+  intMod.value = (INT>=0?"+":"")+INT;
+  wisMod.value = (WIS>=0?"+":"")+WIS;
+  chaMod.value = (CHA>=0?"+":"")+CHA;
+
+  // Инициатива
+  document.getElementById("initiative").textContent =
+    (DEX>=0?"+":"")+DEX;
+
+  // БАЗЫ
+  const bases = {
+    strSave:STR, dexSave:DEX, conSave:CON,
+    intSave:INT, wisSave:WIS, chaSave:CHA,
+
+    athletics:STR,
+    acrobatics:DEX, sleight:DEX, stealth:DEX,
+    investigation:INT, history:INT, arcana:INT, nature:INT, religion:INT,
+    perception:WIS, survival:WIS, medicine:WIS, insight:WIS, animal:WIS,
+    performance:CHA, intimidation:CHA, deception:CHA, persuasion:CHA
+  };
+
+  // ПРИМЕНЯЕМ БОНУСЫ (0 / +prof / +2prof)
+  skillTargets.forEach(t=>{
+    let base = bases[t] ?? 0;
+    const el = document.getElementById(t);
+    const circle = document.querySelector(`.circle[data-target="${t}"]`);
+    const st = parseInt(circle.dataset.state||0);
+
+    let total = base + st*prof;
+    el.textContent = (total>=0?"+":"")+total;
   });
 
-  // спаскидки (включно з Телосложением)
-  stats.forEach(s=>{
-    let base = mod(parseInt(document.getElementById(s+"_val").value)||10);
-    let st = document.getElementById("save_"+s).dataset.state;
-    let total = base + (st=="1"?parseInt(pb.value):0);
-    document.getElementById("save_"+s+"_num").textContent = total;
-  });
+  // ПАССИВНЫЕ
+  const hasProf = (t)=> {
+    const c = document.querySelector(`.circle[data-target="${t}"]`);
+    return (parseInt(c.dataset.state||0)>0);
+  };
 
-  // навички
-  Object.keys(skillMap).forEach(stat=>{
-    let base = mod(parseInt(document.getElementById(stat+"_val").value)||10);
-    skillMap[stat].forEach(sk=>{
-      let st = document.getElementById("skill_"+sk).dataset.state;
-      let bonus = 0;
-      if(st=="1") bonus = parseInt(pb.value);
-      if(st=="2") bonus = parseInt(pb.value)*2;
-      document.getElementById(sk+"_num").textContent = base + bonus;
-    });
-  });
+  document.getElementById("passPer").textContent =
+    10 + WIS + (hasProf("perception")?prof:0);
 
-  // пасивні
-  let wis = mod(parseInt(wis_val.value)||10);
-  let intm = mod(parseInt(int_val.value)||10);
+  document.getElementById("passIns").textContent =
+    10 + WIS + (hasProf("insight")?prof:0);
 
-  pass_perception.textContent =
-    10 + wis + (document.getElementById("skill_perception").dataset.state!="0"?parseInt(pb.value):0);
+  document.getElementById("passInv").textContent =
+    10 + INT + (hasProf("investigation")?prof:0);
 
-  pass_insight.textContent =
-    10 + wis + (document.getElementById("skill_insight").dataset.state!="0"?parseInt(pb.value):0);
-
-  pass_investigation.textContent =
-    10 + intm + (document.getElementById("skill_investigation").dataset.state!="0"?parseInt(pb.value):0);
-
-  save();
+  saveAll();
 }
 
-// сохранение
-function save(){
-  let data = {};
-  document.querySelectorAll("input").forEach(i=>data[i.id]=i.value);
-  document.querySelectorAll(".dot").forEach(d=>data[d.id]=d.dataset.state||"0");
-  localStorage.setItem("owlbear_sheet",JSON.stringify(data));
-}
-
-// загрузка
-function load(){
-  let d = JSON.parse(localStorage.getItem("owlbear_sheet")||"{}");
-  document.querySelectorAll("input").forEach(i=>{ if(d[i.id]) i.value=d[i.id];});
-  document.querySelectorAll(".dot").forEach(dot=>{
-    if(d[dot.id]) dot.dataset.state=d[dot.id];
-    dot.classList.toggle("filled", dot.dataset.state!="0");
+// ===== КЛИК ПО КРУЖКАМ (0 → 1 → 2 → 0) =====
+document.querySelectorAll(".circle").forEach(c=>{
+  c.addEventListener("click",()=>{
+    let s = parseInt(c.dataset.state||0);
+    s = (s+1)%3; // 0,1,2,0...
+    c.dataset.state = s;
+    if(s===0) c.classList.remove("filled");
+    else c.classList.add("filled");
+    recalc();
   });
-}
-
-document.querySelectorAll("input").forEach(i=>{
-  i.addEventListener("input", recalc);
 });
 
-load();
+// ===== СЛУШАТЕЛИ =====
+document.querySelectorAll("input,select").forEach(el=>{
+  el.addEventListener("input",recalc);
+});
+
+// ЗАГРУЗКА ПРИ СТАРТЕ
+loadAll();
 recalc();
 </script>
 </body>
