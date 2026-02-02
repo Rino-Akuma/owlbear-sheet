@@ -5,8 +5,8 @@
   "description": "Лист персонажа для D&D 5e",
   "action": {
     "title": "Лист персонажа",
-    "icon": "https://owlbear-sheet.netlify.app/icon.svg",
-    "popover": "https://owlbear-sheet.netlify.app/index.html",
+    "icon": "https://raw.githack.com/Rino-Akuma/owlbear-sheet/main/icon.svg",
+    "popover": "https://raw.githack.com/Rino-Akuma/owlbear-sheet/main/index.html",
     "width": 900,
     "height": 700
   }
