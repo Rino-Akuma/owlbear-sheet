@@ -33,7 +33,7 @@ body{
   border-radius:4px;
 }
 
-/* ===== Натхнення (зірка-тумблер) ===== */
+/* ===== Натхнення в рядку ===== */
 .inspiration-field{
   background:#2b2d31;
   border:1px solid #444;
@@ -44,23 +44,14 @@ body{
   justify-content:center;
   gap:6px;
 }
-
-/* ховаємо реальний чекбокс */
-#inspiration{
-  display:none;
+.inspiration-field label{
+  font-size:11px;
+  opacity:.8;
 }
-
-/* зірка */
-.inspiration-star{
-  font-size:20px;
+.inspiration-field input[type=checkbox]{
+  width:16px;
+  height:16px;
   cursor:pointer;
-  color:#555; /* вимкнено */
-  user-select:none;
-}
-
-/* активна зірка */
-.inspiration-star.active{
-  color:#ffd700; /* золота */
 }
 
 /* ======= STATS LAYOUT ======= */
@@ -148,8 +139,7 @@ body{
 
   <div class="inspiration-field">
     <input type="checkbox" id="inspiration">
-    <span id="inspStar" class="inspiration-star">⭐</span>
-    <span style="font-size:11px; opacity:.8;">Натхнення</span>
+    <label for="inspiration">Натхнення</label>
   </div>
 </div>
 
