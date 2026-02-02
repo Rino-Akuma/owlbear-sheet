@@ -5,21 +5,7 @@ const skillMap = {str:["athletics"],dex:["acrobatics","sleight","stealth"],int:[
 
 // обмеження характеристики та рівня до 20
 function clampValue(input, max=20){
-  if(parseInt(input.value) > max) input.value = max;
-}
-
-// ===== Обробка натхнення (зірка) =====
-const inspStar = document.getElementById("inspStar");
-const inspCheckbox = document.getElementById("inspiration");
-if(inspStar && inspCheckbox){
-  // завантажуємо стан з localStorage
-  inspStar.classList.toggle("active", inspCheckbox.checked);
-
-  inspStar.addEventListener("click", ()=>{
-    inspCheckbox.checked = !inspCheckbox.checked;
-    inspStar.classList.toggle("active", inspCheckbox.checked);
-    save(); // зберігаємо одразу при кліку
-  });
+  if(parseInt(input.value)>max) input.value=max;
 }
 
 document.querySelectorAll(".dot").forEach(dot=>{
@@ -81,8 +67,6 @@ function save(){
   let data={};
   document.querySelectorAll("input").forEach(i=>data[i.id]=i.value);
   document.querySelectorAll(".dot").forEach(d=>data[d.id]=d.dataset.state||"0");
-  // натхнення теж зберігаємо
-  if(inspCheckbox) data["inspiration"] = inspCheckbox.checked ? "1" : "0";
   localStorage.setItem("owlbear_sheet",JSON.stringify(data));
 }
 
@@ -94,11 +78,6 @@ function load(){
     if(d[dot.id]) dot.dataset.state=d[dot.id];
     dot.classList.toggle("filled", dot.dataset.state!="0");
   });
-  // відновлюємо натхнення
-  if(inspStar && inspCheckbox){
-    inspCheckbox.checked = d["inspiration"]=="1";
-    inspStar.classList.toggle("active", inspCheckbox.checked);
-  }
 }
 
 document.querySelectorAll("input").forEach(i=>i.addEventListener("input", recalc));
