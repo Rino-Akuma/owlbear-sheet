@@ -2,7 +2,118 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<link rel="stylesheet" href="styles.css">
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background:#1e1f22;
+  color:#e6e6e6;
+  padding:8px;
+}
+
+/* ======= HEADER ======= */
+.header{
+  display:grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
+  gap:6px;
+  margin-bottom:10px;
+}
+.field{
+  background:#2b2d31;
+  border:1px solid #444;
+  padding:4px;
+  border-radius:6px;
+}
+.field label{font-size:11px; opacity:.8;}
+.field input{
+  width:100%;
+  background:rgba(255,255,255,0.15);
+  color:white;
+  border:1px solid #555;
+  border-radius:4px;
+}
+
+/* ===== Натхнення над ім'ям ===== */
+.inspiration-box{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  margin-bottom:6px;
+}
+.inspiration-box input[type=checkbox]{
+  width:16px;
+  height:16px;
+}
+
+/* ======= STATS LAYOUT ======= */
+.container{
+  display:grid;
+  grid-template-columns: 1fr 0.8fr 1fr;
+  gap:16px;
+}
+.col{display:flex; flex-direction:column; gap:10px;}
+.stat-box{
+  border:1px solid #666;
+  border-radius:8px;
+  padding:6px;
+  background:#24262a;
+}
+.stat-title{text-align:center; font-weight:bold; margin-bottom:4px;}
+.stat-top{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:0;
+}
+.stat-val{
+  width:48px;
+  height:48px;
+  text-align:center;
+  font-size:22px;
+  background:rgba(255,255,255,0.15);
+  border:1px solid #777;
+}
+.stat-mod{
+  width:40px;
+  height:48px;
+  text-align:center;
+  font-size:18px;
+  background:rgba(255,255,255,0.15);
+  border:1px solid #777;
+  border-left:none;
+}
+.dot{
+  width:16px;
+  height:16px;
+  border:1px solid #aaa;
+  border-radius:50%;
+  display:inline-block;
+  cursor:pointer;
+  margin-right:6px;
+}
+.dot.filled{background:#7dd3fc;}
+.row{
+  display:grid;
+  grid-template-columns: 26px 20px 1fr;
+  align-items:center;
+  gap:6px;
+  margin:6px 0;
+}
+.skill-num{
+  width:26px;
+  text-align:center;
+  background:rgba(255,255,255,0.15);
+  border:1px solid #777;
+  border-radius:4px;
+  font-size:13px;
+}
+.skills{margin-top:10px;}
+.passive-box{
+  border:1px solid #666;
+  border-radius:8px;
+  padding:6px;
+  background:#24262a;
+}
+</style>
 </head>
 <body>
 
@@ -58,7 +169,7 @@
 <div class="row"><div class="skill-num" id="save_con_num">0</div><span id="save_con" class="dot"></span><div>Спасбросок Телосложения</div></div>
 </div>
 
-<!-- ИНТЕЛЛЕКТ -->
+<!-- ІНТЕЛЕКТ -->
 <div class="stat-box">
 <div class="stat-title">Интеллект</div>
 <div class="stat-top">
@@ -135,5 +246,6 @@
 </div>
 
 <script src="stats.js"></script>
+
 </body>
 </html>
