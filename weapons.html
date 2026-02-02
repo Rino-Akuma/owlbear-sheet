@@ -1,0 +1,183 @@
+<style>
+.weapon-page{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:12px;
+  height:100%;
+}
+
+/* ===== ЛІВА ЧАСТИНА: ЗБРОЯ ===== */
+.weapon-box{
+  border:1px solid #666;
+  border-radius:8px;
+  padding:6px;
+  background:#24262a;
+  display:flex;
+  flex-direction:column;
+}
+
+.weapon-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:6px;
+}
+
+.scroll-list{
+  flex:1;
+  overflow-y:auto;
+  border:1px solid #555;
+  padding:4px;
+  border-radius:6px;
+  background:#2b2d31;
+}
+
+.weapon-item{
+  display:grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap:6px;
+  padding:4px;
+  border-bottom:1px solid #444;
+}
+
+.weapon-item:last-child{border-bottom:none;}
+
+.weapon-actions button{
+  margin-left:4px;
+}
+
+/* ===== ПРАВА ЧАСТИНА: ЗДІБНОСТІ ===== */
+.abilities-box{
+  border:1px solid #666;
+  border-radius:8px;
+  padding:6px;
+  background:#24262a;
+  display:flex;
+  flex-direction:column;
+}
+
+.abilities-box textarea{
+  flex:1;
+  width:100%;
+  background:rgba(255,255,255,0.12);
+  color:white;
+  border:1px solid #555;
+  border-radius:6px;
+  padding:6px;
+  resize:none;
+}
+
+/* ===== МОДАЛЬНЕ ВІКНО ===== */
+.modal{
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  width:420px;
+  background:#1e1f22;
+  border:1px solid #666;
+  border-radius:10px;
+  padding:10px;
+  display:none;
+  z-index:999;
+}
+
+.modal-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.modal-grid{
+  display:grid;
+  grid-template-columns: 1fr;
+  gap:6px;
+}
+
+.modal-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.modal textarea{
+  width:100%;
+  min-height:80px;
+  background:rgba(255,255,255,0.12);
+  color:white;
+  border:1px solid #555;
+  border-radius:6px;
+}
+</style>
+
+<div class="weapon-page">
+
+<!-- ЛІВА РАМКА: ЗБРОЯ -->
+<div class="weapon-box">
+  <div class="weapon-header">
+    <b>Зброя</b>
+    <button onclick="openModal()">+ Додати</button>
+  </div>
+
+  <div class="scroll-list" id="weaponList">
+    <!-- сюди буде додаватись зброя -->
+  </div>
+</div>
+
+<!-- ПРАВА РАМКА: ЗДІБНОСТІ -->
+<div class="abilities-box">
+  <b>Здібності персонажа</b>
+  <textarea id="abilitiesText" placeholder="Опиши здібності персонажа..."></textarea>
+</div>
+
+</div>
+
+<!-- ===== МОДАЛЬНЕ ВІКНО ДОДАВАННЯ ЗБРОЇ ===== -->
+<div class="modal" id="weaponModal">
+  <div class="modal-header">
+    <b>Нова зброя</b>
+    <button onclick="closeModal()">✖</button>
+  </div>
+
+  <div class="modal-grid">
+
+    <div class="modal-row">
+      <label>Назва зброї:</label>
+      <input id="w_name">
+    </div>
+
+    <div class="modal-row">
+      <label>Характеристика атаки:</label>
+      <select id="w_stat">
+        <option value="str">Сила</option>
+        <option value="dex">Ловкость</option>
+        <option value="con">Телосложение</option>
+        <option value="int">Интеллект</option>
+        <option value="wis">Мудрость</option>
+        <option value="cha">Харизма</option>
+      </select>
+    </div>
+
+    <div class="modal-row">
+      <label><input type="checkbox" id="w_proficient"> Бонус владения</label>
+      <input id="w_extra" placeholder="Доп. модификатор" type="number">
+    </div>
+
+    <div class="modal-row">
+      <label>Кость урона (напр. 1d8):</label>
+      <input id="w_dice" placeholder="1d8">
+    </div>
+
+    <div class="modal-row">
+      <label>Тип урона:</label>
+      <input id="w_damageType" placeholder="Рубящий / Колющий / Дробящий">
+    </div>
+
+    <div>
+      <label>Особые свойства оружия:</label>
+      <textarea id="w_notes"></textarea>
+    </div>
+
+    <button onclick="saveWeapon()">Зберегти</button>
+  </div>
+</div>
