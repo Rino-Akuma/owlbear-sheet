@@ -6,7 +6,7 @@
   "action": {
     "title": "Лист персонажа",
     "icon": "https://owlbear-sheet.netlify.app/icon.svg",
-    "popover": "https://owlbear-sheet.netlify.app/sheet.html",
+    "popover": "https://owlbear-sheet.netlify.app/index.html",
     "width": 900,
     "height": 700
   }
