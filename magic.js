@@ -8,8 +8,8 @@ function getPB(){ return parseInt(document.getElementById("pb")?.value)||0; }
 // ===== РІВНІ ТА СЛОТИ =====
 const maxSlots = 12;
 const levels = [
-  "Заговір","1 рівень","2 рівень","3 рівень","4 рівень",
-  "5 рівень","6 рівень","7 рівень","8 рівень","9 рівень"
+  "Заговор","1 уровень","2 уровень","3 уровень","4 уровень",
+  "5 уровень","6 уровень","7 уровень","8 уровень","9 уровень"
 ];
 
 // Окремо зберігаємо:
@@ -58,7 +58,7 @@ function createLevels(){
     const ta=document.createElement("textarea");
     ta.className="spell-text";
     ta.dataset.level=i;
-    ta.placeholder="Напишіть заклинання...";
+    ta.placeholder="Напишите заклинание...";
 
     const savedText = JSON.parse(localStorage.getItem("magicText")||"{}");
     if(savedText[i]) ta.value = savedText[i];
