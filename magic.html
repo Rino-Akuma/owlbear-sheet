@@ -2,66 +2,177 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Магія</title>
 <style>
-body{font-family:sans-serif;}
+body{
+  font-family: Arial, sans-serif;
+  background:#1e1f22;
+  color:#e6e6e6;
+  padding:8px;
+}
 
-.top-box{
-border:1px solid #333;
-padding:10px;
-margin-bottom:10px;
-text-align:center;
+.magic-top{
+  display:flex;
+  justify-content:center;
+  gap:12px;
+  margin-bottom:12px;
+}
+
+.magic-field{
+  background:#2b2d31;
+  border:1px solid #444;
+  padding:6px;
+  border-radius:6px;
+  text-align:center;
+  min-width:180px;
+}
+
+.magic-field label{
+  font-size:11px;
+  opacity:.8;
+}
+
+#spellStat{
+  width:100%;
+  background:#2b2d31;
+  color:white;
+  border:1px solid #666;
+  border-radius:4px;
+}
+
+.spell-container{
+  display:flex;
+  justify-content:center;
+  gap:20px;
+}
+
+.spell-levels{
+  width:320px;
 }
 
 .spell-level{
-border:1px solid #333;
-padding:8px;
-margin:5px 0;
-display:flex;
-align-items:center;
+  border:1px solid #666;
+  border-radius:8px;
+  padding:6px;
+  background:#24262a;
+  margin-bottom:8px;
+  display:grid;
+  grid-template-columns: 120px 1fr;
+  gap:6px;
 }
 
-.dots{
-margin-left:10px;
-display:flex;
-gap:5px;
+.level-label{
+  font-weight:bold;
 }
 
-.dot{
-width:16px;
-height:16px;
-border:1px solid #333;
-border-radius:50%;
-cursor:pointer;
+.slots{
+  display:flex;
+  gap:4px;
+  margin-bottom:4px;
 }
 
-.dot.filled{
-background:black;
+.slot{
+  width:16px;
+  height:16px;
+  border:1px solid #aaa;
+  border-radius:50%;
+  cursor:pointer;
+}
+
+.slot.active{
+  background:#7dd3fc;
+}
+
+.spell-text{
+  width:100%;
+  min-height:60px;
+  background:rgba(255,255,255,0.12);
+  color:white;
+  border:1px solid #666;
+  border-radius:4px;
 }
 
 .settings-btn{
-margin-bottom:10px;
+  position:fixed;
+  top:10px;
+  left:10px;
+  padding:6px 10px;
+  background:#2b2d31;
+  color:white;
+  border:1px solid #666;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.modal{
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  background:#1e1f22;
+  border:1px solid #777;
+  padding:12px;
+  border-radius:8px;
+  display:none;
+}
+
+.modal h4{
+  margin:0 0 8px 0;
+}
+
+.modal-row{
+  display:flex;
+  justify-content:space-between;
+  margin:4px 0;
+}
+
+.modal input{
+  width:40px;
+  background:#2b2d31;
+  color:white;
+  border:1px solid #666;
+  border-radius:4px;
 }
 </style>
 </head>
-
 <body>
 
-<button class="settings-btn" onclick="openSettings()">⚙ Налаштування слотів</button>
+<button class="settings-btn" id="openSettings">⚙ Настройки слотов</button>
 
-<div class="top-box">
-<b>Характеристика для заклинань:</b>
-<select id="spellStat" onchange="recalcMagic()">
-<option value="int">Інтелект</option>
-<option value="wis">Мудрість</option>
-<option value="cha">Харизма</option>
-</select>
+<h3 style="text-align:center;">Магия персонажа</h3>
 
-<p>СПАСКИДОК ПРОТИ ЗАКЛИНАНЬ: <span id="spellDC">0</span></p>
-<p>АТАКА ЗАКЛИНАННЯМ: <span id="spellAttack">0</span></p>
+<div class="magic-top">
+  <div class="magic-field">
+    <label>Характеристика заклинань</label>
+    <select id="spellStat">
+      <option value="str">Сила</option>
+      <option value="dex">Ловкость</option>
+      <option value="con">Телосложение</option>
+      <option value="int">Интеллект</option>
+      <option value="wis">Мудрость</option>
+      <option value="cha">Харизма</option>
+    </select>
+  </div>
+
+  <div class="magic-field">
+    <label>Сложность спасброска заклинаний</label>
+    <div id="spellDC">—</div>
+  </div>
+
+  <div class="magic-field">
+    <label>Атака заклинанием</label>
+    <div id="spellAttack">—</div>
+  </div>
 </div>
 
-<div id="spellLevels"></div>
+<div class="spell-container">
+<div class="spell-levels" id="spellLevels"></div>
+</div>
+
+<div class="modal" id="settingsModal">
+  <h4>Настройки слотов заклинаний</h4>
+  <div id="settingsList"></div>
+  <button id="closeSettings">Закрыть</button>
+</div>
 
 <script src="magic.js"></script>
 </body>
