@@ -3,124 +3,170 @@
 <head>
 <meta charset="UTF-8">
 <style>
-body{
+body {
   font-family: Arial, sans-serif;
   background:#1e1f22;
   color:#e6e6e6;
   padding:8px;
 }
 
-/* ===== HEADER ===== */
-.header{
+/* Вибір характеристики */
+#spell-header {
   display:flex;
   justify-content:center;
-  gap:16px;
-  margin-bottom:10px;
+  gap:20px;
+  margin-bottom:12px;
 }
-.field{
-  background:#2b2d31;
-  border:1px solid #444;
-  padding:4px;
-  border-radius:6px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-}
-.field label{font-size:11px; opacity:.8;}
-.field input{
-  width:60px;
+#spell-header select, #spell-header input {
   background:rgba(255,255,255,0.15);
   color:white;
   border:1px solid #555;
   border-radius:4px;
-  text-align:center;
+  padding:4px;
 }
 
-/* ===== SPELL LAYOUT ===== */
-.spell-container{
+/* Spell DC / Attack */
+.spell-stats {
+  display:flex;
+  justify-content:center;
+  gap:30px;
+  margin-bottom:16px;
+}
+.spell-stats input {
+  width:80px;
+  text-align:center;
+  background:rgba(255,255,255,0.15);
+  color:white;
+  border:1px solid #555;
+  border-radius:4px;
+}
+
+/* Рівні та заклинання */
+.level-container {
   display:flex;
   flex-direction:column;
   gap:10px;
-  max-height: 80vh;
+  max-height:600px;
   overflow-y:auto;
 }
-
-.spell-box{
+.level-box {
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
   border:1px solid #666;
-  border-radius:8px;
+  border-radius:6px;
   padding:6px;
   background:#24262a;
 }
-
-.spell-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-
-.spell-level{
+.level-box label {
+  width:80px;
   font-weight:bold;
-}
-
-.spell-circles{
-  display:flex;
-  gap:4px;
-  margin-left:10px;
-}
-.dot{
-  width:16px;
-  height:16px;
-  border:1px solid #aaa;
-  border-radius:50%;
-  display:inline-block;
-  cursor:pointer;
-}
-.dot.filled{background:#7dd3fc;}
-
-.spell-text{
   margin-top:6px;
 }
-textarea{
+
+/* Слоти */
+.slots {
+  display:flex;
+  gap:4px;
+  flex-wrap:wrap;
+}
+.slot {
+  width:20px;
+  height:20px;
+  border:1px solid #aaa;
+  border-radius:50%;
+  cursor:pointer;
+}
+.slot.active {
+  background:#7dd3fc;
+}
+
+/* Текстове поле заклинань */
+.spell-text {
+  flex:1;
+}
+.spell-text textarea {
   width:100%;
   height:80px;
   background:rgba(255,255,255,0.15);
   color:white;
   border:1px solid #555;
   border-radius:4px;
+  padding:4px;
   resize:vertical;
+}
+
+/* Кнопка налаштувань */
+#spell-settings-btn {
+  position:absolute;
+  left:8px;
+  top:8px;
+  background:#2b2d31;
+  border:1px solid #555;
+  color:white;
+  padding:4px 8px;
+  border-radius:4px;
+  cursor:pointer;
+}
+
+/* Вікно налаштувань */
+#spell-settings {
+  position:absolute;
+  top:40px;
+  left:8px;
+  background:#2b2d31;
+  border:1px solid #555;
+  padding:10px;
+  border-radius:6px;
+  display:none;
+}
+#spell-settings label {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-bottom:4px;
+}
+#spell-settings input {
+  width:40px;
+  background:rgba(255,255,255,0.15);
+  color:white;
+  border:1px solid #555;
+  border-radius:4px;
+  padding:2px;
 }
 </style>
 </head>
 <body>
 
-<h3>Магія персонажа</h3>
+<button id="spell-settings-btn">⚙ Настройки</button>
+<div id="spell-settings">
+  <div>Кількість слотів:</div>
+  <div id="slots-settings">
+    <!-- Буде динамічно 10 рівнів -->
+  </div>
+</div>
 
-<div class="header">
-  <div class="field">
-    <label>Характеристика</label>
-    <select id="spellStat">
+<div id="spell-header">
+  <label>Характеристика:
+    <select id="spell-stat">
       <option value="str">Сила</option>
       <option value="dex">Ловкость</option>
       <option value="con">Телосложение</option>
       <option value="int">Интеллект</option>
       <option value="wis">Мудрость</option>
-      <option value="cha">Харизма</option>
+      <option value="cha" selected>Харизма</option>
     </select>
-  </div>
-  <div class="field">
-    <label>Спасбросок против заклинаний</label>
-    <input type="number" id="spellSave" readonly>
-  </div>
-  <div class="field">
-    <label>Атака заклинания</label>
-    <input type="number" id="spellAtk" readonly>
-  </div>
+  </label>
 </div>
 
-<button id="spellSettingsBtn">Настройки заклинань</button>
+<div class="spell-stats">
+  <div>Spell Save DC: <input type="number" id="spell-save" readonly></div>
+  <div>Spell Attack: <input type="number" id="spell-attack" readonly></div>
+  <div>Bonus: <input type="number" id="spell-bonus" value="0"></div>
+</div>
 
-<div class="spell-container" id="spellContainer">
-  <!-- Тут динамічно будуть 10 рамок: Заговір + рівні 1–9 -->
+<div class="level-container" id="level-container">
+  <!-- Буде динамічно 10 рівнів -->
 </div>
 
 <script src="magic.js"></script>
