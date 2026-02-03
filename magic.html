@@ -2,183 +2,178 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<title>Магія персонажа</title>
 <style>
-body{
+body {
   font-family: Arial, sans-serif;
   background:#1e1f22;
   color:#e6e6e6;
   padding:8px;
 }
-h3{text-align:center;}
+
+/* ===== HEADER ===== */
+.header {
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  margin-bottom:12px;
+}
 .field{
   background:#2b2d31;
   border:1px solid #444;
   padding:4px;
   border-radius:6px;
-  margin-bottom:6px;
 }
-.field label{font-size:12px; opacity:.8; display:block; margin-bottom:2px;}
-.field input, .field select{
+.field label{font-size:12px; opacity:.8;}
+.field select, .field input{
   width:100%;
   background:rgba(255,255,255,0.15);
   color:white;
   border:1px solid #555;
   border-radius:4px;
-  padding:2px 4px;
 }
-.container{
+
+/* ===== LEVEL SPELL BOXES ===== */
+.level-container{
   display:flex;
   flex-direction:column;
-  gap:10px;
+  gap:8px;
+  margin-top:10px;
 }
 .level-box{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
   border:1px solid #666;
   border-radius:8px;
   padding:6px;
   background:#24262a;
 }
-.level-title{
+.level-box > .level-label{
+  width:80px;
   font-weight:bold;
-  margin-bottom:4px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
+  text-align:center;
 }
-.spell-textarea{
-  width:100%;
-  height:60px;
-  background:rgba(255,255,255,0.1);
-  color:white;
-  border:1px solid #555;
-  border-radius:4px;
-  resize:vertical;
-  padding:4px;
-}
-.circles{
+.level-box > .circles{
   display:flex;
   gap:4px;
+  flex-wrap:wrap;
+  max-width:300px;
 }
 .circle{
   width:16px;
   height:16px;
   border:1px solid #aaa;
   border-radius:50%;
-  display:inline-block;
   cursor:pointer;
 }
 .circle.filled{background:#7dd3fc;}
-.settings-btn{
-  background:#2b2d31;
-  border:1px solid #555;
+.level-box > textarea{
+  flex-grow:1;
+  height:60px;
+  background:rgba(255,255,255,0.15);
   color:white;
+  border:1px solid #555;
   border-radius:4px;
+  padding:4px;
+  resize:vertical;
+}
+
+/* ===== SETTINGS BUTTON ===== */
+#settingsBtn{
+  position:absolute;
+  top:8px;
+  left:8px;
+  background:#2b2d31;
+  color:white;
+  border:1px solid #555;
   padding:4px 8px;
+  border-radius:6px;
   cursor:pointer;
-  margin-bottom:6px;
-}
-.modal{
-  position:fixed;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  background:#2b2d31;
-  border:1px solid #555;
-  border-radius:8px;
-  padding:16px;
-  display:none;
-  z-index:100;
-}
-.modal input{
-  width:50px;
-  margin-right:6px;
-}
-.modal label{display:inline-block; width:120px;}
-.modal-header{font-weight:bold; margin-bottom:8px;}
-.modal-close{
-  background:#444;
-  color:white;
-  border:none;
-  padding:2px 6px;
-  border-radius:4px;
-  cursor:pointer;
-  float:right;
 }
 </style>
 </head>
 <body>
 
-<h3>Магія персонажа</h3>
+<button id="settingsBtn">Налаштування</button>
 
-<div class="field" style="text-align:center;">
-  <label for="spellStat">Характеристика заклинань</label>
-  <select id="spellStat">
-    <option value="str">Сила</option>
-    <option value="dex">Ловкість</option>
-    <option value="con">Телосложение</option>
-    <option value="int">Интеллект</option>
-    <option value="wis" selected>Мудрость</option>
-    <option value="cha">Харизма</option>
-  </select>
-</div>
-
-<div class="field" style="display:flex; justify-content:space-between; gap:10px;">
-  <div>Спасбросок заклинань: <span id="spellSave">0</span></div>
-  <div>Атака заклинання: <span id="spellAttack">0</span></div>
-</div>
-
-<button class="settings-btn" id="openSettings">Налаштування</button>
-
-<div class="container" id="spellLevels">
-  <div class="level-box" data-level="Cantrip">
-    <div class="level-title">Заговор</div>
-    <textarea class="spell-textarea" data-level="Cantrip"></textarea>
+<div class="header">
+  <div class="field">
+    <label>Характеристика для заклинань</label>
+    <select id="spellStat">
+      <option value="str">Сила</option>
+      <option value="dex">Ловкість</option>
+      <option value="con">Тілобудова</option>
+      <option value="int">Інтелект</option>
+      <option value="wis">Мудрість</option>
+      <option value="cha" selected>Харизма</option>
+    </select>
   </div>
+  <div class="field">
+    <label>Спаскидок проти заклинань</label>
+    <input id="spellSave" readonly>
+  </div>
+  <div class="field">
+    <label>Атака заклинання</label>
+    <input id="spellAttack" readonly>
+  </div>
+</div>
+
+<div class="level-container">
+  <div class="level-box" data-level="cantrip">
+    <div class="level-label">Заговор</div>
+    <div class="circles"></div>
+    <textarea placeholder="Напиши заклинання тут..."></textarea>
+  </div>
+  <!-- Створимо 1-9 рівень -->
   <div class="level-box" data-level="1">
-    <div class="level-title">1 рівень <div class="circles" data-level="1"></div></div>
-    <textarea class="spell-textarea" data-level="1"></textarea>
+    <div class="level-label">1 рівень</div>
+    <div class="circles"></div>
+    <textarea placeholder="Напиши заклинання тут..."></textarea>
   </div>
   <div class="level-box" data-level="2">
-    <div class="level-title">2 рівень <div class="circles" data-level="2"></div></div>
-    <textarea class="spell-textarea" data-level="2"></textarea>
+    <div class="level-label">2 рівень</div>
+    <div class="circles"></div>
+    <textarea placeholder="Напиши заклинання тут..."></textarea>
   </div>
   <div class="level-box" data-level="3">
-    <div class="level-title">3 рівень <div class="circles" data-level="3"></div></div>
-    <textarea class="spell-textarea" data-level="3"></textarea>
+    <div class="level-label">3 рівень</div>
+    <div class="circles"></div>
+    <textarea placeholder="Напиши заклинання тут..."></textarea>
   </div>
   <div class="level-box" data-level="4">
-    <div class="level-title">4 рівень <div class="circles" data-level="4"></div></div>
-    <textarea class="spell-textarea" data-level="4"></textarea>
+    <div class="level-label">4 рівень</div>
+    <div class="circles"></div>
+    <textarea placeholder="Напиши заклинання тут..."></textarea>
   </div>
   <div class="level-box" data-level="5">
-    <div class="level-title">5 рівень <div class="circles" data-level="5"></div></div>
-    <textarea class="spell-textarea" data-level="5"></textarea>
+    <div class="level-label">5 рівень</div>
+    <div class="circles"></div>
+    <textarea placeholder="Напиши заклинання тут..."></textarea>
   </div>
   <div class="level-box" data-level="6">
-    <div class="level-title">6 рівень <div class="circles" data-level="6"></div></div>
-    <textarea class="spell-textarea" data-level="6"></textarea>
+    <div class="level-label">6 рівень</div>
+    <div class="circles"></div>
+    <textarea placeholder="Напиши заклинання тут..."></textarea>
   </div>
   <div class="level-box" data-level="7">
-    <div class="level-title">7 рівень <div class="circles" data-level="7"></div></div>
-    <textarea class="spell-textarea" data-level="7"></textarea>
+    <div class="level-label">7 рівень</div>
+    <div class="circles"></div>
+    <textarea placeholder="Напиши заклинання тут..."></textarea>
   </div>
   <div class="level-box" data-level="8">
-    <div class="level-title">8 рівень <div class="circles" data-level="8"></div></div>
-    <textarea class="spell-textarea" data-level="8"></textarea>
+    <div class="level-label">8 рівень</div>
+    <div class="circles"></div>
+    <textarea placeholder="Напиши заклинання тут..."></textarea>
   </div>
   <div class="level-box" data-level="9">
-    <div class="level-title">9 рівень <div class="circles" data-level="9"></div></div>
-    <textarea class="spell-textarea" data-level="9"></textarea>
+    <div class="level-label">9 рівень</div>
+    <div class="circles"></div>
+    <textarea placeholder="Напиши заклинання тут..."></textarea>
   </div>
-</div>
-
-<!-- Модальне вікно для налаштувань -->
-<div class="modal" id="settingsModal">
-  <button class="modal-close" id="closeSettings">X</button>
-  <div class="modal-header">Налаштування кількості слотів заклинань</div>
-  <div id="levelSettings"></div>
 </div>
 
 <script src="magic.js"></script>
-
 </body>
 </html>
