@@ -2,176 +2,133 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Магія персонажа</title>
 <style>
-body {
+body{
   font-family: Arial, sans-serif;
   background:#1e1f22;
   color:#e6e6e6;
   padding:8px;
 }
+h2{text-align:center; margin-bottom:10px;}
 
-/* ===== HEADER ===== */
-.header {
+/* Вибір характеристики */
+.spell-stat-box{
   display:flex;
   justify-content:center;
-  align-items:center;
-  gap:10px;
+  gap:12px;
   margin-bottom:12px;
 }
-.field{
-  background:#2b2d31;
-  border:1px solid #444;
-  padding:4px;
-  border-radius:6px;
-}
-.field label{font-size:12px; opacity:.8;}
-.field select, .field input{
-  width:100%;
+.spell-stat-box label{font-size:14px; display:flex; align-items:center; gap:4px;}
+.spell-stat-box select{
+  padding:2px 4px;
+  border-radius:4px;
+  border:1px solid #555;
   background:rgba(255,255,255,0.15);
   color:white;
-  border:1px solid #555;
-  border-radius:4px;
 }
 
-/* ===== LEVEL SPELL BOXES ===== */
-.level-container{
+/* Загальна рамка */
+.spell-container{
   display:flex;
   flex-direction:column;
   gap:8px;
-  margin-top:10px;
+  margin-top:8px;
 }
-.level-box{
+
+/* Рівень заклинань */
+.spell-level{
   display:flex;
   align-items:flex-start;
-  gap:8px;
+  gap:6px;
   border:1px solid #666;
-  border-radius:8px;
+  border-radius:6px;
   padding:6px;
   background:#24262a;
 }
-.level-box > .level-label{
-  width:80px;
-  font-weight:bold;
-  text-align:center;
+.spell-level h4{
+  margin:0;
+  width:70px;
 }
-.level-box > .circles{
-  display:flex;
-  gap:4px;
-  flex-wrap:wrap;
-  max-width:300px;
-}
+
+/* Кружечки слотів */
 .circle{
   width:16px;
   height:16px;
   border:1px solid #aaa;
   border-radius:50%;
   cursor:pointer;
+  margin-right:4px;
+  display:inline-block;
 }
 .circle.filled{background:#7dd3fc;}
-.level-box > textarea{
+
+/* Текстове поле для заклинання */
+.spell-text{
   flex-grow:1;
-  height:60px;
   background:rgba(255,255,255,0.15);
-  color:white;
   border:1px solid #555;
   border-radius:4px;
+  color:white;
   padding:4px;
+  min-height:32px;
   resize:vertical;
 }
 
-/* ===== SETTINGS BUTTON ===== */
-#settingsBtn{
+/* Кнопка налаштувань */
+.magic-settings{
   position:absolute;
-  top:8px;
-  left:8px;
+  top:10px;
+  left:10px;
   background:#2b2d31;
   color:white;
-  border:1px solid #555;
   padding:4px 8px;
   border-radius:6px;
   cursor:pointer;
+  border:1px solid #555;
 }
+.settings-popup{
+  position:absolute;
+  top:40px;
+  left:10px;
+  background:#2b2d31;
+  border:1px solid #555;
+  border-radius:6px;
+  padding:8px;
+  display:none;
+  max-width:300px;
+}
+.settings-popup label{display:flex; justify-content:space-between; margin-bottom:4px;}
+.settings-popup input{width:50px; background:rgba(255,255,255,0.15); border:1px solid #555; border-radius:4px; color:white;}
 </style>
 </head>
 <body>
 
-<button id="settingsBtn">Налаштування</button>
+<h2>Магія персонажа</h2>
 
-<div class="header">
-  <div class="field">
-    <label>Характеристика для заклинань</label>
+<div class="spell-stat-box">
+  <label>Характеристика:
     <select id="spellStat">
       <option value="str">Сила</option>
       <option value="dex">Ловкість</option>
-      <option value="con">Тілобудова</option>
-      <option value="int">Інтелект</option>
+      <option value="con">Телосложение</option>
+      <option value="int" selected>Інтелект</option>
       <option value="wis">Мудрість</option>
-      <option value="cha" selected>Харизма</option>
+      <option value="cha">Харизма</option>
     </select>
-  </div>
-  <div class="field">
-    <label>Спаскидок проти заклинань</label>
-    <input id="spellSave" readonly>
-  </div>
-  <div class="field">
-    <label>Атака заклинання</label>
-    <input id="spellAttack" readonly>
-  </div>
+  </label>
+  <div>Спаски закл.: <span id="spellSave">0</span></div>
+  <div>Атака закл.: <span id="spellAttack">0</span></div>
 </div>
 
-<div class="level-container">
-  <div class="level-box" data-level="cantrip">
-    <div class="level-label">Заговор</div>
-    <div class="circles"></div>
-    <textarea placeholder="Напиши заклинання тут..."></textarea>
-  </div>
-  <!-- Створимо 1-9 рівень -->
-  <div class="level-box" data-level="1">
-    <div class="level-label">1 рівень</div>
-    <div class="circles"></div>
-    <textarea placeholder="Напиши заклинання тут..."></textarea>
-  </div>
-  <div class="level-box" data-level="2">
-    <div class="level-label">2 рівень</div>
-    <div class="circles"></div>
-    <textarea placeholder="Напиши заклинання тут..."></textarea>
-  </div>
-  <div class="level-box" data-level="3">
-    <div class="level-label">3 рівень</div>
-    <div class="circles"></div>
-    <textarea placeholder="Напиши заклинання тут..."></textarea>
-  </div>
-  <div class="level-box" data-level="4">
-    <div class="level-label">4 рівень</div>
-    <div class="circles"></div>
-    <textarea placeholder="Напиши заклинання тут..."></textarea>
-  </div>
-  <div class="level-box" data-level="5">
-    <div class="level-label">5 рівень</div>
-    <div class="circles"></div>
-    <textarea placeholder="Напиши заклинання тут..."></textarea>
-  </div>
-  <div class="level-box" data-level="6">
-    <div class="level-label">6 рівень</div>
-    <div class="circles"></div>
-    <textarea placeholder="Напиши заклинання тут..."></textarea>
-  </div>
-  <div class="level-box" data-level="7">
-    <div class="level-label">7 рівень</div>
-    <div class="circles"></div>
-    <textarea placeholder="Напиши заклинання тут..."></textarea>
-  </div>
-  <div class="level-box" data-level="8">
-    <div class="level-label">8 рівень</div>
-    <div class="circles"></div>
-    <textarea placeholder="Напиши заклинання тут..."></textarea>
-  </div>
-  <div class="level-box" data-level="9">
-    <div class="level-label">9 рівень</div>
-    <div class="circles"></div>
-    <textarea placeholder="Напиши заклинання тут..."></textarea>
-  </div>
+<button class="magic-settings">Налаштування слотів</button>
+<div class="settings-popup" id="settingsPopup">
+  <h4>Кількість слотів за рівнем (макс 12)</h4>
+  <div id="slotInputs"></div>
+  <button id="saveSlots">Зберегти</button>
+</div>
+
+<div class="spell-container" id="spellContainer">
+  <!-- 10 рівнів створяться скриптом -->
 </div>
 
 <script src="magic.js"></script>
