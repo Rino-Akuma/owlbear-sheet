@@ -1,115 +1,77 @@
-// ==== Ініціалізація рівнів ====
-const levelContainer = document.getElementById("level-container");
-const levelNames = ["Заговор","1 рівень","2 рівень","3 рівень","4 рівень","5 рівень","6 рівень","7 рівень","8 рівень","9 рівень"];
-const maxSlots = 12;
-
-// ==== Створюємо блоки рівнів ====
-levelNames.forEach((name, idx)=>{
-  const box = document.createElement("div");
-  box.className="level-box";
-
-  const label = document.createElement("label");
-  label.textContent=name;
-  box.appendChild(label);
-
-  // Кружечки слотів, тільки для 1-9 рівня
-  if(idx>0){
-    const slotContainer = document.createElement("div");
-    slotContainer.className="slots";
-    for(let i=0;i<maxSlots;i++){
-      const slot = document.createElement("div");
-      slot.className="slot";
-      slot.dataset.level=idx;
-      slot.dataset.index=i;
-      slot.addEventListener("click", ()=>{
-        slot.classList.toggle("active");
-        saveMagic();
-      });
-      slotContainer.appendChild(slot);
-    }
-    box.appendChild(slotContainer);
-  }
-
-  // Текстове поле для заклинань
-  const spellDiv = document.createElement("div");
-  spellDiv.className="spell-text";
-  const textarea = document.createElement("textarea");
-  textarea.dataset.level=idx;
-  textarea.addEventListener("input", saveMagic);
-  spellDiv.appendChild(textarea);
-  box.appendChild(spellDiv);
-
-  levelContainer.appendChild(box);
-});
-
-// ==== Налаштування кнопки ====
-const settingsBtn = document.getElementById("spell-settings-btn");
-const settingsBox = document.getElementById("spell-settings");
-settingsBtn.addEventListener("click", ()=>{
-  settingsBox.style.display = settingsBox.style.display=="none"?"block":"none";
-});
-
-// ==== Підтягуємо значення з stats.js ====
-function getMod(stat){
-  const val = parseInt(document.getElementById(stat+"_val")?.value)||10;
+// посилання на характеристики з stats.html
+function getStatMod(stat){
+  const el = parent.document.getElementById(stat+"_val"); // підтягує з stats.html
+  if(!el) return 0;
+  let val = parseInt(el.value)||10;
   return Math.floor((val-10)/2);
 }
 function getPB(){
-  return parseInt(document.getElementById("pb")?.value)||0;
+  const el = parent.document.getElementById("pb");
+  if(!el) return 0;
+  return parseInt(el.value)||0;
 }
 
-// ==== Розрахунок Spell Save DC і Attack ====
-function recalcMagic(){
-  const stat = document.getElementById("spell-stat").value;
-  const mod = getMod(stat);
+const spellStat = document.getElementById("spellStat");
+const spellSave = document.getElementById("spellSave");
+const spellAttack = document.getElementById("spellAttack");
+
+function recalcSpell(){
+  const mod = getStatMod(spellStat.value);
   const pb = getPB();
-  const bonus = parseInt(document.getElementById("spell-bonus").value)||0;
-
-  document.getElementById("spell-save").value = 8 + mod + pb + bonus;
-  document.getElementById("spell-attack").value = mod + pb + bonus;
+  spellSave.textContent = 8 + mod + pb;
+  spellAttack.textContent = mod + pb;
 }
+spellStat.addEventListener("change", recalcSpell);
+recalcSpell();
 
-document.getElementById("spell-stat").addEventListener("change", recalcMagic);
-document.getElementById("spell-bonus").addEventListener("input", recalcMagic);
-
-// ==== Збереження та завантаження ====
-function saveMagic(){
-  const data = {spells:{},slots:{}};
-  levelContainer.querySelectorAll("textarea").forEach(t=>{
-    data.spells[t.dataset.level] = t.value;
-  });
-  levelContainer.querySelectorAll(".slot").forEach(s=>{
-    data.slots[`${s.dataset.level}-${s.dataset.index}`] = s.classList.contains("active")?"1":"0";
-  });
-  data.stat = document.getElementById("spell-stat").value;
-  data.bonus = document.getElementById("spell-bonus").value;
-  localStorage.setItem("owlbear_magic", JSON.stringify(data));
-}
-
-function loadMagic(){
-  const data = JSON.parse(localStorage.getItem("owlbear_magic")||"{}");
-  if(data.spells){
-    for(let lvl in data.spells){
-      const t = levelContainer.querySelector(`textarea[data-level='${lvl}']`);
-      if(t) t.value=data.spells[lvl];
-    }
-  }
-  if(data.slots){
-    levelContainer.querySelectorAll(".slot").forEach(s=>{
-      const key = `${s.dataset.level}-${s.dataset.index}`;
-      if(data.slots[key]=="1") s.classList.add("active");
+// ===== Кружечки для слотів =====
+const maxCircles = 12;
+const spellLevels = document.querySelectorAll(".level-box[data-level!='Cantrip']");
+spellLevels.forEach(levelBox=>{
+  const lvl = levelBox.dataset.level;
+  const container = levelBox.querySelector(".circles");
+  for(let i=0;i<maxCircles;i++){
+    const c = document.createElement("div");
+    c.className="circle";
+    c.dataset.level=lvl;
+    container.appendChild(c);
+    c.addEventListener("click", ()=>{
+      c.classList.toggle("filled");
+      saveCircles();
     });
   }
-  if(data.stat) document.getElementById("spell-stat").value=data.stat;
-  if(data.bonus) document.getElementById("spell-bonus").value=data.bonus;
-  recalcMagic();
+});
+
+// ===== Збереження тексту та кружечків =====
+function saveCircles(){
+  const data = {};
+  spellLevels.forEach(levelBox=>{
+    const lvl = levelBox.dataset.level;
+    const circles = Array.from(levelBox.querySelectorAll(".circle")).map(c=>c.classList.contains("filled") ? "1":"0");
+    data["circles_"+lvl] = circles.join("");
+  });
+  // текст заклинань
+  document.querySelectorAll(".spell-textarea").forEach(txt=>{
+    data["spell_"+txt.dataset.level] = txt.value;
+  });
+  localStorage.setItem("magic_sheet", JSON.stringify(data));
 }
 
-loadMagic();
-recalcMagic();
+function loadCircles(){
+  const data = JSON.parse(localStorage.getItem("magic_sheet")||"{}");
+  spellLevels.forEach(levelBox=>{
+    const lvl = levelBox.dataset.level;
+    const circlesData = data["circles_"+lvl] || "";
+    const circles = levelBox.querySelectorAll(".circle");
+    circles.forEach((c,i)=>{
+      if(circlesData[i]=="1") c.classList.add("filled");
+      else c.classList.remove("filled");
+    });
+  });
+  document.querySelectorAll(".spell-textarea").forEach(txt=>{
+    txt.value = data["spell_"+txt.dataset.level] || "";
+  });
+}
+document.querySelectorAll(".spell-textarea").forEach(txt=>txt.addEventListener("input", saveCircles));
 
-// ==== Пов’язуємо зі змінами характеристик ====
-stats.forEach(s=>{
-  document.getElementById(s+"_val")?.addEventListener("input", recalcMagic);
-});
-document.getElementById("pb")?.addEventListener("input", recalcMagic);
+loadCircles();
