@@ -1,13 +1,9 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
 <style>
 .weapon-page{
   display:grid;
   grid-template-columns: 1fr 1fr;
   gap:12px;
-  align-items: start;
+  height:100%;
 }
 
 /* ===== ЛІВА ЧАСТИНА: ЗБРОЯ ===== */
@@ -16,10 +12,10 @@
   border-radius:8px;
   padding:6px;
   background:#24262a;
-  min-height:320px;
+  display:flex;
+  flex-direction:column;
 }
 
-/* Заголовок + кнопка */
 .weapon-header{
   display:flex;
   justify-content:space-between;
@@ -27,10 +23,8 @@
   margin-bottom:6px;
 }
 
-/* Список зброї */
 .scroll-list{
-  min-height:260px;
-  max-height:500px;
+  flex:1;
   overflow-y:auto;
   border:1px solid #555;
   padding:4px;
@@ -38,37 +32,18 @@
   background:#2b2d31;
 }
 
-/* ===== КОЖЕН РЯДОК ЗБРОЇ — ТУТ ГОЛОВНЕ ВИПРАВЛЕННЯ ===== */
-.weapon-row{
+.weapon-item{
   display:grid;
   grid-template-columns: 2fr 1fr 1fr 1fr;
   gap:6px;
-  align-items:center;
-  margin-bottom:6px;
   padding:4px;
-  border:1px solid #555;
-  border-radius:6px;
-  background:#1e1f22;
+  border-bottom:1px solid #444;
 }
 
-/* Поля вводу */
-.weapon-row input, .weapon-row select{
-  width:100%;
-  background:rgba(255,255,255,0.12);
-  color:white;
-  border:1px solid #555;
-  border-radius:6px;
-  padding:4px;
-}
+.weapon-item:last-child{border-bottom:none;}
 
-/* Кнопки */
-.btn{
-  background:#2b2d31;
-  color:white;
-  border:1px solid #555;
-  padding:6px 10px;
-  border-radius:6px;
-  cursor:pointer;
+.weapon-actions button{
+  margin-left:4px;
 }
 
 /* ===== ПРАВА ЧАСТИНА: ЗДІБНОСТІ ===== */
@@ -77,18 +52,19 @@
   border-radius:8px;
   padding:6px;
   background:#24262a;
-  min-height:320px;
+  display:flex;
+  flex-direction:column;
 }
 
 .abilities-box textarea{
+  flex:1;
   width:100%;
-  min-height:300px;
   background:rgba(255,255,255,0.12);
   color:white;
   border:1px solid #555;
   border-radius:6px;
   padding:6px;
-  resize: vertical;
+  resize:none;
 }
 
 /* ===== МОДАЛЬНЕ ВІКНО ===== */
@@ -118,6 +94,12 @@
   gap:6px;
 }
 
+.modal-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
 .modal textarea{
   width:100%;
   min-height:80px;
@@ -127,57 +109,75 @@
   border-radius:6px;
 }
 </style>
-</head>
-<body>
 
 <div class="weapon-page">
 
-  <!-- ЛІВА ЧАСТИНА: ЗБРОЯ -->
-  <div class="weapon-box">
-    <div class="weapon-header">
-      <b>Оружие персонажа</b>
-      <button class="btn" id="addWeaponBtn">+ Добавить оружие</button>
-    </div>
-
-    <div class="scroll-list" id="weaponList">
-      <!-- Тут будуть рядки зі зброєю -->
-    </div>
+<!-- ЛІВА РАМКА: ЗБРОЯ -->
+<div class="weapon-box">
+  <div class="weapon-header">
+    <b>Оружие</b>
+    <button onclick="openModal()">+ Добавить</button>
   </div>
 
-  <!-- ПРАВА ЧАСТИНА: ЗДІБНОСТІ -->
-  <div class="abilities-box">
-    <b>Способности персонажа</b>
-    <textarea id="abilitiesText"
-      placeholder="Опиши способности персонажа..."></textarea>
+  <div class="scroll-list" id="weaponList">
+    <!-- сюди буде додаватись зброя -->
   </div>
+</div>
+
+<!-- ПРАВА РАМКА: ЗДІБНОСТІ -->
+<div class="abilities-box">
+  <b>Способности персонажа</b>
+  <textarea id="abilitiesText" placeholder="Опиши способности персонажа..."></textarea>
+</div>
 
 </div>
 
-<!-- Модальне вікно -->
+<!-- ===== МОДАЛЬНЕ ВІКНО ДОДАВАННЯ ЗБРОЇ ===== -->
 <div class="modal" id="weaponModal">
   <div class="modal-header">
-    <b>Добавить оружие</b>
-    <button class="btn" id="closeModal">X</button>
+    <b>Нова зброя</b>
+    <button onclick="closeModal()">✖</button>
   </div>
 
   <div class="modal-grid">
-    <input id="mName" placeholder="Название оружия">
-    <input id="mMod" placeholder="Модификатор (напр. +5)">
-    <input id="mDice" placeholder="Кость урона (напр. 1d8)">
-    <select id="mType">
-      <option>Режущий</option>
-      <option>Колющий</option>
-      <option>Дробящий</option>
-      <option>Огненный</option>
-      <option>Холодный</option>
-      <option>Магический</option>
-    </select>
-    <textarea id="mNotes" placeholder="Примечания..."></textarea>
 
-    <button class="btn" id="saveWeapon">Сохранить</button>
+    <div class="modal-row">
+      <label>Название оружия:</label>
+      <input id="w_name">
+    </div>
+
+    <div class="modal-row">
+      <label>Характеристика атаки:</label>
+      <select id="w_stat">
+        <option value="str">Сила</option>
+        <option value="dex">Ловкость</option>
+        <option value="con">Телосложение</option>
+        <option value="int">Интеллект</option>
+        <option value="wis">Мудрость</option>
+        <option value="cha">Харизма</option>
+      </select>
+    </div>
+
+    <div class="modal-row">
+      <label><input type="checkbox" id="w_proficient"> Бонус владения</label>
+      <input id="w_extra" placeholder="Доп. модификатор" type="number">
+    </div>
+
+    <div class="modal-row">
+      <label>Кость урона (напр. 1d8):</label>
+      <input id="w_dice" placeholder="1d8">
+    </div>
+
+    <div class="modal-row">
+      <label>Тип урона:</label>
+      <input id="w_damageType" placeholder="Рубящий / Колющий / Дробящий">
+    </div>
+
+    <div>
+      <label>Особые свойства оружия:</label>
+      <textarea id="w_notes"></textarea>
+    </div>
+
+    <button onclick="saveWeapon()">Зберегти</button>
   </div>
 </div>
-
-<script src="weapon.js"></script>
-</body>
-</html>
