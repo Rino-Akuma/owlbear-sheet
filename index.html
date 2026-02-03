@@ -7,8 +7,7 @@ body{
   background:#1e1f22;
   color:white;
   font-family:Arial;
-  margin:0;
-  padding:8px;
+  margin:0; padding:8px;
 }
 
 /* Кнопки вкладок */
@@ -40,9 +39,9 @@ body{
   border-radius:8px;
   padding:6px;
   background:#24262a;
-  min-height:500px; /* щоб вікно не стрибало */
-  width: 100%;
-  box-sizing: border-box;
+  min-height:500px;
+  box-sizing:border-box;
+  width:100%;
 }
 </style>
 </head>
@@ -59,53 +58,65 @@ body{
   <button data-tab="notes">Заметки персонажа</button>
 </div>
 
-<!-- Вкладки відразу вставлені в HTML -->
-<div id="tab_stats" class="tab-content">
-  <!-- вставити сюди весь HTML для Stats -->
-</div>
-<div id="tab_weapons" class="tab-content">
-  <!-- HTML для Weapons -->
-</div>
-<div id="tab_magic" class="tab-content">
-  <!-- HTML для Magic -->
-</div>
-<div id="tab_equipment" class="tab-content">
-  <!-- HTML для Equipment -->
-</div>
-<div id="tab_description" class="tab-content">
-  <!-- HTML для Description -->
-</div>
-<div id="tab_notes" class="tab-content">
-  <!-- HTML для Notes -->
-</div>
-
-<script src="stats.js"></script>
-<script src="magic.js"></script>
-<script src="equipment.js"></script>
-<script src="description.js"></script>
-<script src="notes.js"></script>
+<div id="tab_stats" class="tab-content"></div>
+<div id="tab_weapons" class="tab-content"></div>
+<div id="tab_magic" class="tab-content"></div>
+<div id="tab_equipment" class="tab-content"></div>
+<div id="tab_description" class="tab-content"></div>
+<div id="tab_notes" class="tab-content"></div>
 
 <script>
+const tabs = [
+  "stats",
+  "weapons",
+  "magic",
+  "equipment",
+  "description",
+  "notes"
+];
+
 const buttons = document.querySelectorAll(".tabs button");
 const containers = document.querySelectorAll(".tab-content");
 
-// Відкриття вкладки
-function openTab(tabName){
-  buttons.forEach(b=>b.classList.remove("active"));
-  containers.forEach(c=>c.style.display="none");
-  document.querySelector(`.tabs button[data-tab="${tabName}"]`).classList.add("active");
-  document.getElementById("tab_"+tabName).style.display="block";
-  localStorage.setItem("lastTab", tabName); // запам'ятовуємо вкладку
+// Функція завантаження всіх вкладок
+async function loadAllTabs(){
+  for(const tab of tabs){
+    const container = document.getElementById("tab_"+tab);
+    try{
+      const html = await fetch(tab + ".html").then(r=>r.text());
+      container.innerHTML = html;
+      // Підключаємо JS якщо є
+      const script = document.createElement("script");
+      script.src = tab + ".js";
+      document.body.appendChild(script);
+    }catch(e){
+      console.error("Не вдалося завантажити вкладку "+tab,e);
+    }
+  }
 }
 
-// Клік по кнопці
+// Функція показу вкладки
+function showTab(tab){
+  buttons.forEach(b=>b.classList.remove("active"));
+  document.querySelector(`[data-tab="${tab}"]`).classList.add("active");
+  containers.forEach(c=>c.style.display="none");
+  document.getElementById("tab_"+tab).style.display="block";
+}
+
+// Обробник кліку
 buttons.forEach(btn=>{
-  btn.addEventListener("click", ()=> openTab(btn.dataset.tab));
+  btn.addEventListener("click", ()=>{
+    const tab = btn.dataset.tab;
+    showTab(tab);
+    localStorage.setItem("lastTab", tab); // зберігаємо останню відкриту вкладку
+  });
 });
 
-// Автоматично відкриваємо останню вкладку після перезавантаження
-let lastTab = localStorage.getItem("lastTab") || "stats";
-openTab(lastTab);
+// Завантажуємо всі вкладки і показуємо останню відкриту
+loadAllTabs().then(()=>{
+  const lastTab = localStorage.getItem("lastTab") || "stats";
+  showTab(lastTab);
+});
 </script>
 
 </body>
