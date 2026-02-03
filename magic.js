@@ -1,86 +1,119 @@
-// ==== Налаштування макс 12 кружечків ====
-const maxCircles = 12;
+// Підтягування характеристик із stats.js
+function getModifier(stat){
+  const val = parseInt(document.getElementById(stat+"_val")?.value) || 10;
+  return Math.floor((val-10)/2);
+}
+function getPB(){ return parseInt(document.getElementById("pb")?.value)||0; }
 
-// ==== Завантажуємо стан з localStorage ====
-function loadMagic(){
-  let data = JSON.parse(localStorage.getItem("owlbear_magic")||"{}");
+// ===== Кількість слотів =====
+const maxSlots=12;
+const levels=["Заговір","1 рівень","2 рівень","3 рівень","4 рівень","5 рівень","6 рівень","7 рівень","8 рівень","9 рівень"];
+const defaultSlots=Array(10).fill(0);
+let slots=JSON.parse(localStorage.getItem("magicSlots")||JSON.stringify(defaultSlots));
 
-  document.querySelectorAll(".level-box").forEach(box=>{
-    let level = box.dataset.level;
-    let circlesDiv = box.querySelector(".circles");
-    circlesDiv.innerHTML = ""; // очищуємо
-    let count = data[level+"_circles"] || 0;
-    for(let i=0;i<count;i++){
-      let c = document.createElement("div");
-      c.classList.add("circle");
-      if(data[level+"_circleStates"] && data[level+"_circleStates"][i]) c.classList.add("filled");
-      c.addEventListener("click", ()=>{c.classList.toggle("filled"); saveMagic();});
-      circlesDiv.appendChild(c);
+const container=document.getElementById("spellContainer");
+function createLevels(){
+  container.innerHTML="";
+  levels.forEach((lvl,i)=>{
+    const div=document.createElement("div");
+    div.className="spell-level";
+
+    const h=document.createElement("h4");
+    h.textContent=lvl;
+    div.appendChild(h);
+
+    // кружечки для слотів (не для Заговору)
+    const circleContainer=document.createElement("div");
+    if(i>0){
+      for(let j=0;j<slots[i];j++){
+        const c=document.createElement("div");
+        c.className="circle";
+        c.dataset.level=i;
+        c.dataset.index=j;
+        c.onclick = toggleCircle;
+        circleContainer.appendChild(c);
+      }
     }
+    div.appendChild(circleContainer);
 
-    // додаємо текст заклинань
-    if(data[level+"_text"] && box.querySelector("textarea")){
-      box.querySelector("textarea").value = data[level+"_text"];
-    }
+    // textarea для заклинань
+    const ta=document.createElement("textarea");
+    ta.className="spell-text";
+    ta.dataset.level=i;
+    ta.placeholder="Напишіть заклинання...";
+    ta.oninput=saveSpells;
+    // завантажуємо з localStorage
+    const saved=JSON.parse(localStorage.getItem("magicText")||"{}");
+    if(saved[i]) ta.value=saved[i];
+    div.appendChild(ta);
 
-    // додатково для налаштувань: додаємо пусті кружечки до 12
-    let extra = maxCircles - circlesDiv.children.length;
-    for(let i=0;i<extra;i++){
-      let c = document.createElement("div");
-      c.classList.add("circle");
-      c.addEventListener("click", ()=>{c.classList.toggle("filled"); saveMagic();});
-      circlesDiv.appendChild(c);
-    }
+    container.appendChild(div);
   });
+}
+createLevels();
 
-  // відновлюємо характеристику
-  if(data["spellStat"]){
-    let sel = document.getElementById("spellStat");
-    sel.value = data["spellStat"];
-  }
-
-  updateSpellValues();
+// ===== Слот-кружечки =====
+function toggleCircle(e){
+  e.target.classList.toggle("filled");
+  saveSpells();
 }
 
-// ==== Зберігання ====
-function saveMagic(){
-  let data = {};
-  document.querySelectorAll(".level-box").forEach(box=>{
-    let level = box.dataset.level;
-    let circles = Array.from(box.querySelectorAll(".circle")).map(c=>c.classList.contains("filled")?1:0);
-    data[level+"_circleStates"] = circles;
-    data[level+"_circles"] = circles.length;
-    data[level+"_text"] = box.querySelector("textarea") ? box.querySelector("textarea").value : "";
+// ===== Збереження заклинань та кружечків =====
+function saveSpells(){
+  const savedText={};
+  container.querySelectorAll(".spell-text").forEach(ta=>{
+    savedText[ta.dataset.level]=ta.value;
   });
-  data["spellStat"] = document.getElementById("spellStat").value;
-  localStorage.setItem("owlbear_magic", JSON.stringify(data));
+  localStorage.setItem("magicText", JSON.stringify(savedText));
+
+  const savedSlots=Array(10).fill(0);
+  container.querySelectorAll(".spell-level").forEach((lvlDiv,i)=>{
+    savedSlots[i]=lvlDiv.querySelectorAll(".circle.filled").length;
+  });
+  localStorage.setItem("magicSlots", JSON.stringify(savedSlots));
 }
 
-// ==== Обчислення атаки і спаскідка ====
-function updateSpellValues(){
-  const stat = document.getElementById("spellStat").value;
-  let modifier = 0;
-  let pb = 0;
-  // Підтягуємо з stats.html / stats.js
-  if(window.parent){
-    const doc = window.parent.document;
-    if(doc.getElementById(stat+"_mod")) modifier = parseInt(doc.getElementById(stat+"_mod").value)||0;
-    if(doc.getElementById("pb")) pb = parseInt(doc.getElementById("pb").value)||0;
-  }
-  document.getElementById("spellSave").value = 8 + modifier + pb;
-  document.getElementById("spellAttack").value = modifier + pb;
+// ===== Обрахунок спаски та атаки заклинань =====
+const spellStat=document.getElementById("spellStat");
+function recalcMagic(){
+  const mod=getModifier(spellStat.value);
+  const pb=getPB();
+  document.getElementById("spellSave").textContent = 8+mod+pb;
+  document.getElementById("spellAttack").textContent = mod+pb;
 }
+spellStat.addEventListener("change", recalcMagic);
+document.querySelectorAll("input").forEach(i=>i.addEventListener("input", recalcMagic));
+recalcMagic();
 
-// ==== Події ====
-document.getElementById("spellStat").addEventListener("change", ()=>{
-  updateSpellValues();
-  saveMagic();
-});
+// ===== Налаштування слотів =====
+const settingsBtn=document.querySelector(".magic-settings");
+const settingsPopup=document.getElementById("settingsPopup");
+settingsBtn.onclick=()=> settingsPopup.style.display = settingsPopup.style.display=="none"?"block":"none";
 
-// textarea зберігаємо при зміні
-document.querySelectorAll("textarea").forEach(t=>{
-  t.addEventListener("input", saveMagic);
-});
+const slotInputs=document.getElementById("slotInputs");
+function renderSlotInputs(){
+  slotInputs.innerHTML="";
+  levels.forEach((lvl,i)=>{
+    if(i==0) return; // Заговір без слотів
+    const lbl=document.createElement("label");
+    lbl.textContent=lvl;
+    const inp=document.createElement("input");
+    inp.type="number";
+    inp.min=0;
+    inp.max=maxSlots;
+    inp.value=slots[i];
+    inp.dataset.level=i;
+    lbl.appendChild(inp);
+    slotInputs.appendChild(lbl);
+  });
+}
+renderSlotInputs();
 
-// Завантаження при старті
-loadMagic();
+document.getElementById("saveSlots").onclick=()=>{
+  document.querySelectorAll("#slotInputs input").forEach(inp=>{
+    slots[inp.dataset.level]=Math.min(maxSlots,parseInt(inp.value)||0);
+  });
+  localStorage.setItem("magicSlots", JSON.stringify(slots));
+  createLevels();
+  settingsPopup.style.display="none";
+};
