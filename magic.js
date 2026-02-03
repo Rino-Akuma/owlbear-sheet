@@ -1,154 +1,85 @@
-const levels = [
-  "Заговор","1 уровень","2 уровень","3 уровень","4 уровень","5 уровень",
-  "6 уровень","7 уровень","8 уровень","9 уровень"
-];
-const maxSlots = 12;
+const spellLevels = ["Заговір","1 рівень","2 рівень","3 рівень","4 рівень","5 рівень","6 рівень","7 рівень","8 рівень","9 рівень"];
+const maxCircles = 12;
+let circlesPerLevel = Array(10).fill(12); // дефолт 12 кружечків
 
-const container = document.getElementById("spellLevels");
+const spellStatSelect = document.getElementById("spellStat");
+const spellSaveSpan = document.getElementById("spellSave");
+const spellAttackSpan = document.getElementById("spellAttack");
+const spellLevelsContainer = document.getElementById("spellLevels");
 
-// === Створюємо рівні заклинань з рамкою для тексту та слотами ===
-levels.forEach((lvl,i)=>{
-  const box = document.createElement("div");
-  box.className = "spell-level";
-  box.id = "level_"+i;
-
-  const header = document.createElement("div");
-  header.className = "level-header";
-
-  const label = document.createElement("div");
-  label.className = "level-label";
-  label.textContent = lvl;
-
-  const slots = document.createElement("div");
-  slots.className = "slots";
-  slots.id = "slots_"+i;
-
-  header.appendChild(label);
-  header.appendChild(slots);
-
-  const textarea = document.createElement("textarea");
-  textarea.className = "spell-text";
-  textarea.placeholder = "Напишите заклинания...";
-  textarea.id = "spells_"+i;
-
-  box.appendChild(header);
-  box.appendChild(textarea);
-  container.appendChild(box);
+// Кнопка налаштувань
+document.getElementById("magicSettingsBtn").addEventListener("click", ()=>{
+  const settings = document.getElementById("magicSettings");
+  settings.style.display = settings.style.display === "none" ? "block" : "none";
 });
 
-// === Вікно налаштувань слотов ===
-const modal = document.getElementById("settingsModal");
-const settingsList = document.getElementById("settingsList");
-
-levels.forEach((lvl,i)=>{
-  const row = document.createElement("div");
-  row.className = "modal-row";
-
-  const label = document.createElement("span");
-  label.textContent = lvl;
-
-  const input = document.createElement("input");
-  input.type="number";
-  input.min=0;
-  input.max=maxSlots;
-  input.value=0;
-  input.id="slotCount_"+i;
-
-  input.oninput = ()=>{
-    if(input.value>maxSlots) input.value=maxSlots;
-    buildSlots(i,parseInt(input.value)||0);
-    save();
-  }
-
-  row.appendChild(label);
-  row.appendChild(input);
-  settingsList.appendChild(row);
+// Генеруємо налаштування кружечків
+const levelSettingsDiv = document.getElementById("levelCirclesSettings");
+spellLevels.forEach((lvl,i)=>{
+  const div = document.createElement("div");
+  div.innerHTML = `<label>${lvl} кількість кружечків: <input type="number" min="0" max="${maxCircles}" value="${circlesPerLevel[i]}" data-level="${i}"></label>`;
+  levelSettingsDiv.appendChild(div);
 });
 
-document.getElementById("openSettings").onclick = ()=> modal.style.display="block";
-document.getElementById("closeSettings").onclick = ()=> modal.style.display="none";
-
-// === Функція створення слотів ===
-function buildSlots(level,count){
-  const slotBox = document.getElementById("slots_"+level);
-  slotBox.innerHTML="";
-  for(let i=0;i<count;i++){
-    const dot = document.createElement("div");
-    dot.className="slot";
-    dot.dataset.state="0";
-    dot.onclick = ()=>{
-      dot.dataset.state = dot.dataset.state=="0"?"1":"0";
-      dot.classList.toggle("active",dot.dataset.state=="1");
-      save();
-    }
-    slotBox.appendChild(dot);
-  }
-}
-
-// === Підтягування модифікатора і бонусу майстерності з stats ===
-function getStatModifier(stat){
-  // звертаємось до головного документа
-  const modInput = parent.document.getElementById(stat+"_mod");
-  const pbInput = parent.document.getElementById("pb");
-  const mod = parseInt(modInput?.value)||0;
-  const pb = parseInt(pbInput?.value)||0;
-  return {mod,pb};
-}
-
-function updateMagicStats(){
-  const stat = document.getElementById("spellStat").value;
-  const {mod,pb} = getStatModifier(stat);
-  document.getElementById("spellDC").textContent = 8 + mod + pb;
-  document.getElementById("spellAttack").textContent = mod + pb;
-}
-
-// оновлення при зміні характеристики
-document.getElementById("spellStat").addEventListener("change",()=>updateMagicStats());
-
-// === Збереження ===
-function save(){
-  let data = {spellStat: document.getElementById("spellStat").value};
-
-  levels.forEach((_,i)=>{
-    data["slotCount_"+i] = document.getElementById("slotCount_"+i).value;
-    data["spells_"+i] = document.getElementById("spells_"+i).value;
-
-    const slotStates=[];
-    document.querySelectorAll("#slots_"+i+" .slot").forEach(s=>{
-      slotStates.push(s.dataset.state);
-    });
-    data["slotStates_"+i]=slotStates;
+// Зберегти налаштування кружечків
+document.getElementById("saveMagicSettings").addEventListener("click", ()=>{
+  document.querySelectorAll("#levelCirclesSettings input").forEach(input=>{
+    const i = parseInt(input.dataset.level);
+    circlesPerLevel[i] = Math.min(maxCircles, Math.max(0, parseInt(input.value)||0));
   });
+  generateSpellLevels();
+});
 
-  localStorage.setItem("owlbear_magic",JSON.stringify(data));
-}
+// Генеруємо поля заклинань і кружечки
+function generateSpellLevels(){
+  spellLevelsContainer.innerHTML = "";
+  spellLevels.forEach((lvl,i)=>{
+    const div = document.createElement("div");
+    div.classList.add("spell-level");
 
-// === Завантаження ===
-function load(){
-  const d = JSON.parse(localStorage.getItem("owlbear_magic")||"{}");
-  if(d.spellStat) document.getElementById("spellStat").value=d.spellStat;
-
-  levels.forEach((_,i)=>{
-    if(d["slotCount_"+i]!==undefined){
-      document.getElementById("slotCount_"+i).value=d["slotCount_"+i];
-      buildSlots(i,parseInt(d["slotCount_"+i])||0);
-
-      if(d["slotStates_"+i]){
-        document.querySelectorAll("#slots_"+i+" .slot").forEach((s,idx)=>{
-          if(d["slotStates_"+i][idx]=="1"){
-            s.dataset.state="1";
-            s.classList.add("active");
-          }
-        });
-      }
+    // header: назва рівня + кружечки
+    const header = document.createElement("div");
+    header.classList.add("level-header");
+    header.innerHTML = `<span>${lvl}</span>`;
+    const circlesDiv = document.createElement("div");
+    for(let c=0;c<circlesPerLevel[i];c++){
+      const circle = document.createElement("span");
+      circle.classList.add("circle");
+      circle.dataset.state = "0";
+      circle.addEventListener("click", ()=>{
+        circle.dataset.state = circle.dataset.state==="0"?"1":"0";
+        circle.classList.toggle("active", circle.dataset.state==="1");
+      });
+      circlesDiv.appendChild(circle);
     }
+    header.appendChild(circlesDiv);
+    div.appendChild(header);
 
-    if(d["spells_"+i]){
-      document.getElementById("spells_"+i).value=d["spells_"+i];
-    }
+    // input для назви заклинання
+    const spellInput = document.createElement("input");
+    spellInput.classList.add("spell-name");
+    spellInput.placeholder = "Назва заклинання";
+    div.appendChild(spellInput);
+
+    spellLevelsContainer.appendChild(div);
   });
-
-  updateMagicStats();
 }
 
-load();
+// Підрахунок спелл атаки і спелл сейву
+function recalcSpell(){
+  const stat = spellStatSelect.value;
+  const modVal = parseInt(document.getElementById(stat+"_mod").value)||0;
+  const pbVal = parseInt(document.getElementById("pb").value)||0;
+  const extra = parseInt(document.getElementById("spellExtra")?.value)||0;
+
+  spellSaveSpan.textContent = 8 + modVal + pbVal + extra;
+  spellAttackSpan.textContent = modVal + pbVal;
+}
+
+// Перерахунок при зміні характеристик або вибору
+spellStatSelect.addEventListener("change", recalcSpell);
+document.querySelectorAll("#spellLevels input").forEach(inp=>inp.addEventListener("input", recalcSpell));
+
+// Генерація спочатку
+generateSpellLevels();
+recalcSpell();
