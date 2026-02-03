@@ -3,7 +3,7 @@
   display:grid;
   grid-template-columns: 1fr 1fr;
   gap:12px;
-  height:100%;
+  align-items: start; /* <<< ГОЛОВНЕ — рамки більше не розтягуються одна під одну */
 }
 
 /* ===== ЛІВА ЧАСТИНА: ЗБРОЯ ===== */
@@ -14,6 +14,7 @@
   background:#24262a;
   display:flex;
   flex-direction:column;
+  min-height:320px; /* мінімум, але може рости від контенту */
 }
 
 .weapon-header{
@@ -24,26 +25,13 @@
 }
 
 .scroll-list{
-  flex:1;
+  min-height:260px; /* замість flex:1 */
+  max-height:500px;
   overflow-y:auto;
   border:1px solid #555;
   padding:4px;
   border-radius:6px;
   background:#2b2d31;
-}
-
-.weapon-item{
-  display:grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap:6px;
-  padding:4px;
-  border-bottom:1px solid #444;
-}
-
-.weapon-item:last-child{border-bottom:none;}
-
-.weapon-actions button{
-  margin-left:4px;
 }
 
 /* ===== ПРАВА ЧАСТИНА: ЗДІБНОСТІ ===== */
@@ -52,19 +40,18 @@
   border-radius:8px;
   padding:6px;
   background:#24262a;
-  display:flex;
-  flex-direction:column;
+  min-height:320px; /* своя висота, НЕ прив’язана до зброї */
 }
 
 .abilities-box textarea{
-  flex:1;
   width:100%;
+  min-height:300px; /* можна зробити більше */
   background:rgba(255,255,255,0.12);
   color:white;
   border:1px solid #555;
   border-radius:6px;
   padding:6px;
-  resize:none;
+  resize: vertical; /* <<< МОЖНА ТЯГНУТИ ВНИЗ МИШКОЮ */
 }
 
 /* ===== МОДАЛЬНЕ ВІКНО ===== */
