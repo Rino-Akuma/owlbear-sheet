@@ -7,85 +7,103 @@ body{
   font-family: Arial, sans-serif;
   background:#1e1f22;
   color:#e6e6e6;
-  padding:10px;
+  padding:8px;
+  margin:0;
 }
 
-/* ======= HEADER (ВЕРХНІ ПОЛЯ) ======= */
+/* ======= HEADER ======= */
 .header{
   display:grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap:8px;
+  grid-template-columns: repeat(7, 1fr);
+  gap:6px;
   margin-bottom:10px;
-  width:100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .field{
   background:#2b2d31;
   border:1px solid #444;
-  padding:6px;
+  padding:4px;
   border-radius:6px;
+  width: 100%;
+  box-sizing: border-box;
 }
-
-.field label{
-  font-size:11px;
-  opacity:.8;
-}
-
+.field label{font-size:11px; opacity:.8;}
 .field input{
   width:100%;
   background:rgba(255,255,255,0.15);
   color:white;
   border:1px solid #555;
   border-radius:4px;
+  box-sizing: border-box;
 }
 
-/* Натхнення */
+/* ===== Натхнення в рядку ===== */
 .inspiration-field{
   background:#2b2d31;
   border:1px solid #444;
-  padding:6px;
+  padding:4px;
   border-radius:6px;
   display:flex;
   align-items:center;
   justify-content:center;
   gap:6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.inspiration-field label{
+  font-size:11px;
+  opacity:.8;
+}
+.inspiration-field input[type=checkbox]{
+  width:16px;
+  height:16px;
+  cursor:pointer;
 }
 
-/* ======= ТЕПЕР ГОЛОВНЕ: ХАРАКТЕРИСТИКИ РЯДКАМИ НА ВСЮ ШИРИНУ ======= */
-
+/* ======= STATS LAYOUT ======= */
 .container{
-  display:flex;
-  flex-direction:column; /* ТЕПЕР ВСЕ ЙДЕ В РЯДОК */
-  gap:12px;
-  width:100%;
+  display:grid;
+  grid-template-columns: repeat(3, 1fr); /* три рівні колонки */
+  gap:16px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-/* Кожен блок — на всю сторінку */
+.col{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  width: 100%;
+}
+
+/* ======= STAT BOX ======= */
 .stat-box{
   border:1px solid #666;
   border-radius:8px;
-  padding:8px;
+  padding:6px;
   background:#24262a;
-  width:100%;
-  box-sizing:border-box;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .stat-title{
   text-align:center;
   font-weight:bold;
-  margin-bottom:6px;
+  margin-bottom:4px;
 }
 
-/* Верхня частина характеристики */
 .stat-top{
   display:flex;
   justify-content:center;
   align-items:center;
+  gap:0;
 }
 
 .stat-val{
-  width:60px;
-  height:50px;
+  width:48px;
+  height:48px;
   text-align:center;
   font-size:22px;
   background:rgba(255,255,255,0.15);
@@ -93,8 +111,8 @@ body{
 }
 
 .stat-mod{
-  width:50px;
-  height:50px;
+  width:40px;
+  height:48px;
   text-align:center;
   font-size:18px;
   background:rgba(255,255,255,0.15);
@@ -102,7 +120,6 @@ body{
   border-left:none;
 }
 
-/* Точки майстерності */
 .dot{
   width:16px;
   height:16px;
@@ -113,21 +130,18 @@ body{
   margin-right:6px;
 }
 
-.dot.filled{
-  background:#7dd3fc;
-}
+.dot.filled{background:#7dd3fc;}
 
-/* Рядок навички */
 .row{
   display:grid;
-  grid-template-columns: 30px 20px 1fr;
+  grid-template-columns: 26px 20px 1fr;
   align-items:center;
-  gap:8px;
+  gap:6px;
   margin:6px 0;
 }
 
 .skill-num{
-  width:30px;
+  width:26px;
   text-align:center;
   background:rgba(255,255,255,0.15);
   border:1px solid #777;
@@ -135,13 +149,16 @@ body{
   font-size:13px;
 }
 
+.skills{margin-top:10px;}
+
 /* Пасивні навички */
 .passive-box{
   border:1px solid #666;
   border-radius:8px;
-  padding:8px;
+  padding:6px;
   background:#24262a;
-  width:100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 </style>
 </head>
@@ -149,7 +166,6 @@ body{
 
 <h3>Характеристика персонажа</h3>
 
-<!-- ======== ПЕРШИЙ РЯДОК ======== -->
 <div class="header">
   <div class="field"><label>Имя</label><input id="name"></div>
   <div class="field"><label>Класс</label><input id="class"></div>
@@ -164,7 +180,6 @@ body{
   </div>
 </div>
 
-<!-- ======== ДРУГИЙ РЯДОК ======== -->
 <div class="header">
   <div class="field"><label>HP</label><input id="hp" type="number"></div>
   <div class="field"><label>Max HP</label><input id="maxhp" type="number"></div>
@@ -175,8 +190,10 @@ body{
   <div class="field"><label>🏊🏻‍♂️</label><input id="swim" type="number"></div>
 </div>
 
-<!-- ======== ТЕПЕР УСІ ХАРАКТЕРИСТИКИ ЙДУТЬ РЯДКАМИ ======== -->
 <div class="container">
+
+<!-- ======= ЛІВА КОЛОНКА ======= -->
+<div class="col">
 
 <!-- СИЛА -->
 <div class="stat-box">
@@ -186,20 +203,9 @@ body{
   <input id="str_mod" class="stat-mod" readonly>
 </div>
 <div class="row"><div class="skill-num" id="save_str_num">0</div><span id="save_str" class="dot"></span><div>Спасбросок Силы</div></div>
+<div class="skills">
 <div class="row"><div class="skill-num" id="athletics_num">0</div><span id="skill_athletics" class="dot"></span><div>Атлетика</div></div>
 </div>
-
-<!-- ЛОВКОСТЬ -->
-<div class="stat-box">
-<div class="stat-title">Ловкость</div>
-<div class="stat-top">
-  <input id="dex_val" class="stat-val" type="number">
-  <input id="dex_mod" class="stat-mod" readonly>
-</div>
-<div class="row"><div class="skill-num" id="save_dex_num">0</div><span id="save_dex" class="dot"></span><div>Спасбросок Ловкости</div></div>
-<div class="row"><div class="skill-num" id="acrobatics_num">0</div><span id="skill_acrobatics" class="dot"></span><div>Акробатика</div></div>
-<div class="row"><div class="skill-num" id="sleight_num">0</div><span id="skill_sleight" class="dot"></span><div>Ловкость рук</div></div>
-<div class="row"><div class="skill-num" id="stealth_num">0</div><span id="skill_stealth" class="dot"></span><div>Скрытность</div></div>
 </div>
 
 <!-- ТЕЛОСЛОЖЕНИЕ -->
@@ -220,26 +226,13 @@ body{
   <input id="int_mod" class="stat-mod" readonly>
 </div>
 <div class="row"><div class="skill-num" id="save_int_num">0</div><span id="save_int" class="dot"></span><div>Спасбросок Интеллекта</div></div>
+<div class="skills">
 <div class="row"><div class="skill-num" id="investigation_num">0</div><span id="skill_investigation" class="dot"></span><div>Анализ</div></div>
 <div class="row"><div class="skill-num" id="arcana_num">0</div><span id="skill_arcana" class="dot"></span><div>Магия</div></div>
 <div class="row"><div class="skill-num" id="history_num">0</div><span id="skill_history" class="dot"></span><div>История</div></div>
 <div class="row"><div class="skill-num" id="nature_num">0</div><span id="skill_nature" class="dot"></span><div>Природа</div></div>
 <div class="row"><div class="skill-num" id="religion_num">0</div><span id="skill_religion" class="dot"></span><div>Религия</div></div>
 </div>
-
-<!-- МУДРОСТЬ -->
-<div class="stat-box">
-<div class="stat-title">Мудрость</div>
-<div class="stat-top">
-  <input id="wis_val" class="stat-val" type="number">
-  <input id="wis_mod" class="stat-mod" readonly>
-</div>
-<div class="row"><div class="skill-num" id="save_wis_num">0</div><span id="save_wis" class="dot"></span><div>Спасбросок Мудрости</div></div>
-<div class="row"><div class="skill-num" id="perception_num">0</div><span id="skill_perception" class="dot"></span><div>Восприятие</div></div>
-<div class="row"><div class="skill-num" id="insight_num">0</div><span id="skill_insight" class="dot"></span><div>Проницательность</div></div>
-<div class="row"><div class="skill-num" id="medicine_num">0</div><span id="skill_medicine" class="dot"></span><div>Медицина</div></div>
-<div class="row"><div class="skill-num" id="survival_num">0</div><span id="skill_survival" class="dot"></span><div>Выживание</div></div>
-<div class="row"><div class="skill-num" id="animal_num">0</div><span id="skill_animal" class="dot"></span><div>Уход за животными</div></div>
 </div>
 
 <!-- ХАРИЗМА -->
@@ -250,13 +243,50 @@ body{
   <input id="cha_mod" class="stat-mod" readonly>
 </div>
 <div class="row"><div class="skill-num" id="save_cha_num">0</div><span id="save_cha" class="dot"></span><div>Спасбросок Харизмы</div></div>
+<div class="skills">
 <div class="row"><div class="skill-num" id="deception_num">0</div><span id="skill_deception" class="dot"></span><div>Обман</div></div>
 <div class="row"><div class="skill-num" id="intimidation_num">0</div><span id="skill_intimidation" class="dot"></span><div>Запугивание</div></div>
 <div class="row"><div class="skill-num" id="performance_num">0</div><span id="skill_performance" class="dot"></span><div>Выступление</div></div>
 <div class="row"><div class="skill-num" id="persuasion_num">0</div><span id="skill_persuasion" class="dot"></span><div>Убеждение</div></div>
 </div>
+</div>
+</div>
 
-<!-- ПАСИВНІ НАВИЧКИ -->
+<!-- ======= СЕРЕДНЯ КОЛОНКА ======= -->
+<div class="col">
+
+<!-- ЛОВКОСТЬ -->
+<div class="stat-box">
+<div class="stat-title">Ловкость</div>
+<div class="stat-top">
+  <input id="dex_val" class="stat-val" type="number">
+  <input id="dex_mod" class="stat-mod" readonly>
+</div>
+<div class="row"><div class="skill-num" id="save_dex_num">0</div><span id="save_dex" class="dot"></span><div>Спасбросок Ловкости</div></div>
+<div class="skills">
+<div class="row"><div class="skill-num" id="acrobatics_num">0</div><span id="skill_acrobatics" class="dot"></span><div>Акробатика</div></div>
+<div class="row"><div class="skill-num" id="sleight_num">0</div><span id="skill_sleight" class="dot"></span><div>Ловкость рук</div></div>
+<div class="row"><div class="skill-num" id="stealth_num">0</div><span id="skill_stealth" class="dot"></span><div>Скрытность</div></div>
+</div>
+</div>
+
+<!-- МУДРОСТЬ -->
+<div class="stat-box">
+<div class="stat-title">Мудрость</div>
+<div class="stat-top">
+  <input id="wis_val" class="stat-val" type="number">
+  <input id="wis_mod" class="stat-mod" readonly>
+</div>
+<div class="row"><div class="skill-num" id="save_wis_num">0</div><span id="save_wis" class="dot"></span><div>Спасбросок Мудрости</div></div>
+<div class="skills">
+<div class="row"><div class="skill-num" id="perception_num">0</div><span id="skill_perception" class="dot"></span><div>Восприятие</div></div>
+<div class="row"><div class="skill-num" id="insight_num">0</div><span id="skill_insight" class="dot"></span><div>Проницательность</div></div>
+<div class="row"><div class="skill-num" id="medicine_num">0</div><span id="skill_medicine" class="dot"></span><div>Медицина</div></div>
+<div class="row"><div class="skill-num" id="survival_num">0</div><span id="skill_survival" class="dot"></span><div>Выживание</div></div>
+<div class="row"><div class="skill-num" id="animal_num">0</div><span id="skill_animal" class="dot"></span><div>Уход за животными</div></div>
+</div>
+</div>
+
 <div class="passive-box">
 <b>Пассивные навыки</b>
 <div>Восприятие: <span id="pass_perception"></span></div>
@@ -265,7 +295,9 @@ body{
 </div>
 
 </div>
+</div>
 
 <script src="stats.js"></script>
+
 </body>
 </html>
