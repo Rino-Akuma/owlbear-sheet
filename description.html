@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+.desc-wrapper{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+/* Перший ряд: Рост, Вес, Возраст, Глаза, Кожа, Волосы */
+.row6{
+  display:grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap:6px;
+}
+
+.field{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.field label{font-size:11px; opacity:.8;}
+.field input{
+  width:100%;
+  background:rgba(255,255,255,0.15);
+  color:white;
+  border:1px solid #555;
+  border-radius:4px;
+  padding:4px;
+}
+
+/* Другий ряд: Предыстория, Мировоззрение */
+.row2{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:6px;
+}
+
+/* Великі текстові поля */
+.text-box{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.text-box label{font-size:12px; opacity:.9;}
+.text-box textarea{
+  width:100%;
+  min-height:120px;
+  background:rgba(255,255,255,0.12);
+  border:1px solid #666;
+  border-radius:6px;
+  color:white;
+  padding:6px;
+  resize:vertical;
+}
+
+/* Блоки з 4 рисами */
+.traits-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:8px;
+}
+
+/* Нижній блок */
+.other-box textarea{
+  width:100%;
+  min-height:120px;
+  background:rgba(255,255,255,0.12);
+  border:1px solid #666;
+  border-radius:6px;
+  color:white;
+  padding:6px;
+  resize:vertical;
+}
+</style>
+</head>
+<body>
+
+<h2 style="text-align:center;">Описание персонажа</h2>
+
+<div class="desc-wrapper">
+
+<!-- ПЕРШИЙ РЯД -->
+<div class="row6">
+  <div class="field"><label>Рост</label><input id="desc_height"></div>
+  <div class="field"><label>Вес</label><input id="desc_weight"></div>
+  <div class="field"><label>Возраст</label><input id="desc_age"></div>
+  <div class="field"><label>Глаза</label><input id="desc_eyes"></div>
+  <div class="field"><label>Кожа</label><input id="desc_skin"></div>
+  <div class="field"><label>Волосы</label><input id="desc_hair"></div>
+</div>
+
+<!-- ДРУГИЙ РЯД -->
+<div class="row2">
+  <div class="field"><label>Предыстория</label><input id="desc_background"></div>
+  <div class="field"><label>Мировоззрение</label><input id="desc_alignment"></div>
+</div>
+
+<!-- ВНЕШНОСТЬ -->
+<div class="text-box">
+  <label>Внешность</label>
+  <textarea id="desc_appearance" placeholder="Опишите внешность персонажа..."></textarea>
+</div>
+
+<!-- ПРЕДЫСТОРИЯ ПЕРСОНАЖА -->
+<div class="text-box">
+  <label>Предыстория персонажа</label>
+  <textarea id="desc_story" placeholder="Опишите историю персонажа..."></textarea>
+</div>
+
+<!-- ЧЕРТЫ / ИДЕАЛЫ / ПРИВЯЗАННОСТИ / НЕДОСТАТКИ -->
+<div class="traits-grid">
+  <div class="text-box">
+    <label>Черты характера</label>
+    <textarea id="desc_traits"></textarea>
+  </div>
+  <div class="text-box">
+    <label>Идеалы</label>
+    <textarea id="desc_ideals"></textarea>
+  </div>
+  <div class="text-box">
+    <label>Привязанности</label>
+    <textarea id="desc_bonds"></textarea>
+  </div>
+  <div class="text-box">
+    <label>Недостатки</label>
+    <textarea id="desc_flaws"></textarea>
+  </div>
+</div>
+
+<!-- ПРОЧЕЕ -->
+<div class="other-box">
+  <label style="font-size:12px;">Прочие владения и языки</label>
+  <textarea id="desc_other" placeholder="Языки, инструменты, особые владения..."></textarea>
+</div>
+
+<script src="description.js"></script>
+</body>
+</html>
