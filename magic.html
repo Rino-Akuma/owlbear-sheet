@@ -10,25 +10,12 @@ body{
   padding:8px;
 }
 
-/* ======= ВЕРХНІЙ БЛОК МАГІЇ ======= */
+/* ===== ВЕРХНЯ ПАНЕЛЬ МАГІЇ ===== */
 .magic-top{
-  text-align:center;
-  margin-bottom:12px;
-}
-
-.select-box{
-  background:#2b2d31;
-  border:1px solid #444;
-  padding:6px;
-  border-radius:6px;
-  display:inline-block;
-}
-
-.magic-stats{
   display:flex;
   justify-content:center;
-  gap:20px;
-  margin-top:8px;
+  gap:12px;
+  margin-bottom:12px;
 }
 
 .magic-field{
@@ -37,84 +24,121 @@ body{
   padding:6px;
   border-radius:6px;
   text-align:center;
+  min-width:180px;
 }
 
-/* ======= РІВНІ ЗАКЛИНАНЬ ======= */
-.spell-grid{
-  display:grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap:10px;
-  margin-top:12px;
+.magic-field label{
+  font-size:11px;
+  opacity:.8;
 }
 
-.spell-box{
+/* ВИБІР ХАРАКТЕРИСТИКИ */
+#spellStat{
+  width:100%;
+  background:#2b2d31;
+  color:white;
+  border:1px solid #666;
+  border-radius:4px;
+}
+
+/* ===== КОНТЕЙНЕР РІВНІВ ЗАКЛИНАНЬ ===== */
+.spell-container{
+  display:flex;
+  justify-content:center;
+  gap:20px;
+}
+
+.spell-levels{
+  width:320px;
+}
+
+.spell-level{
   border:1px solid #666;
   border-radius:8px;
   padding:6px;
   background:#24262a;
+  margin-bottom:8px;
+  display:grid;
+  grid-template-columns: 120px 1fr;
+  align-items:center;
+  gap:6px;
 }
 
-.spell-title{
-  text-align:center;
+/* НАЗВА РІВНЯ */
+.level-label{
   font-weight:bold;
-  margin-bottom:6px;
 }
 
+/* СЛОТИ (КРУЖЕЧКИ) */
 .slots{
   display:flex;
-  flex-wrap:wrap;
   gap:4px;
-  justify-content:center;
 }
 
-/* кружечки слотів */
 .slot{
   width:16px;
   height:16px;
   border:1px solid #aaa;
   border-radius:50%;
-  display:inline-block;
   cursor:pointer;
 }
-.slot.filled{background:#7dd3fc;}
 
-/* ======= КНОПКА НАЛАШТУВАНЬ ======= */
+.slot.active{
+  background:#7dd3fc;
+}
+
+/* ПОЛЕ ДЛЯ ЗАКЛИНАНЬ */
+.spell-text{
+  width:100%;
+  min-height:60px;
+  background:rgba(255,255,255,0.12);
+  color:white;
+  border:1px solid #666;
+  border-radius:4px;
+}
+
+/* КНОПКА НАЛАШТУВАНЬ */
 .settings-btn{
-  position:absolute;
-  top:8px;
-  left:8px;
+  position:fixed;
+  top:10px;
+  left:10px;
+  padding:6px 10px;
   background:#2b2d31;
   color:white;
-  border:1px solid #555;
+  border:1px solid #666;
   border-radius:6px;
-  padding:4px 8px;
   cursor:pointer;
 }
 
-/* ======= ВІКНО НАЛАШТУВАНЬ ======= */
+/* ВІКНО НАЛАШТУВАНЬ */
 .modal{
   position:fixed;
-  top:20%;
+  top:50%;
   left:50%;
-  transform:translateX(-50%);
-  background:#2b2d31;
-  border:1px solid #666;
-  border-radius:10px;
-  padding:10px;
+  transform:translate(-50%,-50%);
+  background:#1e1f22;
+  border:1px solid #777;
+  padding:12px;
+  border-radius:8px;
   display:none;
 }
 
-.modal h4{text-align:center;}
+.modal h4{
+  margin:0 0 8px 0;
+}
 
-.slot-config{
-  display:grid;
-  grid-template-columns: 1fr 50px;
-  gap:6px;
+.modal-row{
+  display:flex;
+  justify-content:space-between;
   margin:4px 0;
 }
 
 .modal input{
-  width:50px;
+  width:40px;
+  background:#2b2d31;
+  color:white;
+  border:1px solid #666;
+  border-radius:4px;
 }
 </style>
 </head>
@@ -122,9 +146,11 @@ body{
 
 <button class="settings-btn" id="openSettings">⚙ Настройки слотов</button>
 
+<h3 style="text-align:center;">Магия персонажа</h3>
+
 <div class="magic-top">
-  <div class="select-box">
-    <label>Характеристика заклинаний:</label>
+  <div class="magic-field">
+    <label>Характеристика заклинаний</label>
     <select id="spellStat">
       <option value="int">Интеллект</option>
       <option value="wis">Мудрость</option>
@@ -132,76 +158,30 @@ body{
     </select>
   </div>
 
-  <div class="magic-stats">
-    <div class="magic-field">
-      <div>Сложность заклинаний (DC)</div>
-      <div id="spellDC">—</div>
-    </div>
-    <div class="magic-field">
-      <div>Атака заклинанием</div>
-      <div id="spellAttack">—</div>
-    </div>
+  <div class="magic-field">
+    <label>Сложность спасброска заклинаний</label>
+    <div id="spellDC">—</div>
+  </div>
+
+  <div class="magic-field">
+    <label>Атака заклинанием</label>
+    <div id="spellAttack">—</div>
   </div>
 </div>
 
-<div class="spell-grid">
-  <div class="spell-box" data-level="0">
-    <div class="spell-title">Заговор</div>
-    <div class="slots" id="slots_0"></div>
-  </div>
-
-  <div class="spell-box" data-level="1">
-    <div class="spell-title">1 уровень</div>
-    <div class="slots" id="slots_1"></div>
-  </div>
-
-  <div class="spell-box" data-level="2">
-    <div class="spell-title">2 уровень</div>
-    <div class="slots" id="slots_2"></div>
-  </div>
-
-  <div class="spell-box" data-level="3">
-    <div class="spell-title">3 уровень</div>
-    <div class="slots" id="slots_3"></div>
-  </div>
-
-  <div class="spell-box" data-level="4">
-    <div class="spell-title">4 уровень</div>
-    <div class="slots" id="slots_4"></div>
-  </div>
-
-  <div class="spell-box" data-level="5">
-    <div class="spell-title">5 уровень</div>
-    <div class="slots" id="slots_5"></div>
-  </div>
-
-  <div class="spell-box" data-level="6">
-    <div class="spell-title">6 уровень</div>
-    <div class="slots" id="slots_6"></div>
-  </div>
-
-  <div class="spell-box" data-level="7">
-    <div class="spell-title">7 уровень</div>
-    <div class="slots" id="slots_7"></div>
-  </div>
-
-  <div class="spell-box" data-level="8">
-    <div class="spell-title">8 уровень</div>
-    <div class="slots" id="slots_8"></div>
-  </div>
-
-  <div class="spell-box" data-level="9">
-    <div class="spell-title">9 уровень</div>
-    <div class="slots" id="slots_9"></div>
-  </div>
+<div class="spell-container">
+<div class="spell-levels" id="spellLevels">
+  <!-- рівні додадуться через JS -->
+</div>
 </div>
 
-<!-- Вікно налаштувань -->
-<div class="modal" id="slotModal">
-  <h4>Количество слотов</h4>
-  <div id="slotSettings"></div>
-  <button id="saveSlots">Сохранить</button>
-  <button id="closeModal">Закрыть</button>
+<!-- ВІКНО НАЛАШТУВАНЬ -->
+<div class="modal" id="settingsModal">
+  <h4>Настройки слотов заклинаний</h4>
+
+  <div id="settingsList"></div>
+
+  <button id="closeSettings">Закрыть</button>
 </div>
 
 <script src="magic.js"></script>
