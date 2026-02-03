@@ -1,42 +1,128 @@
-<div class="magic-tab">
-  <h3>Магія</h3>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background:#1e1f22;
+  color:#e6e6e6;
+  padding:8px;
+}
 
-  <div class="magic-top">
-    <label>Характеристика заклинань: 
-      <select id="spellStat">
-        <option value="str">Сила</option>
-        <option value="dex">Ловкість</option>
-        <option value="con">Тілобудова</option>
-        <option value="int">Інтелект</option>
-        <option value="wis">Мудрість</option>
-        <option value="cha" selected>Харизма</option>
-      </select>
-    </label>
-    <div>Спаскидка проти заклинань: <span id="spellSave">0</span></div>
-    <div>Атака заклинання: <span id="spellAttack">0</span></div>
+/* ===== HEADER ===== */
+.header{
+  display:flex;
+  justify-content:center;
+  gap:16px;
+  margin-bottom:10px;
+}
+.field{
+  background:#2b2d31;
+  border:1px solid #444;
+  padding:4px;
+  border-radius:6px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+.field label{font-size:11px; opacity:.8;}
+.field input{
+  width:60px;
+  background:rgba(255,255,255,0.15);
+  color:white;
+  border:1px solid #555;
+  border-radius:4px;
+  text-align:center;
+}
+
+/* ===== SPELL LAYOUT ===== */
+.spell-container{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  max-height: 80vh;
+  overflow-y:auto;
+}
+
+.spell-box{
+  border:1px solid #666;
+  border-radius:8px;
+  padding:6px;
+  background:#24262a;
+}
+
+.spell-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.spell-level{
+  font-weight:bold;
+}
+
+.spell-circles{
+  display:flex;
+  gap:4px;
+  margin-left:10px;
+}
+.dot{
+  width:16px;
+  height:16px;
+  border:1px solid #aaa;
+  border-radius:50%;
+  display:inline-block;
+  cursor:pointer;
+}
+.dot.filled{background:#7dd3fc;}
+
+.spell-text{
+  margin-top:6px;
+}
+textarea{
+  width:100%;
+  height:80px;
+  background:rgba(255,255,255,0.15);
+  color:white;
+  border:1px solid #555;
+  border-radius:4px;
+  resize:vertical;
+}
+</style>
+</head>
+<body>
+
+<h3>Магія персонажа</h3>
+
+<div class="header">
+  <div class="field">
+    <label>Характеристика</label>
+    <select id="spellStat">
+      <option value="str">Сила</option>
+      <option value="dex">Ловкость</option>
+      <option value="con">Телосложение</option>
+      <option value="int">Интеллект</option>
+      <option value="wis">Мудрость</option>
+      <option value="cha">Харизма</option>
+    </select>
   </div>
-
-  <button id="magicSettingsBtn">Налаштування</button>
-
-  <div id="magicSettings" style="display:none; border:1px solid #666; padding:8px; margin:6px 0; background:#24262a;">
-    <b>Налаштування кружечків під рівні</b>
-    <div id="levelCirclesSettings">
-      <!-- JS згенерує 10 рядків по рівнях -->
-    </div>
-    <button id="saveMagicSettings">Зберегти</button>
+  <div class="field">
+    <label>Спасбросок против заклинаний</label>
+    <input type="number" id="spellSave" readonly>
   </div>
-
-  <div id="spellLevels">
-    <!-- JS згенерує 10 рівнів Cantrip-9 -->
+  <div class="field">
+    <label>Атака заклинания</label>
+    <input type="number" id="spellAtk" readonly>
   </div>
 </div>
 
-<style>
-.magic-tab{padding:8px;}
-.magic-top{display:flex; gap:12px; margin-bottom:10px; align-items:center;}
-.spell-level{border:1px solid #666; border-radius:6px; padding:6px; margin-bottom:4px; background:#24262a;}
-.level-header{display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;}
-.circle{width:16px; height:16px; border:1px solid #aaa; border-radius:50%; display:inline-block; cursor:pointer; margin-right:4px;}
-.circle.active{background:#7dd3fc;}
-.spell-name{width:100%; background:rgba(255,255,255,0.15); border:1px solid #777; border-radius:4px; color:white; padding:2px;}
-</style>
+<button id="spellSettingsBtn">Настройки заклинань</button>
+
+<div class="spell-container" id="spellContainer">
+  <!-- Тут динамічно будуть 10 рамок: Заговір + рівні 1–9 -->
+</div>
+
+<script src="magic.js"></script>
+</body>
+</html>
