@@ -8,14 +8,17 @@ body{
   background:#1e1f22;
   color:#e6e6e6;
   padding:8px;
+  margin:0;
+  box-sizing: border-box;
 }
 
 /* ======= HEADER ======= */
 .header{
   display:grid;
-  grid-template-columns: 2fr 1.5fr 1.5fr 1fr 1fr 1fr 1fr 1fr; /* +1 колонка під натхнення */
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap:6px;
   margin-bottom:10px;
+  width: 100%;
 }
 
 .field{
@@ -23,6 +26,8 @@ body{
   border:1px solid #444;
   padding:4px;
   border-radius:6px;
+  width:100%;
+  box-sizing:border-box;
 }
 .field label{font-size:11px; opacity:.8;}
 .field input{
@@ -43,6 +48,8 @@ body{
   align-items:center;
   justify-content:center;
   gap:6px;
+  width:100%;
+  box-sizing:border-box;
 }
 .inspiration-field label{
   font-size:11px;
@@ -57,23 +64,41 @@ body{
 /* ======= STATS LAYOUT ======= */
 .container{
   display:grid;
-  grid-template-columns: 1fr 0.8fr 1fr;
+  grid-template-columns: repeat(3, 1fr); /* ТРИ РІВНІ КОЛОНКИ */
   gap:16px;
+  width:100%;
+  box-sizing:border-box;
 }
-.col{display:flex; flex-direction:column; gap:10px;}
+
+.col{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  width:100%;
+}
+
 .stat-box{
   border:1px solid #666;
   border-radius:8px;
   padding:6px;
   background:#24262a;
+  width:100%;
+  box-sizing:border-box;
 }
-.stat-title{text-align:center; font-weight:bold; margin-bottom:4px;}
+
+.stat-title{
+  text-align:center;
+  font-weight:bold;
+  margin-bottom:4px;
+}
+
 .stat-top{
   display:flex;
   justify-content:center;
   align-items:center;
   gap:0;
 }
+
 .stat-val{
   width:48px;
   height:48px;
@@ -82,6 +107,7 @@ body{
   background:rgba(255,255,255,0.15);
   border:1px solid #777;
 }
+
 .stat-mod{
   width:40px;
   height:48px;
@@ -91,6 +117,7 @@ body{
   border:1px solid #777;
   border-left:none;
 }
+
 .dot{
   width:16px;
   height:16px;
@@ -101,6 +128,7 @@ body{
   margin-right:6px;
 }
 .dot.filled{background:#7dd3fc;}
+
 .row{
   display:grid;
   grid-template-columns: 26px 20px 1fr;
@@ -108,6 +136,7 @@ body{
   gap:6px;
   margin:6px 0;
 }
+
 .skill-num{
   width:26px;
   text-align:center;
@@ -116,12 +145,16 @@ body{
   border-radius:4px;
   font-size:13px;
 }
+
 .skills{margin-top:10px;}
+
 .passive-box{
   border:1px solid #666;
   border-radius:8px;
   padding:6px;
   background:#24262a;
+  width:100%;
+  box-sizing:border-box;
 }
 </style>
 </head>
