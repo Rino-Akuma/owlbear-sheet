@@ -1,19 +1,9 @@
 const levels = [
-  "Заговор",
-  "1 уровень",
-  "2 уровень",
-  "3 уровень",
-  "4 уровень",
-  "5 уровень",
-  "6 уровень",
-  "7 уровень",
-  "8 уровень",
-  "9 уровень"
+  "Заговор","1 уровень","2 уровень","3 уровень","4 уровень","5 уровень",
+  "6 уровень","7 уровень","8 уровень","9 уровень"
 ];
-
 const maxSlots = 12;
 
-// створюємо рівні заклинань
 const container = document.getElementById("spellLevels");
 
 levels.forEach((lvl, i)=>{
@@ -45,22 +35,19 @@ levels.forEach((lvl, i)=>{
 const modal = document.getElementById("settingsModal");
 const settingsList = document.getElementById("settingsList");
 
-levels.forEach((lvl, i)=>{
+levels.forEach((lvl,i)=>{
   const row = document.createElement("div");
-  row.className = "modal-row";
+  row.className="modal-row";
 
   const label = document.createElement("span");
   label.textContent = lvl;
 
   const input = document.createElement("input");
-  input.type = "number";
-  input.min = 0;
-  input.max = 12;
-  input.value = 0;
+  input.type="number"; input.min=0; input.max=maxSlots; input.value=0;
   input.id = "slotCount_"+i;
 
   input.oninput = ()=>{
-    if(input.value > 12) input.value = 12;
+    if(input.value>maxSlots) input.value=maxSlots;
     buildSlots(i, parseInt(input.value)||0);
     save();
   };
@@ -70,62 +57,41 @@ levels.forEach((lvl, i)=>{
   settingsList.appendChild(row);
 });
 
-document.getElementById("openSettings").onclick = ()=> modal.style.display = "block";
-document.getElementById("closeSettings").onclick = ()=> modal.style.display = "none";
+document.getElementById("openSettings").onclick = ()=> modal.style.display="block";
+document.getElementById("closeSettings").onclick = ()=> modal.style.display="none";
 
-// === ФУНКЦІЯ СТВОРЕННЯ СЛОТІВ ===
-function buildSlots(level, count){
+function buildSlots(level,count){
   const slotBox = document.getElementById("slots_"+level);
-  slotBox.innerHTML = "";
-
+  slotBox.innerHTML="";
   for(let i=0;i<count;i++){
     const dot = document.createElement("div");
-    dot.className = "slot";
-    dot.dataset.state = "0";
-
+    dot.className="slot"; dot.dataset.state="0";
     dot.onclick = ()=>{
       dot.dataset.state = dot.dataset.state=="0"?"1":"0";
       dot.classList.toggle("active", dot.dataset.state=="1");
       save();
     };
-
     slotBox.appendChild(dot);
   }
 }
 
-// === ОТРИМАТИ ДАНІ З STATS ===
-function getSheetData(){
-  return JSON.parse(localStorage.getItem("owlbear_sheet") || "{}");
-}
-
-// === ОБЧИСЛЕННЯ DC І АТАКИ (ТЕПЕР ПРАВИЛЬНО) ===
+// === ФУНКЦІЯ ОБЧИСЛЕННЯ DC І АТАКИ ===
 function updateMagicStats(){
-  const stat = document.getElementById("spellStat").value; // напр. "int"
-  const sheet = getSheetData();
+  const stat = document.getElementById("spellStat").value;
 
-  const mod = parseInt(sheet[stat + "_mod"] || 0);
-  const pb = parseInt(sheet["pb"] || 0);
+  // Беремо модифікатор із листа персонажа
+  const modInput = parent.document.getElementById(stat+"_mod");
+  const pbInput = parent.document.getElementById("pb");
 
-  const dc = 8 + mod + pb;
-  const attack = mod + pb;
+  const modVal = parseInt(modInput?.value)||0;
+  const pbVal = parseInt(pbInput?.value)||0;
 
-  document.getElementById("spellDC").textContent = dc;
-  document.getElementById("spellAttack").textContent = attack;
+  document.getElementById("spellDC").textContent = 8 + modVal + pbVal;
+  document.getElementById("spellAttack").textContent = modVal + pbVal;
 }
 
-// === РОЗШИРЮЄМО ВИБІР ХАРАКТЕРИСТИК ===
-// (переконайся, що в magic.html у тебе такий select:)
-const statSelect = document.getElementById("spellStat");
-statSelect.innerHTML = `
-  <option value="str">Сила</option>
-  <option value="dex">Ловкость</option>
-  <option value="con">Телосложение</option>
-  <option value="int">Интеллект</option>
-  <option value="wis">Мудрость</option>
-  <option value="cha">Харизма</option>
-`;
-
-statSelect.addEventListener("change", ()=>{
+// оновлення при зміні характеристики
+document.getElementById("spellStat").addEventListener("change", ()=>{
   updateMagicStats();
   save();
 });
@@ -134,16 +100,15 @@ statSelect.addEventListener("change", ()=>{
 function save(){
   let data = {spellStat: document.getElementById("spellStat").value};
 
-  levels.forEach((_, i)=>{
-    data["slotCount_"+i] = document.getElementById("slotCount_"+i).value;
-    data["spells_"+i] = document.getElementById("spells_"+i).value;
+  levels.forEach((_,i)=>{
+    data["slotCount_"+i]=document.getElementById("slotCount_"+i).value;
+    data["spells_"+i]=document.getElementById("spells_"+i).value;
 
     const slotStates = [];
     document.querySelectorAll("#slots_"+i+" .slot").forEach(s=>{
       slotStates.push(s.dataset.state);
     });
-
-    data["slotStates_"+i] = slotStates;
+    data["slotStates_"+i]=slotStates;
   });
 
   localStorage.setItem("owlbear_magic", JSON.stringify(data));
@@ -151,31 +116,22 @@ function save(){
 
 // === ЗАВАНТАЖЕННЯ ===
 function load(){
-  const d = JSON.parse(localStorage.getItem("owlbear_magic")||"{}");
-
+  const d=JSON.parse(localStorage.getItem("owlbear_magic")||"{}");
   if(d.spellStat) document.getElementById("spellStat").value = d.spellStat;
 
-  levels.forEach((_, i)=>{
-    if(d["slotCount_"+i] !== undefined){
-      document.getElementById("slotCount_"+i).value = d["slotCount_"+i];
+  levels.forEach((_,i)=>{
+    if(d["slotCount_"+i]!==undefined){
+      document.getElementById("slotCount_"+i).value=d["slotCount_"+i];
       buildSlots(i, parseInt(d["slotCount_"+i])||0);
 
       if(d["slotStates_"+i]){
-        document.querySelectorAll("#slots_"+i+" .slot").forEach((s, idx)=>{
+        document.querySelectorAll("#slots_"+i+" .slot").forEach((s,idx)=>{
           if(d["slotStates_"+i][idx]=="1"){
-            s.dataset.state = "1";
+            s.dataset.state="1";
             s.classList.add("active");
           }
         });
       }
     }
 
-    if(d["spells_"+i]){
-      document.getElementById("spells_"+i).value = d["spells_"+i];
-    }
-  });
-
-  updateMagicStats();
-}
-
-load();
+    if(d["spells_"+i]) document.getElementById("spells_"+]()
