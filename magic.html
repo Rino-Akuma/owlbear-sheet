@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background:#1e1f22;
+  color:#e6e6e6;
+  padding:8px;
+}
+
+/* ======= ВЕРХНІЙ БЛОК МАГІЇ ======= */
+.magic-top{
+  text-align:center;
+  margin-bottom:12px;
+}
+
+.select-box{
+  background:#2b2d31;
+  border:1px solid #444;
+  padding:6px;
+  border-radius:6px;
+  display:inline-block;
+}
+
+.magic-stats{
+  display:flex;
+  justify-content:center;
+  gap:20px;
+  margin-top:8px;
+}
+
+.magic-field{
+  background:#2b2d31;
+  border:1px solid #444;
+  padding:6px;
+  border-radius:6px;
+  text-align:center;
+}
+
+/* ======= РІВНІ ЗАКЛИНАНЬ ======= */
+.spell-grid{
+  display:grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap:10px;
+  margin-top:12px;
+}
+
+.spell-box{
+  border:1px solid #666;
+  border-radius:8px;
+  padding:6px;
+  background:#24262a;
+}
+
+.spell-title{
+  text-align:center;
+  font-weight:bold;
+  margin-bottom:6px;
+}
+
+.slots{
+  display:flex;
+  flex-wrap:wrap;
+  gap:4px;
+  justify-content:center;
+}
+
+/* кружечки слотів */
+.slot{
+  width:16px;
+  height:16px;
+  border:1px solid #aaa;
+  border-radius:50%;
+  display:inline-block;
+  cursor:pointer;
+}
+.slot.filled{background:#7dd3fc;}
+
+/* ======= КНОПКА НАЛАШТУВАНЬ ======= */
+.settings-btn{
+  position:absolute;
+  top:8px;
+  left:8px;
+  background:#2b2d31;
+  color:white;
+  border:1px solid #555;
+  border-radius:6px;
+  padding:4px 8px;
+  cursor:pointer;
+}
+
+/* ======= ВІКНО НАЛАШТУВАНЬ ======= */
+.modal{
+  position:fixed;
+  top:20%;
+  left:50%;
+  transform:translateX(-50%);
+  background:#2b2d31;
+  border:1px solid #666;
+  border-radius:10px;
+  padding:10px;
+  display:none;
+}
+
+.modal h4{text-align:center;}
+
+.slot-config{
+  display:grid;
+  grid-template-columns: 1fr 50px;
+  gap:6px;
+  margin:4px 0;
+}
+
+.modal input{
+  width:50px;
+}
+</style>
+</head>
+<body>
+
+<button class="settings-btn" id="openSettings">⚙ Настройки слотов</button>
+
+<div class="magic-top">
+  <div class="select-box">
+    <label>Характеристика заклинаний:</label>
+    <select id="spellStat">
+      <option value="int">Интеллект</option>
+      <option value="wis">Мудрость</option>
+      <option value="cha">Харизма</option>
+    </select>
+  </div>
+
+  <div class="magic-stats">
+    <div class="magic-field">
+      <div>Сложность заклинаний (DC)</div>
+      <div id="spellDC">—</div>
+    </div>
+    <div class="magic-field">
+      <div>Атака заклинанием</div>
+      <div id="spellAttack">—</div>
+    </div>
+  </div>
+</div>
+
+<div class="spell-grid">
+  <div class="spell-box" data-level="0">
+    <div class="spell-title">Заговор</div>
+    <div class="slots" id="slots_0"></div>
+  </div>
+
+  <div class="spell-box" data-level="1">
+    <div class="spell-title">1 уровень</div>
+    <div class="slots" id="slots_1"></div>
+  </div>
+
+  <div class="spell-box" data-level="2">
+    <div class="spell-title">2 уровень</div>
+    <div class="slots" id="slots_2"></div>
+  </div>
+
+  <div class="spell-box" data-level="3">
+    <div class="spell-title">3 уровень</div>
+    <div class="slots" id="slots_3"></div>
+  </div>
+
+  <div class="spell-box" data-level="4">
+    <div class="spell-title">4 уровень</div>
+    <div class="slots" id="slots_4"></div>
+  </div>
+
+  <div class="spell-box" data-level="5">
+    <div class="spell-title">5 уровень</div>
+    <div class="slots" id="slots_5"></div>
+  </div>
+
+  <div class="spell-box" data-level="6">
+    <div class="spell-title">6 уровень</div>
+    <div class="slots" id="slots_6"></div>
+  </div>
+
+  <div class="spell-box" data-level="7">
+    <div class="spell-title">7 уровень</div>
+    <div class="slots" id="slots_7"></div>
+  </div>
+
+  <div class="spell-box" data-level="8">
+    <div class="spell-title">8 уровень</div>
+    <div class="slots" id="slots_8"></div>
+  </div>
+
+  <div class="spell-box" data-level="9">
+    <div class="spell-title">9 уровень</div>
+    <div class="slots" id="slots_9"></div>
+  </div>
+</div>
+
+<!-- Вікно налаштувань -->
+<div class="modal" id="slotModal">
+  <h4>Количество слотов</h4>
+  <div id="slotSettings"></div>
+  <button id="saveSlots">Сохранить</button>
+  <button id="closeModal">Закрыть</button>
+</div>
+
+<script src="magic.js"></script>
+</body>
+</html>
