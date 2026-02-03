@@ -10,6 +10,9 @@ body{
   padding:8px;
 }
 
+h3{text-align:center;}
+
+/* Верхня панель вибору характеристики та DC/атаки */
 .magic-top{
   display:flex;
   justify-content:center;
@@ -39,6 +42,7 @@ body{
   border-radius:4px;
 }
 
+/* Контейнер рівнів заклинань */
 .spell-container{
   display:flex;
   justify-content:center;
@@ -46,7 +50,7 @@ body{
 }
 
 .spell-levels{
-  width:320px;
+  width:360px;
 }
 
 .spell-level{
@@ -55,9 +59,13 @@ body{
   padding:6px;
   background:#24262a;
   margin-bottom:8px;
-  display:grid;
-  grid-template-columns: 120px 1fr;
-  gap:6px;
+}
+
+.level-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:4px;
 }
 
 .level-label{
@@ -67,7 +75,6 @@ body{
 .slots{
   display:flex;
   gap:4px;
-  margin-bottom:4px;
 }
 
 .slot{
@@ -84,13 +91,15 @@ body{
 
 .spell-text{
   width:100%;
-  min-height:60px;
+  min-height:50px;
   background:rgba(255,255,255,0.12);
   color:white;
   border:1px solid #666;
   border-radius:4px;
+  padding:4px;
 }
 
+/* Кнопка налаштувань */
 .settings-btn{
   position:fixed;
   top:10px;
@@ -103,6 +112,7 @@ body{
   cursor:pointer;
 }
 
+/* Вікно налаштувань */
 .modal{
   position:fixed;
   top:50%;
@@ -113,11 +123,10 @@ body{
   padding:12px;
   border-radius:8px;
   display:none;
+  width:240px;
 }
 
-.modal h4{
-  margin:0 0 8px 0;
-}
+.modal h4{margin:0 0 8px 0;}
 
 .modal-row{
   display:flex;
@@ -138,7 +147,7 @@ body{
 
 <button class="settings-btn" id="openSettings">⚙ Настройки слотов</button>
 
-<h3 style="text-align:center;">Магия персонажа</h3>
+<h3>Магия персонажа</h3>
 
 <div class="magic-top">
   <div class="magic-field">
@@ -152,12 +161,10 @@ body{
       <option value="cha">Харизма</option>
     </select>
   </div>
-
   <div class="magic-field">
-    <label>Сложность спасброска заклинаний</label>
+    <label>Сложность спасброска (DC)</label>
     <div id="spellDC">—</div>
   </div>
-
   <div class="magic-field">
     <label>Атака заклинанием</label>
     <div id="spellAttack">—</div>
@@ -165,11 +172,14 @@ body{
 </div>
 
 <div class="spell-container">
-<div class="spell-levels" id="spellLevels"></div>
+  <div class="spell-levels" id="spellLevels">
+    <!-- рівні додадуться через JS -->
+  </div>
 </div>
 
+<!-- Вікно налаштувань -->
 <div class="modal" id="settingsModal">
-  <h4>Настройки слотов заклинаний</h4>
+  <h4>Настройки слотов</h4>
   <div id="settingsList"></div>
   <button id="closeSettings">Закрыть</button>
 </div>
