@@ -37,7 +37,7 @@ body{
   border-radius:8px;
   padding:6px;
   background:#24262a;
-  min-height:500px;
+  min-height:500px; /* щоб вікно не стрибало */
 }
 </style>
 </head>
@@ -62,37 +62,39 @@ body{
 <div id="tab_notes" class="tab-content"></div>
 
 <script>
-const tabs = ["stats","weapons","magic","equipment","description","notes"];
 const buttons = document.querySelectorAll(".tabs button");
 const containers = document.querySelectorAll(".tab-content");
 
-// Завантажуємо всі вкладки одразу
-async function loadTabs() {
-  for (const tab of tabs){
-    const container = document.getElementById("tab_"+tab);
-    const html = await fetch(tab+".html").then(r=>r.text());
-    container.innerHTML = html;
-  }
-}
-
-// Показати потрібну вкладку
-function showTab(tabName){
-  buttons.forEach(b=>b.classList.remove("active"));
-  document.querySelector(`[data-tab="${tabName}"]`).classList.add("active");
-
-  containers.forEach(c=>c.style.display="none");
-  document.getElementById("tab_"+tabName).style.display="block";
-}
-
-// Клік по кнопці вкладки
 buttons.forEach(btn=>{
-  btn.addEventListener("click", ()=>{
-    showTab(btn.dataset.tab);
+  btn.addEventListener("click", async ()=>{
+    // прибираємо активність зі всіх кнопок
+    buttons.forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+
+    // ховаємо всі вкладки
+    containers.forEach(c=>c.style.display="none");
+
+    // визначаємо, яку вкладку відкрити
+    const tab = btn.dataset.tab;
+    const container = document.getElementById("tab_"+tab);
+    container.style.display="block";
+
+    // якщо вкладка ще НЕ завантажена — завантажуємо її файл
+    if(!container.dataset.loaded){
+      const html = await fetch(tab + ".html").then(r=>r.text());
+      container.innerHTML = html;
+      container.dataset.loaded = "true";
+
+      // підключаємо її JS, якщо він є
+      const script = document.createElement("script");
+      script.src = tab + ".js";
+      document.body.appendChild(script);
+    }
   });
 });
 
-// Автоматично відкриваємо першу вкладку
-loadTabs().then(()=>showTab("stats"));
+// автоматично відкриваємо першу вкладку
+document.querySelector('[data-tab="stats"]').click();
 </script>
 
 </body>
