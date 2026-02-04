@@ -2,50 +2,45 @@
 const buttons = document.querySelectorAll(".tabs button");
 const containers = document.querySelectorAll(".tab-content");
 
-// === ВАЖЛИВО ДЛЯ GITHACK + OWLBEAR ===
-// Базовий шлях до твого репозиторію
-const basePath = "https://raw.githack.com/Rino-Akuma/owlbear-sheet/main/";
+// === КРИТИЧНО ДЛЯ OWLBEAR + GITHACK ===
+// беремо шлях ДИНАМІЧНО з того, де реально лежить index.html
+const basePath = window.location.href.replace(/index\.html.*$/, "");
 
-async function loadTab(tab, container) {
-  if (container.dataset.loaded) return;
+buttons.forEach(btn=>{
+  btn.addEventListener("click", async ()=>{
 
-  try {
-    // 1) Завантажуємо HTML (з вимкненим кешем)
-    const htmlUrl = basePath + tab + ".html?ts=" + Date.now();
-    const html = await fetch(htmlUrl, { cache: "no-store" }).then(r => r.text());
-    container.innerHTML = html;
-
-    // 2) Даємо браузеру час побудувати DOM
-    await new Promise(resolve => setTimeout(resolve, 30));
-
-    // 3) Підключаємо відповідний JS
-    const script = document.createElement("script");
-    script.src = basePath + tab + ".js?ts=" + Date.now();
-    document.body.appendChild(script);
-
-    container.dataset.loaded = "true";
-
-  } catch (e) {
-    console.error("Помилка завантаження вкладки:", tab, e);
-  }
-}
-
-buttons.forEach(btn => {
-  btn.addEventListener("click", async () => {
-
-    buttons.forEach(b => b.classList.remove("active"));
+    // кнопки
+    buttons.forEach(b=>b.classList.remove("active"));
     btn.classList.add("active");
 
-    containers.forEach(c => c.style.display = "none");
+    // ховаємо всі вкладки
+    containers.forEach(c=>c.style.display="none");
 
     const tab = btn.dataset.tab;
-    const container = document.getElementById("tab_" + tab);
-    container.style.display = "block";
+    const container = document.getElementById("tab_"+tab);
+    container.style.display="block";
 
-    await loadTab(tab, container);
+    if(!container.dataset.loaded){
+      try{
+        const html = await fetch(basePath + tab + ".html").then(r=>r.text());
+        container.innerHTML = html;
+
+        // даємо час браузеру "побачити" новий HTML
+        await new Promise(r=>setTimeout(r, 20));
+
+        const script = document.createElement("script");
+        script.src = basePath + tab + ".js";
+        document.body.appendChild(script);
+
+        container.dataset.loaded = "true";
+      }
+      catch(e){
+        console.error("Помилка завантаження вкладки:", tab, e);
+      }
+    }
   });
 });
 
-// Автовідкриття першої вкладки
+// автоматично відкриваємо першу вкладку
 document.querySelector('[data-tab="stats"]').click();
 </script>
