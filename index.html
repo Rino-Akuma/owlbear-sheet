@@ -69,19 +69,20 @@ tabs.forEach(t => {
   containers[t] = document.getElementById("tab_" + t);
 });
 
-// === 1) ЗАВАНТАЖУЄМО ВСІ ВКЛАДКИ ОДРАЗУ ===
-async function preloadTabs(){
-  for(const tab of tabs){
-    const html = await fetch(tab + ".html").then(r=>r.text());
-    containers[tab].innerHTML = html;
+// === ЗАВАНТАЖУЄМО ВСІ ВКЛАДКИ БЕЗ fetch ===
+function loadTabs(){
+  tabs.forEach(tab=>{
+    const iframe = document.createElement("iframe");
+    iframe.src = tab + ".html";
+    iframe.style.width = "100%";
+    iframe.style.height = "100%";
+    iframe.style.border = "none";
 
-    const script = document.createElement("script");
-    script.src = tab + ".js";
-    document.body.appendChild(script);
-  }
+    containers[tab].appendChild(iframe);
+  });
 }
 
-// === 2) ПЕРЕМИКАННЯ ВКЛАДОК ===
+// === ПЕРЕМИКАННЯ ВКЛАДОК ===
 const buttons = document.querySelectorAll(".tabs button");
 
 buttons.forEach(btn=>{
@@ -96,10 +97,9 @@ buttons.forEach(btn=>{
   });
 });
 
-// === 3) ЗАПУСК ===
-preloadTabs().then(()=>{
-  document.querySelector('[data-tab="stats"]').click();
-});
+// === ЗАПУСК ===
+loadTabs();
+document.querySelector('[data-tab="stats"]').click();
 </script>
 
 </body>
