@@ -1,32 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+body{
+  background:#1e1f22;
+  color:white;
+  font-family:Arial;
+}
+
+/* Кнопки вкладок */
+.tabs{
+  display:flex;
+  gap:6px;
+  margin-bottom:8px;
+}
+
+.tabs button{
+  background:#2b2d31;
+  color:white;
+  border:1px solid #555;
+  padding:6px 10px;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.tabs button.active{
+  background:#3b3f45;
+  border-color:#7dd3fc;
+}
+
+/* Контейнери вкладок */
+.tab-content{
+  display:none;
+  border:1px solid #666;
+  border-radius:8px;
+  padding:6px;
+  background:#24262a;
+  min-height:500px; /* щоб вікно не стрибало */
+}
+</style>
+</head>
+<body>
+
+<h3>Лист персонажа</h3>
+
+<div class="tabs">
+  <button data-tab="stats" class="active">Характеристики персонажа</button>
+  <button data-tab="weapons">Оружие персонажа</button>
+  <button data-tab="magic">Магия персонажа</button>
+  <button data-tab="equipment">Снаряжение персонажа</button>
+  <button data-tab="description">Описание персонажа</button>
+  <button data-tab="notes">Заметки персонажа</button>
+</div>
+
+<div id="tab_stats" class="tab-content"></div>
+<div id="tab_weapons" class="tab-content"></div>
+<div id="tab_magic" class="tab-content"></div>
+<div id="tab_equipment" class="tab-content"></div>
+<div id="tab_description" class="tab-content"></div>
+<div id="tab_notes" class="tab-content"></div>
+
 <script>
 const buttons = document.querySelectorAll(".tabs button");
 const containers = document.querySelectorAll(".tab-content");
 
-// === КРИТИЧНО ДЛЯ OWLBEAR + GITHACK ===
-// беремо шлях ДИНАМІЧНО з того, де реально лежить index.html
+// === ВАЖЛИВО ДЛЯ OWLBEAR + RAW.GITHACK ===
 const basePath = window.location.href.replace(/index\.html.*$/, "");
 
 buttons.forEach(btn=>{
   btn.addEventListener("click", async ()=>{
 
-    // кнопки
+    // прибираємо активність зі всіх кнопок
     buttons.forEach(b=>b.classList.remove("active"));
     btn.classList.add("active");
 
     // ховаємо всі вкладки
     containers.forEach(c=>c.style.display="none");
 
+    // визначаємо, яку вкладку відкрити
     const tab = btn.dataset.tab;
     const container = document.getElementById("tab_"+tab);
     container.style.display="block";
 
+    // якщо вкладка ще НЕ завантажена — завантажуємо її файл
     if(!container.dataset.loaded){
       try{
         const html = await fetch(basePath + tab + ".html").then(r=>r.text());
         container.innerHTML = html;
 
-        // даємо час браузеру "побачити" новий HTML
-        await new Promise(r=>setTimeout(r, 20));
+        // маленька пауза, щоб браузер нормально вставив HTML
+        await new Promise(r => setTimeout(r, 20));
 
         const script = document.createElement("script");
         script.src = basePath + tab + ".js";
@@ -44,3 +108,6 @@ buttons.forEach(btn=>{
 // автоматично відкриваємо першу вкладку
 document.querySelector('[data-tab="stats"]').click();
 </script>
+
+</body>
+</html>
