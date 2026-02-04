@@ -35,16 +35,9 @@ body{
   display:none;
   border:1px solid #666;
   border-radius:8px;
-  padding:0;
+  padding:6px;
   background:#24262a;
   min-height:500px;
-}
-
-/* iframe займає весь простір вкладки */
-.tab-content iframe{
-  width:100%;
-  height:500px;
-  border:none;
 }
 </style>
 </head>
@@ -69,38 +62,44 @@ body{
 <div id="tab_notes" class="tab-content"></div>
 
 <script>
-const buttons = document.querySelectorAll(".tabs button");
-const containers = document.querySelectorAll(".tab-content");
+const tabs = ["stats","weapons","magic","equipment","description","notes"];
+const containers = {};
 
-function loadTab(tab){
-  const container = document.getElementById("tab_"+tab);
+tabs.forEach(t => {
+  containers[t] = document.getElementById("tab_" + t);
+});
 
-  // Ховаємо всі вкладки
-  containers.forEach(c=>c.style.display="none");
-  container.style.display="block";
+// === 1) ЗАВАНТАЖУЄМО ВСІ ВКЛАДКИ ОДРАЗУ ===
+async function preloadTabs(){
+  for(const tab of tabs){
+    const html = await fetch(tab + ".html").then(r=>r.text());
+    containers[tab].innerHTML = html;
 
-  // Якщо вже завантажили — нічого не робимо
-  if(container.dataset.loaded) return;
-
-  // Створюємо iframe
-  const iframe = document.createElement("iframe");
-  iframe.src = tab + ".html";
-
-  container.appendChild(iframe);
-  container.dataset.loaded = "true";
+    const script = document.createElement("script");
+    script.src = tab + ".js";
+    document.body.appendChild(script);
+  }
 }
 
-// Обробник кнопок
+// === 2) ПЕРЕМИКАННЯ ВКЛАДОК ===
+const buttons = document.querySelectorAll(".tabs button");
+
 buttons.forEach(btn=>{
   btn.addEventListener("click", ()=>{
     buttons.forEach(b=>b.classList.remove("active"));
     btn.classList.add("active");
-    loadTab(btn.dataset.tab);
+
+    tabs.forEach(t => containers[t].style.display = "none");
+
+    const tab = btn.dataset.tab;
+    containers[tab].style.display = "block";
   });
 });
 
-// Відкрити першу вкладку
-loadTab("stats");
+// === 3) ЗАПУСК ===
+preloadTabs().then(()=>{
+  document.querySelector('[data-tab="stats"]').click();
+});
 </script>
 
 </body>
