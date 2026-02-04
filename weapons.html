@@ -1,10 +1,122 @@
+<style>
+.weapon-page{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:12px;
+  height:100%;
+}
+
+/* ===== ЛІВА ЧАСТИНА: ЗБРОЯ ===== */
+.weapon-box{
+  border:1px solid #666;
+  border-radius:8px;
+  padding:6px;
+  background:#24262a;
+  display:flex;
+  flex-direction:column;
+}
+
+.weapon-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:6px;
+}
+
+.scroll-list{
+  flex:1;
+  overflow-y:auto;
+  border:1px solid #555;
+  padding:4px;
+  border-radius:6px;
+  background:#2b2d31;
+}
+
+.weapon-item{
+  display:grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap:6px;
+  padding:4px;
+  border-bottom:1px solid #444;
+}
+
+.weapon-item:last-child{border-bottom:none;}
+
+.weapon-actions button{
+  margin-left:4px;
+}
+
+/* ===== ПРАВА ЧАСТИНА: ЗДІБНОСТІ ===== */
+.abilities-box{
+  border:1px solid #666;
+  border-radius:8px;
+  padding:6px;
+  background:#24262a;
+  display:flex;
+  flex-direction:column;
+}
+
+.abilities-box textarea{
+  width:100%;
+  background:rgba(255,255,255,0.12);
+  color:white;
+  border:1px solid #555;
+  border-radius:6px;
+  padding:6px;
+  resize:none;
+  min-height:60px;      /* мінімальна висота */
+}
+
+/* ===== МОДАЛЬНЕ ВІКНО ===== */
+.modal{
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  width:420px;
+  background:#1e1f22;
+  border:1px solid #666;
+  border-radius:10px;
+  padding:10px;
+  display:none;
+  z-index:999;
+}
+
+.modal-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.modal-grid{
+  display:grid;
+  grid-template-columns: 1fr;
+  gap:6px;
+}
+
+.modal-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.modal textarea{
+  width:100%;
+  min-height:80px;
+  background:rgba(255,255,255,0.12);
+  color:white;
+  border:1px solid #555;
+  border-radius:6px;
+}
+</style>
+
 <div class="weapon-page">
 
 <!-- ЛІВА РАМКА: ЗБРОЯ -->
 <div class="weapon-box">
   <div class="weapon-header">
-    <b>Зброя</b>
-    <button onclick="openModal()">+ Додати</button>
+    <b>Оружие</b>
+    <button onclick="openModal()">+ Добавить</button>
   </div>
 
   <div class="scroll-list" id="weaponList">
@@ -15,7 +127,12 @@
 <!-- ПРАВА РАМКА: ЗДІБНОСТІ -->
 <div class="abilities-box">
   <b>Здібності персонажа</b>
-  <textarea id="abilitiesText" placeholder="Опиши здібності персонажа..."></textarea>
+  <textarea 
+    id="abilitiesText" 
+    placeholder="Опиши здібності персонажа..."
+    rows="3"
+    style="overflow:hidden;"
+  ></textarea>
 </div>
 
 </div>
@@ -30,7 +147,7 @@
   <div class="modal-grid">
 
     <div class="modal-row">
-      <label>Назва зброї:</label>
+      <label>Название оружия:</label>
       <input id="w_name">
     </div>
 
