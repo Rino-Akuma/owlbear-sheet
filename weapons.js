@@ -1,9 +1,13 @@
 const weaponList = document.getElementById("weaponList");
 const abilitiesText = document.getElementById("abilitiesText");
 
-// ===== МОДАЛЬНІ ФУНКЦІЇ =====
-function openModal(){ document.getElementById("weaponModal").style.display="block"; }
-function closeModal(){ document.getElementById("weaponModal").style.display="none"; }
+function openModal(){
+  document.getElementById("weaponModal").style.display="block";
+}
+
+function closeModal(){
+  document.getElementById("weaponModal").style.display="none";
+}
 
 // отримуємо дані з вкладки характеристик
 function getStatMod(stat){
@@ -14,6 +18,28 @@ function getStatMod(stat){
 function getPB(){
   const data = JSON.parse(localStorage.getItem("owlbear_sheet")||"{}");
   return parseInt(data["pb"]||2);
+}
+
+// збереження здібностей
+abilitiesText.addEventListener("input",()=>{
+  localStorage.setItem("abilitiesText", abilitiesText.value);
+});
+
+// >>> НОВЕ: АВТОРОЗШИРЕННЯ TEXTAREA <<<
+function autoResize(el){
+  el.style.height = "auto";
+  el.style.height = el.scrollHeight + "px";
+}
+
+// запускаємо при кожному вводі
+abilitiesText.addEventListener("input", function(){
+  autoResize(this);
+});
+// >>> КІНЕЦЬ НОВОГО БЛОКУ <<<
+
+function loadAbilities(){
+  abilitiesText.value = localStorage.getItem("abilitiesText") || "";
+  autoResize(abilitiesText); // >>> НОВЕ: підганяємо висоту після завантаження
 }
 
 // ===== ЗБРОЯ =====
@@ -70,24 +96,5 @@ function renderWeapons(){
   });
 }
 
-// ===== АВТО-РОЗШИРЮВАННЯ TEXTAREA ЗДІБНОСТЕЙ =====
-function autoResizeTextarea(el){
-  el.style.height = "auto";
-  el.style.height = (el.scrollHeight) + "px";
-}
-
-// зберігаємо здібності та авто-розширюємо
-abilitiesText.addEventListener("input",()=>{
-  localStorage.setItem("abilitiesText", abilitiesText.value);
-  autoResizeTextarea(abilitiesText);
-});
-
-// підвантаження здібностей з localStorage
-function loadAbilities(){
-  abilitiesText.value = localStorage.getItem("abilitiesText") || "";
-  autoResizeTextarea(abilitiesText);
-}
-
-// ===== ЗАПУСК ПРИ ЗАГРУЗЦІ =====
 loadAbilities();
 renderWeapons();
