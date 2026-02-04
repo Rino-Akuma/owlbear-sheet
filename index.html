@@ -1,106 +1,45 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<style>
-body{
-  background:#1e1f22;
-  color:white;
-  font-family:Arial;
-}
-
-/* Кнопки вкладок */
-.tabs{
-  display:flex;
-  gap:6px;
-  margin-bottom:8px;
-}
-
-.tabs button{
-  background:#2b2d31;
-  color:white;
-  border:1px solid #555;
-  padding:6px 10px;
-  border-radius:6px;
-  cursor:pointer;
-}
-
-.tabs button.active{
-  background:#3b3f45;
-  border-color:#7dd3fc;
-}
-
-/* Контейнери вкладок */
-.tab-content{
-  display:none;
-  border:1px solid #666;
-  border-radius:8px;
-  padding:6px;
-  background:#24262a;
-  min-height:500px;
-}
-</style>
-</head>
-<body>
-
-<h3>Лист персонажа</h3>
-
-<div class="tabs">
-  <button data-tab="stats" class="active">Характеристики персонажа</button>
-  <button data-tab="weapons">Оружие персонажа</button>
-  <button data-tab="magic">Магия персонажа</button>
-  <button data-tab="equipment">Снаряжение персонажа</button>
-  <button data-tab="description">Описание персонажа</button>
-  <button data-tab="notes">Заметки персонажа</button>
-</div>
-
-<div id="tab_stats" class="tab-content"></div>
-<div id="tab_weapons" class="tab-content"></div>
-<div id="tab_magic" class="tab-content"></div>
-<div id="tab_equipment" class="tab-content"></div>
-<div id="tab_description" class="tab-content"></div>
-<div id="tab_notes" class="tab-content"></div>
-
 <script>
-const tabs = ["stats","weapons","magic","equipment","description","notes"];
-const containers = {};
+const buttons = document.querySelectorAll(".tabs button");
+const containers = document.querySelectorAll(".tab-content");
 
-tabs.forEach(t => {
-  containers[t] = document.getElementById("tab_" + t);
-});
+async function loadTab(tab, container) {
+  if (container.dataset.loaded) return;
 
-// === ЗАВАНТАЖУЄМО ВСІ ВКЛАДКИ БЕЗ fetch ===
-function loadTabs(){
-  tabs.forEach(tab=>{
-    const iframe = document.createElement("iframe");
-    iframe.src = tab + ".html";
-    iframe.style.width = "100%";
-    iframe.style.height = "100%";
-    iframe.style.border = "none";
+  // 1) Завантажуємо HTML
+  const html = await fetch(tab + ".html").then(r => r.text());
+  container.innerHTML = html;
 
-    containers[tab].appendChild(iframe);
-  });
+  // 2) ЧЕКАЄМО, поки браузер реально вставить цей HTML у DOM
+  await new Promise(resolve => setTimeout(resolve, 10));
+
+  // 3) ТЕПЕР підключаємо JS вкладки
+  const script = document.createElement("script");
+  script.src = tab + ".js";
+  document.body.appendChild(script);
+
+  container.dataset.loaded = "true";
 }
 
-// === ПЕРЕМИКАННЯ ВКЛАДОК ===
-const buttons = document.querySelectorAll(".tabs button");
+buttons.forEach(btn => {
+  btn.addEventListener("click", async () => {
 
-buttons.forEach(btn=>{
-  btn.addEventListener("click", ()=>{
-    buttons.forEach(b=>b.classList.remove("active"));
+    // прибираємо активність
+    buttons.forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
 
-    tabs.forEach(t => containers[t].style.display = "none");
+    // ховаємо всі вкладки
+    containers.forEach(c => c.style.display = "none");
 
+    // показуємо потрібну
     const tab = btn.dataset.tab;
-    containers[tab].style.display = "block";
+    const container = document.getElementById("tab_" + tab);
+    container.style.display = "block";
+
+    // завантажуємо її ТІЛЬКИ ПЕРШИЙ РАЗ
+    await loadTab(tab, container);
   });
 });
 
-// === ЗАПУСК ===
-loadTabs();
+// автоматично відкриваємо першу вкладку
 document.querySelector('[data-tab="stats"]').click();
 </script>
-
-</body>
-</html>
