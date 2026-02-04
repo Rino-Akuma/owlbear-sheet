@@ -1,56 +1,8 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<style>
-.notes-wrapper{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  padding:6px;
-}
-
-.note-box{
-  width:100%;
-  min-height:120px;
-  background:rgba(255,255,255,0.12);
-  border:1px solid #666;
-  border-radius:8px;
-  padding:6px;
-}
-
-.note-box textarea{
-  width:100%;
-  height:100%;
-  min-height:120px;
-  background:transparent;
-  border:none;
-  color:white;
-  resize:vertical;
-  outline:none;
-}
-
-.add-note-btn{
-  align-self:flex-start;
-  background:#2b2d31;
-  color:white;
-  border:1px solid #555;
-  padding:6px 10px;
-  border-radius:6px;
-  cursor:pointer;
-}
-</style>
-</head>
-<body>
-
-<h2 style="text-align:center;">Заметки персонажа</h2>
-
-<button class="add-note-btn" id="addNote">+ Добавить заметку</button>
-
-<div class="notes-wrapper" id="notesContainer">
-  <!-- Стартові 6 вікон створяться скриптом -->
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+  <h2>Заметки персонажа</h2>
+  <button id="addNote" style="padding:4px 8px; border-radius:6px; background:#2b2d31; border:1px solid #555; color:white; cursor:pointer;">+ Додати заметку</button>
 </div>
 
-<script src="notes.js"></script>
-</body>
-</html>
+<div id="notesContainer" style="display:flex; flex-direction:column; gap:8px;">
+  <!-- Вікна заметок динамічно створюються тут -->
+</div>
