@@ -35,9 +35,16 @@ body{
   display:none;
   border:1px solid #666;
   border-radius:8px;
-  padding:6px;
+  padding:0;
   background:#24262a;
   min-height:500px;
+}
+
+/* iframe займає весь простір вкладки */
+.tab-content iframe{
+  width:100%;
+  height:500px;
+  border:none;
 }
 </style>
 </head>
@@ -65,35 +72,22 @@ body{
 const buttons = document.querySelectorAll(".tabs button");
 const containers = document.querySelectorAll(".tab-content");
 
-async function loadTab(tab){
+function loadTab(tab){
   const container = document.getElementById("tab_"+tab);
 
-  // ховаємо всі вкладки
+  // Ховаємо всі вкладки
   containers.forEach(c=>c.style.display="none");
   container.style.display="block";
 
-  // якщо вже завантажено — не вантажимо знову
+  // Якщо вже завантажили — нічого не робимо
   if(container.dataset.loaded) return;
 
-  try {
-    const text = await fetch(tab + ".html").then(r => r.text());
+  // Створюємо iframe
+  const iframe = document.createElement("iframe");
+  iframe.src = tab + ".html";
 
-    // ВИРІЗАЄМО ТІЛЬКИ <body> КОНТЕНТ
-    const bodyMatch = text.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-    const inner = bodyMatch ? bodyMatch[1] : text;
-
-    container.innerHTML = inner;
-    container.dataset.loaded = "true";
-
-    // підключаємо відповідний JS
-    const script = document.createElement("script");
-    script.src = tab + ".js";
-    document.body.appendChild(script);
-
-  } catch(e){
-    container.innerHTML = "<b style='color:red'>Помилка завантаження вкладки: "+tab+"</b>";
-    console.error(e);
-  }
+  container.appendChild(iframe);
+  container.dataset.loaded = "true";
 }
 
 // Обробник кнопок
