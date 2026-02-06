@@ -7,7 +7,7 @@
     "title": "Лист персонажа",
     "icon": "https://raw.githack.com/Rino-Akuma/owlbear-sheet/main/icon.svg",
     "popover": "https://raw.githack.com/Rino-Akuma/owlbear-sheet/main/index.html",
-    "width": 950,
-    "height": 750
+    "width": 1000,
+    "height": 800
   }
 }
