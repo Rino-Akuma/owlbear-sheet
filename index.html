@@ -7,9 +7,11 @@ body{
   background:#1e1f22;
   color:white;
   font-family:Arial;
+  position:relative;
+  padding-top:40px;
 }
 
-/* === БЛОК ІМПОРТ/ЕКСПОРТ (ДОДАНО) === */
+/* === БЛОК ІМПОРТ/ЕКСПОРТ (ПРАВИЙ ВЕРХ) === */
 .top-right-tools{
   position:absolute;
   top:10px;
@@ -19,6 +21,24 @@ body{
 }
 
 .top-right-tools button{
+  background:#2b2d31;
+  color:white;
+  border:1px solid #555;
+  padding:5px 8px;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+/* === ПЕРЕМІКАЧ МОВ (ЦЕНТР) === */
+.lang-switch{
+  position:absolute;
+  top:10px;
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  gap:6px;
+}
+.lang-switch button{
   background:#2b2d31;
   color:white;
   border:1px solid #555;
@@ -61,23 +81,28 @@ body{
 </head>
 <body>
 
-<h3>Лист персонажа</h3>
+<h3 data-i18n="sheet_title">Лист персонажа</h3>
 
-<!-- ===== ДОДАНО (нічого іншого не чіпав) ===== -->
+<!-- ===== ІМПОРТ / ЕКСПОРТ (праворуч) ===== -->
 <div class="top-right-tools">
-  <button id="exportBtn">📤 Експорт</button>
-  <button id="importBtn">📥 Імпорт</button>
+  <button id="exportBtn" data-i18n="export_btn">📤 Експорт</button>
+  <button id="importBtn" data-i18n="import_btn">📥 Імпорт</button>
   <input type="file" id="importFile" accept=".json" style="display:none;">
 </div>
-<!-- ========================================= -->
+
+<!-- ===== ПЕРЕМІКАЧ МОВ (центр) ===== -->
+<div class="lang-switch">
+  <button onclick="setLang('ru')">RU</button>
+  <button onclick="setLang('ua')">UA</button>
+</div>
 
 <div class="tabs">
-  <button data-tab="stats" class="active">Характеристики персонажа</button>
-  <button data-tab="weapons">Оружие персонажа</button>
-  <button data-tab="magic">Магия персонажа</button>
-  <button data-tab="equipment">Снаряжение персонажа</button>
-  <button data-tab="description">Описание персонажа</button>
-  <button data-tab="notes">Заметки персонажа</button>
+  <button data-tab="stats" class="active" data-i18n="tab_stats">Характеристики персонажа</button>
+  <button data-tab="weapons" data-i18n="tab_weapons">Оружие персонажа</button>
+  <button data-tab="magic" data-i18n="tab_magic">Магия персонажа</button>
+  <button data-tab="equipment" data-i18n="tab_equipment">Снаряжение персонажа</button>
+  <button data-tab="description" data-i18n="tab_description">Описание персонажа</button>
+  <button data-tab="notes" data-i18n="tab_notes">Заметки персонажа</button>
 </div>
 
 <div id="tab_stats" class="tab-content"></div>
@@ -88,6 +113,45 @@ body{
 <div id="tab_notes" class="tab-content"></div>
 
 <script>
+/* ================== ПЕРЕКЛАД ================== */
+const translations = {
+  ru:{
+    sheet_title: "Лист персонажа",
+    export_btn: "📤 Экспорт",
+    import_btn: "📥 Импорт",
+    tab_stats: "Характеристики персонажа",
+    tab_weapons: "Оружие персонажа",
+    tab_magic: "Магия персонажа",
+    tab_equipment: "Снаряжение персонажа",
+    tab_description: "Описание персонажа",
+    tab_notes: "Заметки персонажа"
+  },
+  ua:{
+    sheet_title: "Лист персонажа",
+    export_btn: "📤 Експорт",
+    import_btn: "📥 Імпорт",
+    tab_stats: "Характеристики персонажа",
+    tab_weapons: "Зброя персонажа",
+    tab_magic: "Магія персонажа",
+    tab_equipment: "Снарядження персонажа",
+    tab_description: "Опис персонажа",
+    tab_notes: "Нотатки персонажа"
+  }
+};
+
+function setLang(lang){
+  localStorage.setItem("owlbear_lang", lang);
+
+  document.querySelectorAll("[data-i18n]").forEach(el=>{
+    const key = el.dataset.i18n;
+    if(translations[lang][key]) el.textContent = translations[lang][key];
+  });
+}
+
+/* встановлюємо мову при завантаженні */
+setLang(localStorage.getItem("owlbear_lang") || "ru");
+
+/* ================== ВКЛАДКИ ================== */
 const buttons = document.querySelectorAll(".tabs button");
 const containers = document.querySelectorAll(".tab-content");
 
@@ -124,20 +188,16 @@ buttons.forEach(btn=>{
 // Відкриваємо першу вкладку
 document.querySelector('[data-tab="stats"]').click();
 
-/* ================== ІМПОРТ / ЕКСПОРТ (ДОДАНО) ================== */
-
+/* ================== ІМПОРТ / ЕКСПОРТ ================== */
 // ЕКСПОРТ УСЬОГО localStorage
 document.getElementById("exportBtn").addEventListener("click", ()=>{
   const data = {};
-
-  for(let i=0; i<localStorage.length; i++){
+  for(let i=0;i<localStorage.length;i++){
     const key = localStorage.key(i);
     data[key] = localStorage.getItem(key);
   }
-
-  const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
   const url = URL.createObjectURL(blob);
-
   const a = document.createElement("a");
   a.href = url;
   a.download = "owlbear_sheet_backup.json";
@@ -150,28 +210,22 @@ document.getElementById("exportBtn").addEventListener("click", ()=>{
 document.getElementById("importBtn").addEventListener("click", ()=>{
   document.getElementById("importFile").click();
 });
-
 document.getElementById("importFile").addEventListener("change", (e)=>{
   const file = e.target.files[0];
   if(!file) return;
-
   const reader = new FileReader();
   reader.onload = function(event){
     try{
       const data = JSON.parse(event.target.result);
-
       localStorage.clear();
-
       Object.keys(data).forEach(key=>{
-        localStorage.setItem(key, data[key]);
+        localStorage.setItem(key,data[key]);
       });
-
       alert("Імпорт завершено! Перезавантаж сторінку.");
     }catch(err){
       alert("Помилка файлу! Потрібен правильний JSON.");
     }
   };
-
   reader.readAsText(file);
 });
 </script>
