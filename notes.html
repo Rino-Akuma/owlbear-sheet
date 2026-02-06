@@ -1,8 +1,72 @@
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-  <h2>Заметки персонажа</h2>
-  <button id="addNote" style="padding:4px 8px; border-radius:6px; background:#2b2d31; border:1px solid #555; color:white; cursor:pointer;">+ Додати заметку</button>
+<style>
+.notes-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:8px;
+}
+
+.notes-container{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+/* ===== LANGUAGE SWITCH ===== */
+.lang-switch{
+  position:absolute;
+  top:8px;
+  right:8px;
+}
+.lang-switch button{
+  background:#2b2d31;
+  color:white;
+  border:1px solid #555;
+  padding:4px 8px;
+  border-radius:6px;
+  cursor:pointer;
+}
+</style>
+
+<!-- Кнопки перемикання мови -->
+<div class="lang-switch">
+  <button onclick="setLang('ru')">RU</button>
+  <button onclick="setLang('ua')">UA</button>
 </div>
 
-<div id="notesContainer" style="display:flex; flex-direction:column; gap:8px;">
+<div class="notes-header">
+  <h2 data-i18n="notes_title">Заметки персонажа</h2>
+  <button id="addNote" data-i18n="add_note_btn" style="padding:4px 8px; border-radius:6px; background:#2b2d31; border:1px solid #555; color:white; cursor:pointer;">
+    + Додати заметку
+  </button>
+</div>
+
+<div id="notesContainer" class="notes-container">
   <!-- Вікна заметок динамічно створюються тут -->
 </div>
+
+<script>
+const translations = {
+  ru:{
+    notes_title: "Заметки персонажа",
+    add_note_btn: "+ Добавить заметку"
+  },
+  ua:{
+    notes_title: "Заметки персонажа",
+    add_note_btn: "+ Додати заметку"
+  }
+};
+
+function setLang(lang){
+  localStorage.setItem("owlbear_lang", lang);
+
+  document.querySelectorAll("[data-i18n]").forEach(el=>{
+    const key = el.dataset.i18n;
+    if(translations[lang][key]) el.textContent = translations[lang][key];
+  });
+}
+
+// Встановлюємо мову при завантаженні
+setLang(localStorage.getItem("owlbear_lang") || "ru");
+</script>
+
