@@ -8,10 +8,10 @@ body{
   color:white;
   font-family:Arial;
   position:relative;
-  padding-top:40px;
+  padding-top:40px; /* щоб кнопки не перекривали заголовок */
 }
 
-/* === БЛОК ІМПОРТ/ЕКСПОРТ (ПРАВИЙ ВЕРХ) === */
+/* === БЛОК ІМПОРТ/ЕКСПОРТ (ДОДАНО) === */
 .top-right-tools{
   position:absolute;
   top:10px;
@@ -29,7 +29,7 @@ body{
   cursor:pointer;
 }
 
-/* === ПЕРЕМІКАЧ МОВ (ЦЕНТР) === */
+/* === ПЕРЕМІКАЧ МОВ === */
 .lang-switch{
   position:absolute;
   top:10px;
@@ -83,14 +83,14 @@ body{
 
 <h3 data-i18n="sheet_title">Лист персонажа</h3>
 
-<!-- ===== ІМПОРТ / ЕКСПОРТ (праворуч) ===== -->
+<!-- ===== ІМПОРТ / ЕКСПОРТ ===== -->
 <div class="top-right-tools">
-  <button id="exportBtn" data-i18n="export_btn">📤 Експорт</button>
-  <button id="importBtn" data-i18n="import_btn">📥 Імпорт</button>
+  <button id="exportBtn" data-i18n="export">📤 Експорт</button>
+  <button id="importBtn" data-i18n="import">📥 Імпорт</button>
   <input type="file" id="importFile" accept=".json" style="display:none;">
 </div>
 
-<!-- ===== ПЕРЕМІКАЧ МОВ (центр) ===== -->
+<!-- ===== ПЕРЕМІКАЧ МОВ ===== -->
 <div class="lang-switch">
   <button onclick="setLang('ru')">RU</button>
   <button onclick="setLang('ua')">UA</button>
@@ -113,45 +113,7 @@ body{
 <div id="tab_notes" class="tab-content"></div>
 
 <script>
-/* ================== ПЕРЕКЛАД ================== */
-const translations = {
-  ru:{
-    sheet_title: "Лист персонажа",
-    export_btn: "📤 Экспорт",
-    import_btn: "📥 Импорт",
-    tab_stats: "Характеристики персонажа",
-    tab_weapons: "Оружие персонажа",
-    tab_magic: "Магия персонажа",
-    tab_equipment: "Снаряжение персонажа",
-    tab_description: "Описание персонажа",
-    tab_notes: "Заметки персонажа"
-  },
-  ua:{
-    sheet_title: "Лист персонажа",
-    export_btn: "📤 Експорт",
-    import_btn: "📥 Імпорт",
-    tab_stats: "Характеристики персонажа",
-    tab_weapons: "Зброя персонажа",
-    tab_magic: "Магія персонажа",
-    tab_equipment: "Снарядження персонажа",
-    tab_description: "Опис персонажа",
-    tab_notes: "Нотатки персонажа"
-  }
-};
-
-function setLang(lang){
-  localStorage.setItem("owlbear_lang", lang);
-
-  document.querySelectorAll("[data-i18n]").forEach(el=>{
-    const key = el.dataset.i18n;
-    if(translations[lang][key]) el.textContent = translations[lang][key];
-  });
-}
-
-/* встановлюємо мову при завантаженні */
-setLang(localStorage.getItem("owlbear_lang") || "ru");
-
-/* ================== ВКЛАДКИ ================== */
+/* ========== ЗМІНА ВКЛАДКИ ========== */
 const buttons = document.querySelectorAll(".tabs button");
 const containers = document.querySelectorAll(".tab-content");
 
@@ -192,11 +154,11 @@ document.querySelector('[data-tab="stats"]').click();
 // ЕКСПОРТ УСЬОГО localStorage
 document.getElementById("exportBtn").addEventListener("click", ()=>{
   const data = {};
-  for(let i=0;i<localStorage.length;i++){
+  for(let i=0; i<localStorage.length; i++){
     const key = localStorage.key(i);
     data[key] = localStorage.getItem(key);
   }
-  const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -219,15 +181,51 @@ document.getElementById("importFile").addEventListener("change", (e)=>{
       const data = JSON.parse(event.target.result);
       localStorage.clear();
       Object.keys(data).forEach(key=>{
-        localStorage.setItem(key,data[key]);
+        localStorage.setItem(key, data[key]);
       });
-      alert("Імпорт завершено! Перезавантаж сторінку.");
+      alert("Імпорт завершено! Перезавантажте сторінку.");
     }catch(err){
       alert("Помилка файлу! Потрібен правильний JSON.");
     }
   };
   reader.readAsText(file);
 });
+
+/* ================== ПЕРЕМІКАЧ МОВ ================== */
+const translations = {
+  ru: {
+    sheet_title: "Лист персонажа",
+    export: "📤 Экспорт",
+    import: "📥 Импорт",
+    tab_stats: "Характеристики персонажа",
+    tab_weapons: "Оружие персонажа",
+    tab_magic: "Магия персонажа",
+    tab_equipment: "Снаряжение персонажа",
+    tab_description: "Описание персонажа",
+    tab_notes: "Заметки персонажа"
+  },
+  ua: {
+    sheet_title: "Лист персонажа",
+    export: "📤 Експорт",
+    import: "📥 Імпорт",
+    tab_stats: "Характеристики персонажа",
+    tab_weapons: "Зброя персонажа",
+    tab_magic: "Магія персонажа",
+    tab_equipment: "Снаряження персонажа",
+    tab_description: "Опис персонажа",
+    tab_notes: "Нотатки персонажа"
+  }
+};
+
+function setLang(lang){
+  localStorage.setItem("owlbear_lang", lang);
+  document.querySelectorAll("[data-i18n]").forEach(el=>{
+    const key = el.dataset.i18n;
+    if(translations[lang][key]) el.textContent = translations[lang][key];
+  });
+}
+
+setLang(localStorage.getItem("owlbear_lang") || "ru");
 </script>
 
 </body>
