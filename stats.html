@@ -164,19 +164,19 @@ body{
 </head>
 <body>
 
-<h3 id="title_stats">Характеристика персонажа</h3>
+<h3 data-i18n="stats_title">Характеристика персонажа</h3>
 
 <div class="header">
-  <div class="field"><label id="lbl_name">Имя</label><input id="name"></div>
-  <div class="field"><label id="lbl_class">Класс</label><input id="class"></div>
-  <div class="field"><label id="lbl_subclass">Подкласс</label><input id="subclass"></div>
-  <div class="field"><label id="lbl_race">Раса</label><input id="race"></div>
-  <div class="field"><label id="lbl_level">Уровень</label><input id="level" type="number" min="1" value="1"></div>
-  <div class="field"><label id="lbl_pb">Бонус мастерства</label><input id="pb" readonly></div>
+  <div class="field"><label data-i18n="name">Имя</label><input id="name"></div>
+  <div class="field"><label data-i18n="class">Класс</label><input id="class"></div>
+  <div class="field"><label data-i18n="subclass">Подкласс</label><input id="subclass"></div>
+  <div class="field"><label data-i18n="race">Раса</label><input id="race"></div>
+  <div class="field"><label data-i18n="level">Уровень</label><input id="level" type="number" min="1" value="1"></div>
+  <div class="field"><label data-i18n="pb">Бонус мастерства</label><input id="pb" readonly></div>
 
   <div class="inspiration-field">
     <input type="checkbox" id="inspiration">
-    <label id="lbl_inspiration" for="inspiration">Вдохновение</label>
+    <label for="inspiration" data-i18n="inspiration">Вдохновение</label>
   </div>
 </div>
 
@@ -185,7 +185,7 @@ body{
   <div class="field"><label>Max HP</label><input id="maxhp" type="number"></div>
   <div class="field"><label>Temporary HP</label><input id="temphp" type="number"></div>
   <div class="field"><label>(AC)</label><input id="ac" type="number"></div>
-  <div class="field"><label id="lbl_initiative">Инициатива</label><input id="initiative" type="number" readonly></div>
+  <div class="field"><label data-i18n="initiative">Инициатива</label><input id="initiative" type="number" readonly></div>
   <div class="field"><label>🏃🏻</label><input id="move" type="number"></div>
   <div class="field"><label>🏊🏻‍♂️</label><input id="swim" type="number"></div>
 </div>
@@ -195,35 +195,69 @@ body{
 <!-- ======= ЛІВА КОЛОНКА ======= -->
 <div class="col">
 
+<!-- СИЛА -->
 <div class="stat-box">
-<div class="stat-title" id="t_str">Сила</div>
+<div class="stat-title" data-i18n="str">Сила</div>
 <div class="stat-top">
   <input id="str_val" class="stat-val" type="number">
   <input id="str_mod" class="stat-mod" readonly>
 </div>
-<div class="row"><div class="skill-num" id="save_str_num">0</div><span id="save_str" class="dot"></span><div id="lbl_save_str">Спасбросок Силы</div></div>
+<div class="row">
+  <div class="skill-num" id="save_str_num">0</div>
+  <span id="save_str" class="dot"></span>
+  <div data-i18n="save_str">Спасбросок Силы</div>
+</div>
 <div class="skills">
-<div class="row"><div class="skill-num" id="athletics_num">0</div><span id="skill_athletics" class="dot"></span><div id="lbl_athletics">Атлетика</div></div>
+<div class="row">
+  <div class="skill-num" id="athletics_num">0</div>
+  <span id="skill_athletics" class="dot"></span>
+  <div data-i18n="athletics">Атлетика</div>
+</div>
 </div>
 </div>
 
+<!-- ТЕЛОСЛОЖЕНИЕ -->
 <div class="stat-box">
-<div class="stat-title" id="t_con">Телосложение</div>
+<div class="stat-title" data-i18n="con">Телосложение</div>
 <div class="stat-top">
   <input id="con_val" class="stat-val" type="number">
   <input id="con_mod" class="stat-mod" readonly>
 </div>
-<div class="row"><div class="skill-num" id="save_con_num">0</div><span id="save_con" class="dot"></span><div id="lbl_save_con">Спасбросок Телосложения</div></div>
+<div class="row">
+  <div class="skill-num" id="save_con_num">0</div>
+  <span id="save_con" class="dot"></span>
+  <div data-i18n="save_con">Спасбросок Телосложения</div>
+</div>
 </div>
 
+<!-- ІНТЕЛЕКТ -->
+<div class="stat-box">
+<div class="stat-title" data-i18n="int">Интеллект</div>
+<div class="stat-top">
+  <input id="int_val" class="stat-val" type="number">
+  <input id="int_mod" class="stat-mod" readonly>
+</div>
+<div class="row">
+  <div class="skill-num" id="save_int_num">0</div>
+  <span id="save_int" class="dot"></span>
+  <div data-i18n="save_int">Спасбросок Интеллекта</div>
+</div>
+<div class="skills">
+<div class="row"><div class="skill-num" id="investigation_num">0</div><span id="skill_investigation" class="dot"></span><div data-i18n="investigation">Анализ</div></div>
+<div class="row"><div class="skill-num" id="arcana_num">0</div><span id="skill_arcana" class="dot"></span><div data-i18n="arcana">Магия</div></div>
+<div class="row"><div class="skill-num" id="history_num">0</div><span id="skill_history" class="dot"></span><div data-i18n="history">История</div></div>
+<div class="row"><div class="skill-num" id="nature_num">0</div><span id="skill_nature" class="dot"></span><div data-i18n="nature">Природа</div></div>
+<div class="row"><div class="skill-num" id="religion_num">0</div><span id="skill_religion" class="dot"></span><div data-i18n="religion">Религия</div></div>
+</div>
 </div>
 
 </div>
 
 <script>
+/* ====== ПЕРЕКЛАДИ ДЛЯ STATS ====== */
 const translations = {
   ru: {
-    title: "Характеристика персонажа",
+    stats_title: "Характеристика персонажа",
     name: "Имя",
     class: "Класс",
     subclass: "Подкласс",
@@ -232,15 +266,26 @@ const translations = {
     pb: "Бонус мастерства",
     inspiration: "Вдохновение",
     initiative: "Инициатива",
+
     str: "Сила",
     con: "Телосложение",
+    int: "Интеллект",
+
     save_str: "Спасбросок Силы",
     save_con: "Спасбросок Телосложения",
-    athletics: "Атлетика"
+    save_int: "Спасбросок Интеллекта",
+
+    athletics: "Атлетика",
+    investigation: "Анализ",
+    arcana: "Магия",
+    history: "История",
+    nature: "Природа",
+    religion: "Религия"
   },
-  uk: {
-    title: "Характеристика персонажа",
-    name: "Ім'я",
+
+  ua: {
+    stats_title: "Характеристика персонажа",
+    name: "Ім’я",
     class: "Клас",
     subclass: "Підклас",
     race: "Раса",
@@ -248,47 +293,48 @@ const translations = {
     pb: "Бонус майстерності",
     inspiration: "Натхнення",
     initiative: "Ініціатива",
+
     str: "Сила",
     con: "Тілобудова",
-    save_str: "Ряткидок Сили",
-    save_con: "Ряткидок Тілобудови",
-    athletics: "Атлетика"
+    int: "Інтелект",
+
+    save_str: "Рятівний кидок Сили",
+    save_con: "Рятівний кидок Тілобудови",
+    save_int: "Рятівний кидок Інтелекту",
+
+    athletics: "Атлетика",
+    investigation: "Аналіз",
+    arcana: "Магія",
+    history: "Історія",
+    nature: "Природа",
+    religion: "Релігія"
   }
 };
 
-function applyLanguage(){
-  const lang = localStorage.getItem("lang") || "ru";
-  const t = translations[lang];
+/* ====== ЗАСТОСУВАТИ МОВУ ====== */
+function applyLang(){
+  const lang = localStorage.getItem("owlbear_lang") || "ru";
 
-  document.getElementById("title_stats").textContent = t.title;
-  document.getElementById("lbl_name").textContent = t.name;
-  document.getElementById("lbl_class").textContent = t.class;
-  document.getElementById("lbl_subclass").textContent = t.subclass;
-  document.getElementById("lbl_race").textContent = t.race;
-  document.getElementById("lbl_level").textContent = t.level;
-  document.getElementById("lbl_pb").textContent = t.pb;
-  document.getElementById("lbl_inspiration").textContent = t.inspiration;
-  document.getElementById("lbl_initiative").textContent = t.initiative;
-
-  document.getElementById("t_str").textContent = t.str;
-  document.getElementById("t_con").textContent = t.con;
-  document.getElementById("lbl_save_str").textContent = t.save_str;
-  document.getElementById("lbl_save_con").textContent = t.save_con;
-  document.getElementById("lbl_athletics").textContent = t.athletics;
+  document.querySelectorAll("[data-i18n]").forEach(el=>{
+    const key = el.dataset.i18n;
+    if(translations[lang] && translations[lang][key]){
+      el.textContent = translations[lang][key];
+    }
+  });
 }
 
-// Запуск при завантаженні
-applyLanguage();
+// Застосувати при завантаженні
+applyLang();
 
-// Слухаємо зміну мови з index.html
+// Реагувати, якщо мову змінять в INDEX
 window.addEventListener("storage", (e)=>{
-  if(e.key === "lang"){
-    applyLanguage();
-  }
+  if(e.key === "owlbear_lang") applyLang();
 });
+
+// Додатково ловимо кастомний івент (надійніше для Owlbear)
+window.addEventListener("changeLang", applyLang);
 </script>
 
 <script src="stats.js"></script>
-
 </body>
 </html>
