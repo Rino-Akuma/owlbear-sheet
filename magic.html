@@ -11,21 +11,6 @@ body{
 }
 h2{text-align:center; margin-bottom:10px;}
 
-/* ===== LANGUAGE SWITCH ===== */
-.lang-switch{
-  position:absolute;
-  top:8px;
-  right:8px;
-}
-.lang-switch button{
-  background:#2b2d31;
-  color:white;
-  border:1px solid #555;
-  padding:4px 8px;
-  border-radius:6px;
-  cursor:pointer;
-}
-
 /* Вибір характеристики */
 .spell-stat-box{
   display:flex;
@@ -113,103 +98,37 @@ h2{text-align:center; margin-bottom:10px;}
   max-width:300px;
 }
 .settings-popup label{display:flex; justify-content:space-between; margin-bottom:4px;}
-.settings-popup input{
-  width:50px;
-  background:rgba(255,255,255,0.15);
-  border:1px solid #555;
-  border-radius:4px;
-  color:white;
-}
+.settings-popup input{width:50px; background:rgba(255,255,255,0.15); border:1px solid #555; border-radius:4px; color:white;}
 </style>
 </head>
 <body>
 
-<!-- КНОПКИ МОВИ -->
-<div class="lang-switch">
-  <button onclick="setLang('ru')">RU</button>
-  <button onclick="setLang('ua')">UA</button>
-</div>
-
-<h2 data-i18n="magic_title">Магия персонажа</h2>
+<h2>Магия персонажа</h2>
 
 <div class="spell-stat-box">
-  <label>
-    <span data-i18n="casting_stat">Характеристика:</span>
+  <label>Характеристика:
     <select id="spellStat">
-      <option value="str" data-i18n="str">Сила</option>
-      <option value="dex" data-i18n="dex">Ловкость</option>
-      <option value="con" data-i18n="con">Телосложение</option>
-      <option value="int" selected data-i18n="int">Интеллект</option>
-      <option value="wis" data-i18n="wis">Мудрость</option>
-      <option value="cha" data-i18n="cha">Харизма</option>
+      <option value="str">Сила</option>
+      <option value="dex">Ловкость</option>
+      <option value="con">Телосложение</option>
+      <option value="int" selected>Интеллект</option>
+      <option value="wis">Мудрость</option>
+      <option value="cha">Харизма</option>
     </select>
   </label>
-  <div><span data-i18n="spell_save">Спас. закл.:</span> <span id="spellSave">0</span></div>
-  <div><span data-i18n="spell_attack">Атака закл.:</span> <span id="spellAttack">0</span></div>
+  <div>Спас. закл.: <span id="spellSave">0</span></div>
+  <div>Атака закл.: <span id="spellAttack">0</span></div>
 </div>
 
-<button class="magic-settings" data-i18n="slot_settings">Настройка слотов</button>
-
+<button class="magic-settings">Настройка слотов</button>
 <div class="settings-popup" id="settingsPopup">
-  <h4 data-i18n="slot_amount">Количество ячеек (Max 12)</h4>
+  <h4>Количество ячеек (Max 12)</h4>
   <div id="slotInputs"></div>
-  <button id="saveSlots" data-i18n="save_btn">Сохранить</button>
+  <button id="saveSlots">Сохранить</button>
 </div>
 
 <div class="spell-container" id="spellContainer">
   <!-- 10 рівнів створяться скриптом -->
 </div>
-
-<script>
-const translations = {
-  ru: {
-    magic_title: "Магия персонажа",
-    casting_stat: "Характеристика:",
-    spell_save: "Спас. закл.:",
-    spell_attack: "Атака закл.:",
-    slot_settings: "Настройка слотов",
-    slot_amount: "Количество ячеек (Max 12)",
-    save_btn: "Сохранить",
-
-    str: "Сила",
-    dex: "Ловкость",
-    con: "Телосложение",
-    int: "Интеллект",
-    wis: "Мудрость",
-    cha: "Харизма"
-  },
-
-  ua: {
-    magic_title: "Магія персонажа",
-    casting_stat: "Характеристика:",
-    spell_save: "Спас. закл.:",
-    spell_attack: "Атака закл.:",
-    slot_settings: "Налаштування слотів",
-    slot_amount: "Кількість чарунок (Max 12)",
-    save_btn: "Зберегти",
-
-    str: "Сила",
-    dex: "Спритність",
-    con: "Тілобудова",
-    int: "Інтелект",
-    wis: "Мудрість",
-    cha: "Харизма"
-  }
-};
-
-function setLang(lang){
-  localStorage.setItem("owlbear_lang", lang);
-
-  document.querySelectorAll("[data-i18n]").forEach(el=>{
-    const key = el.dataset.i18n;
-    if(translations[lang][key]){
-      el.textContent = translations[lang][key];
-    }
-  });
-}
-
-setLang(localStorage.getItem("owlbear_lang") || "ru");
-</script>
-
 </body>
 </html>
