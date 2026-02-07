@@ -74,156 +74,66 @@
   padding:6px;
   resize:vertical;
 }
-
-/* ===== LANGUAGE SWITCH ===== */
-.lang-switch{
-  position:absolute;
-  top:8px;
-  right:8px;
-}
-.lang-switch button{
-  background:#2b2d31;
-  color:white;
-  border:1px solid #555;
-  padding:4px 8px;
-  border-radius:6px;
-  cursor:pointer;
-}
 </style>
 </head>
 <body>
 
-<!-- КНОПКИ МОВИ -->
-<div class="lang-switch">
-  <button onclick="setLang('ru')">RU</button>
-  <button onclick="setLang('ua')">UA</button>
-</div>
-
-<h2 style="text-align:center;" data-i18n="desc_title">Описание персонажа</h2>
+<h2 style="text-align:center;">Описание персонажа</h2>
 
 <div class="desc-wrapper">
 
 <!-- ПЕРШИЙ РЯД -->
 <div class="row6">
-  <div class="field"><label data-i18n="height">Рост</label><input id="desc_height"></div>
-  <div class="field"><label data-i18n="weight">Вес</label><input id="desc_weight"></div>
-  <div class="field"><label data-i18n="age">Возраст</label><input id="desc_age"></div>
-  <div class="field"><label data-i18n="eyes">Глаза</label><input id="desc_eyes"></div>
-  <div class="field"><label data-i18n="skin">Кожа</label><input id="desc_skin"></div>
-  <div class="field"><label data-i18n="hair">Волосы</label><input id="desc_hair"></div>
+  <div class="field"><label>Рост</label><input id="desc_height"></div>
+  <div class="field"><label>Вес</label><input id="desc_weight"></div>
+  <div class="field"><label>Возраст</label><input id="desc_age"></div>
+  <div class="field"><label>Глаза</label><input id="desc_eyes"></div>
+  <div class="field"><label>Кожа</label><input id="desc_skin"></div>
+  <div class="field"><label>Волосы</label><input id="desc_hair"></div>
 </div>
 
 <!-- ДРУГИЙ РЯД -->
 <div class="row2">
-  <div class="field"><label data-i18n="background">Предыстория</label><input id="desc_background"></div>
-  <div class="field"><label data-i18n="alignment">Мировоззрение</label><input id="desc_alignment"></div>
+  <div class="field"><label>Предыстория</label><input id="desc_background"></div>
+  <div class="field"><label>Мировоззрение</label><input id="desc_alignment"></div>
 </div>
 
 <!-- ВНЕШНОСТЬ -->
 <div class="text-box">
-  <label data-i18n="appearance">Внешность</label>
-  <textarea id="desc_appearance" data-i18n-placeholder="appearance_placeholder" placeholder="Опишите внешность персонажа..."></textarea>
+  <label>Внешность</label>
+  <textarea id="desc_appearance" placeholder="Опишите внешность персонажа..."></textarea>
 </div>
 
 <!-- ПРЕДЫСТОРИЯ ПЕРСОНАЖА -->
 <div class="text-box">
-  <label data-i18n="story">Предыстория персонажа</label>
-  <textarea id="desc_story" data-i18n-placeholder="story_placeholder" placeholder="Опишите историю персонажа..."></textarea>
+  <label>Предыстория персонажа</label>
+  <textarea id="desc_story" placeholder="Опишите историю персонажа..."></textarea>
 </div>
 
 <!-- ЧЕРТЫ / ИДЕАЛЫ / ПРИВЯЗАННОСТИ / НЕДОСТАТКИ -->
 <div class="traits-grid">
   <div class="text-box">
-    <label data-i18n="traits">Черты характера</label>
+    <label>Черты характера</label>
     <textarea id="desc_traits"></textarea>
   </div>
   <div class="text-box">
-    <label data-i18n="ideals">Идеалы</label>
+    <label>Идеалы</label>
     <textarea id="desc_ideals"></textarea>
   </div>
   <div class="text-box">
-    <label data-i18n="bonds">Привязанности</label>
+    <label>Привязанности</label>
     <textarea id="desc_bonds"></textarea>
   </div>
   <div class="text-box">
-    <label data-i18n="flaws">Недостатки</label>
+    <label>Недостатки</label>
     <textarea id="desc_flaws"></textarea>
   </div>
 </div>
 
 <!-- ПРОЧЕЕ -->
 <div class="other-box">
-  <label style="font-size:12px;" data-i18n="other">Прочие владения и языки</label>
-  <textarea id="desc_other" data-i18n-placeholder="other_placeholder" placeholder="Языки, инструменты, особые владения..."></textarea>
+  <label style="font-size:12px;">Прочие владения и языки</label>
+  <textarea id="desc_other" placeholder="Языки, инструменты, особые владения..."></textarea>
 </div>
-
-<script>
-const translations = {
-  ru: {
-    desc_title: "Описание персонажа",
-    height: "Рост",
-    weight: "Вес",
-    age: "Возраст",
-    eyes: "Глаза",
-    skin: "Кожа",
-    hair: "Волосы",
-    background: "Предыстория",
-    alignment: "Мировоззрение",
-    appearance: "Внешность",
-    appearance_placeholder: "Опишите внешность персонажа...",
-    story: "Предыстория персонажа",
-    story_placeholder: "Опишите историю персонажа...",
-    traits: "Черты характера",
-    ideals: "Идеалы",
-    bonds: "Привязанности",
-    flaws: "Недостатки",
-    other: "Прочие владения и языки",
-    other_placeholder: "Языки, инструменты, особые владения..."
-  },
-  ua: {
-    desc_title: "Опис персонажа",
-    height: "Зріст",
-    weight: "Вага",
-    age: "Вік",
-    eyes: "Очі",
-    skin: "Шкіра",
-    hair: "Волосся",
-    background: "Передісторія",
-    alignment: "Світогляд",
-    appearance: "Зовнішність",
-    appearance_placeholder: "Опишіть зовнішність персонажа...",
-    story: "Передісторія персонажа",
-    story_placeholder: "Опишіть історію персонажа...",
-    traits: "Риси характеру",
-    ideals: "Ідеали",
-    bonds: "Прив’язаності",
-    flaws: "Слабкості",
-    other: "Інші володіння та мови",
-    other_placeholder: "Мови, інструменти, особливі володіння..."
-  }
-};
-
-function setLang(lang){
-  localStorage.setItem("owlbear_lang", lang);
-
-  document.querySelectorAll("[data-i18n]").forEach(el=>{
-    const key = el.dataset.i18n;
-    if(translations[lang][key]){
-      el.textContent = translations[lang][key];
-    }
-  });
-
-  document.querySelectorAll("[data-i18n-placeholder]").forEach(el=>{
-    const key = el.dataset.i18nPlaceholder;
-    if(translations[lang][key]){
-      el.placeholder = translations[lang][key];
-    }
-  });
-}
-
-// Завантажуємо мову з localStorage або ru за замовчуванням
-setLang(localStorage.getItem("owlbear_lang") || "ru");
-</script>
-
 </body>
 </html>
