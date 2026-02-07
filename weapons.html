@@ -64,7 +64,7 @@
   border-radius:6px;
   padding:6px;
   resize:none;
-  min-height:60px;
+  min-height:60px;      /* мінімальна висота */
 }
 
 /* ===== МОДАЛЬНЕ ВІКНО ===== */
@@ -108,36 +108,15 @@
   border:1px solid #555;
   border-radius:6px;
 }
-
-/* ===== LANGUAGE SWITCH ===== */
-.lang-switch{
-  position:absolute;
-  top:8px;
-  right:8px;
-}
-.lang-switch button{
-  background:#2b2d31;
-  color:white;
-  border:1px solid #555;
-  padding:4px 8px;
-  border-radius:6px;
-  cursor:pointer;
-}
 </style>
-
-<!-- КНОПКИ МОВИ -->
-<div class="lang-switch">
-  <button onclick="setLang('ru')">RU</button>
-  <button onclick="setLang('ua')">UA</button>
-</div>
 
 <div class="weapon-page">
 
 <!-- ЛІВА РАМКА: ЗБРОЯ -->
 <div class="weapon-box">
   <div class="weapon-header">
-    <b data-i18n="weapons_title">Оружие</b>
-    <button onclick="openModal()" data-i18n="add_weapon">+ Добавить</button>
+    <b>Оружие</b>
+    <button onclick="openModal()">+ Добавить</button>
   </div>
 
   <div class="scroll-list" id="weaponList">
@@ -147,10 +126,9 @@
 
 <!-- ПРАВА РАМКА: ЗДІБНОСТІ -->
 <div class="abilities-box">
-  <b data-i18n="abilities_title">Здібності персонажа</b>
+  <b>Здібності персонажа</b>
   <textarea 
     id="abilitiesText" 
-    data-i18n-placeholder="abilities_placeholder"
     placeholder="Опиши здібності персонажа..."
     rows="3"
     style="overflow:hidden;"
@@ -162,124 +140,49 @@
 <!-- ===== МОДАЛЬНЕ ВІКНО ДОДАВАННЯ ЗБРОЇ ===== -->
 <div class="modal" id="weaponModal">
   <div class="modal-header">
-    <b data-i18n="new_weapon">Нова зброя</b>
+    <b>Нова зброя</b>
     <button onclick="closeModal()">✖</button>
   </div>
 
   <div class="modal-grid">
 
     <div class="modal-row">
-      <label data-i18n="weapon_name">Название оружия:</label>
+      <label>Название оружия:</label>
       <input id="w_name">
     </div>
 
     <div class="modal-row">
-      <label data-i18n="attack_stat">Характеристика атаки:</label>
+      <label>Характеристика атаки:</label>
       <select id="w_stat">
-        <option value="str" data-i18n="str">Сила</option>
-        <option value="dex" data-i18n="dex">Ловкость</option>
-        <option value="con" data-i18n="con">Телосложение</option>
-        <option value="int" data-i18n="int">Интеллект</option>
-        <option value="wis" data-i18n="wis">Мудрость</option>
-        <option value="cha" data-i18n="cha">Харизма</option>
+        <option value="str">Сила</option>
+        <option value="dex">Ловкость</option>
+        <option value="con">Телосложение</option>
+        <option value="int">Интеллект</option>
+        <option value="wis">Мудрость</option>
+        <option value="cha">Харизма</option>
       </select>
     </div>
 
     <div class="modal-row">
-      <label>
-        <input type="checkbox" id="w_proficient"> 
-        <span data-i18n="proficiency_bonus">Бонус владения</span>
-      </label>
-      <input id="w_extra" data-i18n-placeholder="extra_mod" placeholder="Доп. модификатор" type="number">
+      <label><input type="checkbox" id="w_proficient"> Бонус владения</label>
+      <input id="w_extra" placeholder="Доп. модификатор" type="number">
     </div>
 
     <div class="modal-row">
-      <label data-i18n="damage_dice">Кость урона (напр. 1d8):</label>
+      <label>Кость урона (напр. 1d8):</label>
       <input id="w_dice" placeholder="1d8">
     </div>
 
     <div class="modal-row">
-      <label data-i18n="damage_type">Тип урона:</label>
+      <label>Тип урона:</label>
       <input id="w_damageType" placeholder="Рубящий / Колющий / Дробящий">
     </div>
 
     <div>
-      <label data-i18n="weapon_notes">Особые свойства оружия:</label>
+      <label>Особые свойства оружия:</label>
       <textarea id="w_notes"></textarea>
     </div>
 
-    <button onclick="saveWeapon()" data-i18n="save_btn">Зберегти</button>
+    <button onclick="saveWeapon()">Зберегти</button>
   </div>
 </div>
-
-<script>
-const translations = {
-  ru: {
-    weapons_title: "Оружие",
-    add_weapon: "+ Добавить",
-    abilities_title: "Способности персонажа",
-    abilities_placeholder: "Опиши способности персонажа...",
-
-    new_weapon: "Новое оружие",
-    weapon_name: "Название оружия:",
-    attack_stat: "Характеристика атаки:",
-    proficiency_bonus: "Бонус владения",
-    extra_mod: "Доп. модификатор",
-    damage_dice: "Кость урона (напр. 1d8):",
-    damage_type: "Тип урона:",
-    weapon_notes: "Особые свойства оружия:",
-    save_btn: "Сохранить",
-
-    str: "Сила",
-    dex: "Ловкость",
-    con: "Телосложение",
-    int: "Интеллект",
-    wis: "Мудрость",
-    cha: "Харизма"
-  },
-
-  ua: {
-    weapons_title: "Зброя",
-    add_weapon: "+ Додати",
-    abilities_title: "Здібності персонажа",
-    abilities_placeholder: "Опиши здібності персонажа...",
-
-    new_weapon: "Нова зброя",
-    weapon_name: "Назва зброї:",
-    attack_stat: "Характеристика атаки:",
-    proficiency_bonus: "Бонус володіння",
-    extra_mod: "Дод. модифікатор",
-    damage_dice: "Кубик шкоди (напр. 1d8):",
-    damage_type: "Тип шкоди:",
-    weapon_notes: "Особливі властивості зброї:",
-    save_btn: "Зберегти",
-
-    str: "Сила",
-    dex: "Спритність",
-    con: "Тілобудова",
-    int: "Інтелект",
-    wis: "Мудрість",
-    cha: "Харизма"
-  }
-};
-
-function setLang(lang){
-  localStorage.setItem("owlbear_lang", lang);
-
-  document.querySelectorAll("[data-i18n]").forEach(el=>{
-    const key = el.dataset.i18n;
-    if(translations[lang][key]){
-      el.textContent = translations[lang][key];
-    }
-  });
-
-  document.querySelectorAll("[data-i18n-placeholder]").forEach(el=>{
-    const key = el.dataset.i18nPlaceholder;
-    if(translations[lang][key]){
-      el.placeholder = translations[lang][key];
-    }
-  });
-}
-
-setLang(localStorage.getItem("owlbear_lang") || "ru");
-</script>
