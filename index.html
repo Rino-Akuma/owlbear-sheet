@@ -198,6 +198,12 @@ buttons.forEach(btn=>{
       container.innerHTML = html;
       container.dataset.loaded = "true";
 
+      // 🔥 ВАЖЛИВО: змушуємо нову вкладку застосувати мову
+setTimeout(() => {
+  window.dispatchEvent(new Event("changeLang"));
+}, 0);
+
+
       if(!loadedScripts.has(tab)){
         const script = document.createElement("script");
         script.src = tab + ".js";
