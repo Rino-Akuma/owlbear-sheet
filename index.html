@@ -9,7 +9,7 @@ body{
   font-family:Arial;
 }
 
-/* === БЛОК ІМПОРТ/ЕКСПОРТ (ДОДАНО) === */
+/* === БЛОК ІМПОРТ/ЕКСПОРТ === */
 .top-right-tools{
   position:absolute;
   top:10px;
@@ -63,21 +63,20 @@ body{
 
 <h3>Лист персонажа</h3>
 
-<!-- ===== ДОДАНО (нічого іншого не чіпав) ===== -->
 <div class="top-right-tools">
+  <button id="langBtn">...</button>
   <button id="exportBtn">📤 Експорт</button>
   <button id="importBtn">📥 Імпорт</button>
   <input type="file" id="importFile" accept=".json" style="display:none;">
 </div>
-<!-- ========================================= -->
 
 <div class="tabs">
-  <button data-tab="stats" class="active">Характеристики персонажа</button>
-  <button data-tab="weapons">Оружие персонажа</button>
-  <button data-tab="magic">Магия персонажа</button>
-  <button data-tab="equipment">Снаряжение персонажа</button>
-  <button data-tab="description">Описание персонажа</button>
-  <button data-tab="notes">Заметки персонажа</button>
+  <button data-tab="stats" class="active"></button>
+  <button data-tab="weapons"></button>
+  <button data-tab="magic"></button>
+  <button data-tab="equipment"></button>
+  <button data-tab="description"></button>
+  <button data-tab="notes"></button>
 </div>
 
 <div id="tab_stats" class="tab-content"></div>
@@ -90,10 +89,52 @@ body{
 <script>
 const buttons = document.querySelectorAll(".tabs button");
 const containers = document.querySelectorAll(".tab-content");
-
-// Щоб скрипти не дублювались
 const loadedScripts = new Set();
+const langBtn = document.getElementById("langBtn");
 
+// === 1) Завантаження мови ===
+function loadLanguage(lang){
+  const old = document.getElementById("lang-script");
+  if(old) old.remove();
+
+  const s = document.createElement("script");
+  s.id = "lang-script";
+  s.src = lang === "ua" ? "lang_ua.js" : "lang_ru.js";
+  document.body.appendChild(s);
+
+  s.onload = () => {
+    localStorage.setItem("lang", lang);
+    applyLanguage();
+    // Сповіщаємо всі вкладки
+    document.dispatchEvent(new CustomEvent("langChanged", {detail: lang}));
+  };
+}
+
+// === 2) Застосувати мову до вкладок і кнопок ===
+function applyLanguage(){
+  if(!window.LANG) return;
+
+  buttons.forEach(btn=>{
+    const t = btn.dataset.tab;
+    btn.textContent = window.LANG.tabs[t];
+  });
+
+  document.getElementById("exportBtn").textContent = window.LANG.buttons.export;
+  document.getElementById("importBtn").textContent = window.LANG.buttons.import;
+
+  const current = localStorage.getItem("lang") || "ru";
+  langBtn.textContent = current === "ru"
+    ? window.LANG.buttons.switchToUA
+    : window.LANG.buttons.switchToRU;
+}
+
+// === 3) Перемикач мови ===
+langBtn.addEventListener("click", ()=>{
+  const current = localStorage.getItem("lang") || "ru";
+  loadLanguage(current === "ru" ? "ua" : "ru");
+});
+
+// === 4) ПІДВАНТАЖЕННЯ ВКЛАДОК (ТВОЯ ЛОГІКА, БЕЗ ЗМІН) ===
 buttons.forEach(btn=>{
   btn.addEventListener("click", async ()=>{
     buttons.forEach(b=>b.classList.remove("active"));
@@ -110,7 +151,6 @@ buttons.forEach(btn=>{
       container.innerHTML = html;
       container.dataset.loaded = "true";
 
-      // Підключаємо JS ТІЛЬКИ ОДИН РАЗ
       if(!loadedScripts.has(tab)){
         const script = document.createElement("script");
         script.src = tab + ".js";
@@ -121,23 +161,21 @@ buttons.forEach(btn=>{
   });
 });
 
-// Відкриваємо першу вкладку
+// === 5) ПЕРШИЙ ЗАПУСК ===
+const savedLang = localStorage.getItem("lang") || "ru";
+loadLanguage(savedLang);
 document.querySelector('[data-tab="stats"]').click();
 
-/* ================== ІМПОРТ / ЕКСПОРТ (ДОДАНО) ================== */
+/* ===== ІМПОРТ / ЕКСПОРТ (без змін) ===== */
 
-// ЕКСПОРТ УСЬОГО localStorage
 document.getElementById("exportBtn").addEventListener("click", ()=>{
   const data = {};
-
   for(let i=0; i<localStorage.length; i++){
     const key = localStorage.key(i);
     data[key] = localStorage.getItem(key);
   }
-
   const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
   const url = URL.createObjectURL(blob);
-
   const a = document.createElement("a");
   a.href = url;
   a.download = "owlbear_sheet_backup.json";
@@ -146,7 +184,6 @@ document.getElementById("exportBtn").addEventListener("click", ()=>{
   document.body.removeChild(a);
 });
 
-// ІМПОРТ
 document.getElementById("importBtn").addEventListener("click", ()=>{
   document.getElementById("importFile").click();
 });
@@ -154,24 +191,19 @@ document.getElementById("importBtn").addEventListener("click", ()=>{
 document.getElementById("importFile").addEventListener("change", (e)=>{
   const file = e.target.files[0];
   if(!file) return;
-
   const reader = new FileReader();
   reader.onload = function(event){
     try{
       const data = JSON.parse(event.target.result);
-
       localStorage.clear();
-
       Object.keys(data).forEach(key=>{
         localStorage.setItem(key, data[key]);
       });
-
       alert("Імпорт завершено! Перезавантаж сторінку.");
     }catch(err){
       alert("Помилка файлу! Потрібен правильний JSON.");
     }
   };
-
   reader.readAsText(file);
 });
 </script>
