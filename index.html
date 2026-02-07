@@ -9,7 +9,6 @@ body{
   font-family:Arial;
 }
 
-/* === БЛОК ІМПОРТ/ЕКСПОРТ === */
 .top-right-tools{
   position:absolute;
   top:10px;
@@ -27,7 +26,6 @@ body{
   cursor:pointer;
 }
 
-/* Кнопки вкладок */
 .tabs{
   display:flex;
   gap:6px;
@@ -48,7 +46,6 @@ body{
   border-color:#7dd3fc;
 }
 
-/* Контейнери вкладок */
 .tab-content{
   display:none;
   border:1px solid #666;
@@ -92,25 +89,27 @@ const containers = document.querySelectorAll(".tab-content");
 const loadedScripts = new Set();
 const langBtn = document.getElementById("langBtn");
 
-// === 1) Завантаження мови ===
+// === Завантаження мови ===
 function loadLanguage(lang){
-  const old = document.getElementById("lang-script");
-  if(old) old.remove();
+  return new Promise((resolve)=>{
+    const old = document.getElementById("lang-script");
+    if(old) old.remove();
 
-  const s = document.createElement("script");
-  s.id = "lang-script";
-  s.src = lang === "ua" ? "lang_ua.js" : "lang_ru.js";
-  document.body.appendChild(s);
+    const s = document.createElement("script");
+    s.id = "lang-script";
+    s.src = lang === "ua" ? "lang_ua.js" : "lang_ru.js";
+    document.body.appendChild(s);
 
-  s.onload = () => {
-    localStorage.setItem("lang", lang);
-    applyLanguage();
-    // Сповіщаємо всі вкладки
-    document.dispatchEvent(new CustomEvent("langChanged", {detail: lang}));
-  };
+    s.onload = () => {
+      localStorage.setItem("lang", lang);
+      applyLanguage();
+      document.dispatchEvent(new CustomEvent("langChanged", {detail: lang}));
+      resolve();
+    };
+  });
 }
 
-// === 2) Застосувати мову до вкладок і кнопок ===
+// === Застосування мови до вкладок і кнопок ===
 function applyLanguage(){
   if(!window.LANG) return;
 
@@ -128,13 +127,13 @@ function applyLanguage(){
     : window.LANG.buttons.switchToRU;
 }
 
-// === 3) Перемикач мови ===
-langBtn.addEventListener("click", ()=>{
+// === Перемикач мови ===
+langBtn.addEventListener("click", async ()=>{
   const current = localStorage.getItem("lang") || "ru";
-  loadLanguage(current === "ru" ? "ua" : "ru");
+  await loadLanguage(current === "ru" ? "ua" : "ru");
 });
 
-// === 4) ПІДВАНТАЖЕННЯ ВКЛАДОК (ТВОЯ ЛОГІКА, БЕЗ ЗМІН) ===
+// === Вкладки ===
 buttons.forEach(btn=>{
   btn.addEventListener("click", async ()=>{
     buttons.forEach(b=>b.classList.remove("active"));
@@ -161,12 +160,13 @@ buttons.forEach(btn=>{
   });
 });
 
-// === 5) ПЕРШИЙ ЗАПУСК ===
+// === Перший запуск ===
 const savedLang = localStorage.getItem("lang") || "ru";
-loadLanguage(savedLang);
-document.querySelector('[data-tab="stats"]').click();
+loadLanguage(savedLang).then(()=>{
+  document.querySelector('[data-tab="stats"]').click();
+});
 
-/* ===== ІМПОРТ / ЕКСПОРТ (без змін) ===== */
+/* ===== ІМПОРТ / ЕКСПОРТ ===== */
 
 document.getElementById("exportBtn").addEventListener("click", ()=>{
   const data = {};
