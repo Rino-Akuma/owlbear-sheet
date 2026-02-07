@@ -9,31 +9,7 @@ body{
   font-family:Arial;
 }
 
-/* ======= ПЕРЕМИКАЧ МОВ (ЗВЕРХУ ПО ЦЕНТРУ) ======= */
-.lang-switcher{
-  position:absolute;
-  top:10px;
-  left:50%;
-  transform:translateX(-50%);
-  display:flex;
-  gap:6px;
-}
-
-.lang-switcher button{
-  background:#2b2d31;
-  color:white;
-  border:1px solid #555;
-  padding:5px 10px;
-  border-radius:6px;
-  cursor:pointer;
-}
-
-.lang-switcher button.active{
-  background:#3b3f45;
-  border-color:#7dd3fc;
-}
-
-/* === БЛОК ІМПОРТ/ЕКСПОРТ (СПРАВА ВГОРІ) === */
+/* === БЛОК ІМПОРТ/ЕКСПОРТ (ДОДАНО) === */
 .top-right-tools{
   position:absolute;
   top:10px;
@@ -55,7 +31,6 @@ body{
 .tabs{
   display:flex;
   gap:6px;
-  margin-top:40px;
   margin-bottom:8px;
 }
 
@@ -86,28 +61,23 @@ body{
 </head>
 <body>
 
-<h3 id="title">Лист персонажа</h3>
+<h3>Лист персонажа</h3>
 
-<!-- ===== ПЕРЕМИКАЧ МОВ ===== -->
-<div class="lang-switcher">
-  <button id="btn_ru">RU</button>
-  <button id="btn_ua">UA</button>
-</div>
-
-<!-- ===== ІМПОРТ / ЕКСПОРТ ===== -->
+<!-- ===== ДОДАНО (нічого іншого не чіпав) ===== -->
 <div class="top-right-tools">
   <button id="exportBtn">📤 Експорт</button>
   <button id="importBtn">📥 Імпорт</button>
   <input type="file" id="importFile" accept=".json" style="display:none;">
 </div>
+<!-- ========================================= -->
 
 <div class="tabs">
-  <button data-tab="stats" class="active" data-i18n="stats">Характеристики персонажа</button>
-  <button data-tab="weapons" data-i18n="weapons">Оружие персонажа</button>
-  <button data-tab="magic" data-i18n="magic">Магия персонажа</button>
-  <button data-tab="equipment" data-i18n="equipment">Снаряжение персонажа</button>
-  <button data-tab="description" data-i18n="description">Описание персонажа</button>
-  <button data-tab="notes" data-i18n="notes">Заметки персонажа</button>
+  <button data-tab="stats" class="active">Характеристики персонажа</button>
+  <button data-tab="weapons">Оружие персонажа</button>
+  <button data-tab="magic">Магия персонажа</button>
+  <button data-tab="equipment">Снаряжение персонажа</button>
+  <button data-tab="description">Описание персонажа</button>
+  <button data-tab="notes">Заметки персонажа</button>
 </div>
 
 <div id="tab_stats" class="tab-content"></div>
@@ -124,64 +94,6 @@ const containers = document.querySelectorAll(".tab-content");
 // Щоб скрипти не дублювались
 const loadedScripts = new Set();
 
-/* ================== ПЕРЕКЛАДИ ДЛЯ INDEX ================== */
-const translations = {
-  ru: {
-    title: "Лист персонажа",
-    stats: "Характеристики персонажа",
-    weapons: "Оружие персонажа",
-    magic: "Магия персонажа",
-    equipment: "Снаряжение персонажа",
-    description: "Описание персонажа",
-    notes: "Заметки персонажа",
-    export: "📤 Экспорт",
-    import: "📥 Импорт"
-  },
-  ua: {
-    title: "Лист персонажа",
-    stats: "Характеристики персонажа",
-    weapons: "Зброя персонажа",
-    magic: "Магія персонажа",
-    equipment: "Спорядження персонажа",
-    description: "Опис персонажа",
-    notes: "Нотатки персонажа",
-    export: "📤 Експорт",
-    import: "📥 Імпорт"
-  }
-};
-
-/* ============ ФУНКЦІЯ ЗМІНИ МОВИ ============ */
-function setLang(lang){
-  localStorage.setItem("owlbear_lang", lang);
-
-  // Змінюємо текст в INDEX
-  document.getElementById("title").textContent = translations[lang].title;
-
-  document.querySelectorAll(".tabs button").forEach(btn=>{
-    const key = btn.dataset.i18n;
-    btn.textContent = translations[lang][key];
-  });
-
-  document.getElementById("exportBtn").textContent = translations[lang].export;
-  document.getElementById("importBtn").textContent = translations[lang].import;
-
-  // Підсвітка кнопок
-  document.getElementById("btn_ru").classList.toggle("active", lang==="ru");
-  document.getElementById("btn_ua").classList.toggle("active", lang==="ua");
-
-  // ===== НАЙВАЖЛИВІШЕ: СПОВІЩАЄМО ВСІ ВКЛАДКИ =====
-  window.dispatchEvent(new Event("changeLang"));
-}
-
-/* ===== Події на кнопки мов ===== */
-document.getElementById("btn_ru").addEventListener("click", ()=>setLang("ru"));
-document.getElementById("btn_ua").addEventListener("click", ()=>setLang("ua"));
-
-/* ===== Завантажити мову при старті ===== */
-const savedLang = localStorage.getItem("owlbear_lang") || "ru";
-setLang(savedLang);
-
-/* ================== ЛОГІКА ВКЛАДОК ================== */
 buttons.forEach(btn=>{
   btn.addEventListener("click", async ()=>{
     buttons.forEach(b=>b.classList.remove("active"));
@@ -198,12 +110,7 @@ buttons.forEach(btn=>{
       container.innerHTML = html;
       container.dataset.loaded = "true";
 
-      // 🔥 ВАЖЛИВО: змушуємо нову вкладку застосувати мову
-setTimeout(() => {
-  window.dispatchEvent(new Event("changeLang"));
-}, 0);
-
-
+      // Підключаємо JS ТІЛЬКИ ОДИН РАЗ
       if(!loadedScripts.has(tab)){
         const script = document.createElement("script");
         script.src = tab + ".js";
@@ -217,7 +124,7 @@ setTimeout(() => {
 // Відкриваємо першу вкладку
 document.querySelector('[data-tab="stats"]').click();
 
-/* ================== ІМПОРТ / ЕКСПОРТ ================== */
+/* ================== ІМПОРТ / ЕКСПОРТ (ДОДАНО) ================== */
 
 // ЕКСПОРТ УСЬОГО localStorage
 document.getElementById("exportBtn").addEventListener("click", ()=>{
