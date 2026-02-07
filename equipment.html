@@ -60,110 +60,39 @@
   resize:vertical;
   outline:none;
 }
-
-/* ===== LANGUAGE SWITCH ===== */
-.lang-switch{
-  position:absolute;
-  top:8px;
-  right:8px;
-}
-.lang-switch button{
-  background:#2b2d31;
-  color:white;
-  border:1px solid #555;
-  padding:4px 8px;
-  border-radius:6px;
-  cursor:pointer;
-}
 </style>
 </head>
 <body>
 
-<!-- Кнопки мови -->
-<div class="lang-switch">
-  <button onclick="setLang('ru')">RU</button>
-  <button onclick="setLang('ua')">UA</button>
-</div>
-
-<h2 style="text-align:center;" data-i18n="equipment_title">Снаряжение персонажа</h2>
+<h2 style="text-align:center;">Снаряжение персонажа</h2>
 
 <div class="equipment-wrapper">
 
   <div class="currency-box">
     <div class="currency-item">
-      <label data-i18n="coin_cp">Медь</label>
+      <label>Медь</label>
       <input type="number" id="coin_cp" min="0" value="0">
     </div>
     <div class="currency-item">
-      <label data-i18n="coin_sp">Серебро</label>
+      <label>Серебро</label>
       <input type="number" id="coin_sp" min="0" value="0">
     </div>
     <div class="currency-item">
-      <label data-i18n="coin_gp">Золото</label>
+      <label>Золото</label>
       <input type="number" id="coin_gp" min="0" value="0">
     </div>
     <div class="currency-item">
-      <label data-i18n="coin_pp">Платина</label>
+      <label>Платина</label>
       <input type="number" id="coin_pp" min="0" value="0">
     </div>
     <div class="currency-item">
-      <label data-i18n="coin_ep">Электрум</label>
+      <label>Электрум</label>
       <input type="number" id="coin_ep" min="0" value="0">
     </div>
   </div>
 
   <div class="inventory-box">
-    <textarea 
-      id="inventoryText" 
-      data-i18n-placeholder="inventory_placeholder"
-      placeholder="Опишите снаряжение, предметы, рюкзак, экипировку..."></textarea>
+    <textarea id="inventoryText" placeholder="Опишите снаряжение, предметы, рюкзак, экипировку..."></textarea>
   </div>
-
-</div>
-
-<script>
-const translations = {
-  ru: {
-    equipment_title: "Снаряжение персонажа",
-    coin_cp: "Медь",
-    coin_sp: "Серебро",
-    coin_gp: "Золото",
-    coin_pp: "Платина",
-    coin_ep: "Электрум",
-    inventory_placeholder: "Опишите снаряжение, предметы, рюкзак, экипировку..."
-  },
-  ua: {
-    equipment_title: "Снарядження персонажа",
-    coin_cp: "Мідь",
-    coin_sp: "Срібло",
-    coin_gp: "Золото",
-    coin_pp: "Платина",
-    coin_ep: "Електрум",
-    inventory_placeholder: "Опишіть снарядження, предмети, рюкзак, екіпірування..."
-  }
-};
-
-function setLang(lang){
-  localStorage.setItem("owlbear_lang", lang);
-
-  document.querySelectorAll("[data-i18n]").forEach(el=>{
-    const key = el.dataset.i18n;
-    if(translations[lang][key]){
-      el.textContent = translations[lang][key];
-    }
-  });
-
-  document.querySelectorAll("[data-i18n-placeholder]").forEach(el=>{
-    const key = el.dataset.i18nPlaceholder;
-    if(translations[lang][key]){
-      el.placeholder = translations[lang][key];
-    }
-  });
-}
-
-// Автоперемикач на останню вибрану мову
-setLang(localStorage.getItem("owlbear_lang") || "ru");
-</script>
-
 </body>
 </html>
