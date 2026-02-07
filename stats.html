@@ -164,19 +164,19 @@ body{
 </head>
 <body>
 
-<h3 data-i18n="stats_title">Характеристика персонажа</h3>
+<h3 id="title_stats">Характеристика персонажа</h3>
 
 <div class="header">
-  <div class="field"><label data-i18n="name">Имя</label><input id="name"></div>
-  <div class="field"><label data-i18n="class">Класс</label><input id="class"></div>
-  <div class="field"><label data-i18n="subclass">Подкласс</label><input id="subclass"></div>
-  <div class="field"><label data-i18n="race">Раса</label><input id="race"></div>
-  <div class="field"><label data-i18n="level">Уровень</label><input id="level" type="number" min="1" value="1"></div>
-  <div class="field"><label data-i18n="pb">Бонус мастерства</label><input id="pb" readonly></div>
+  <div class="field"><label id="lbl_name">Имя</label><input id="name"></div>
+  <div class="field"><label id="lbl_class">Класс</label><input id="class"></div>
+  <div class="field"><label id="lbl_subclass">Подкласс</label><input id="subclass"></div>
+  <div class="field"><label id="lbl_race">Раса</label><input id="race"></div>
+  <div class="field"><label id="lbl_level">Уровень</label><input id="level" type="number" min="1" value="1"></div>
+  <div class="field"><label id="lbl_pb">Бонус мастерства</label><input id="pb" readonly></div>
 
   <div class="inspiration-field">
     <input type="checkbox" id="inspiration">
-    <label for="inspiration" data-i18n="inspiration">Вдохновение</label>
+    <label id="lbl_inspiration" for="inspiration">Вдохновение</label>
   </div>
 </div>
 
@@ -185,7 +185,7 @@ body{
   <div class="field"><label>Max HP</label><input id="maxhp" type="number"></div>
   <div class="field"><label>Temporary HP</label><input id="temphp" type="number"></div>
   <div class="field"><label>(AC)</label><input id="ac" type="number"></div>
-  <div class="field"><label data-i18n="initiative">Инициатива</label><input id="initiative" type="number" readonly></div>
+  <div class="field"><label id="lbl_initiative">Инициатива</label><input id="initiative" type="number" readonly></div>
   <div class="field"><label>🏃🏻</label><input id="move" type="number"></div>
   <div class="field"><label>🏊🏻‍♂️</label><input id="swim" type="number"></div>
 </div>
@@ -195,116 +195,35 @@ body{
 <!-- ======= ЛІВА КОЛОНКА ======= -->
 <div class="col">
 
-<!-- СИЛА -->
 <div class="stat-box">
-<div class="stat-title" data-i18n="str">Сила</div>
+<div class="stat-title" id="t_str">Сила</div>
 <div class="stat-top">
   <input id="str_val" class="stat-val" type="number">
   <input id="str_mod" class="stat-mod" readonly>
 </div>
-<div class="row"><div class="skill-num" id="save_str_num">0</div><span id="save_str" class="dot"></span><div data-i18n="save_str">Спасбросок Силы</div></div>
+<div class="row"><div class="skill-num" id="save_str_num">0</div><span id="save_str" class="dot"></span><div id="lbl_save_str">Спасбросок Силы</div></div>
 <div class="skills">
-<div class="row"><div class="skill-num" id="athletics_num">0</div><span id="skill_athletics" class="dot"></span><div data-i18n="athletics">Атлетика</div></div>
+<div class="row"><div class="skill-num" id="athletics_num">0</div><span id="skill_athletics" class="dot"></span><div id="lbl_athletics">Атлетика</div></div>
 </div>
 </div>
 
-<!-- ТЕЛОСЛОЖЕНИЕ -->
 <div class="stat-box">
-<div class="stat-title" data-i18n="con">Телосложение</div>
+<div class="stat-title" id="t_con">Телосложение</div>
 <div class="stat-top">
   <input id="con_val" class="stat-val" type="number">
   <input id="con_mod" class="stat-mod" readonly>
 </div>
-<div class="row"><div class="skill-num" id="save_con_num">0</div><span id="save_con" class="dot"></span><div data-i18n="save_con">Спасбросок Телосложения</div></div>
-</div>
-
-<!-- ИНТЕЛЛЕКТ -->
-<div class="stat-box">
-<div class="stat-title" data-i18n="int">Интеллект</div>
-<div class="stat-top">
-  <input id="int_val" class="stat-val" type="number">
-  <input id="int_mod" class="stat-mod" readonly>
-</div>
-<div class="row"><div class="skill-num" id="save_int_num">0</div><span id="save_int" class="dot"></span><div data-i18n="save_int">Спасбросок Интеллекта</div></div>
-<div class="skills">
-<div class="row"><div class="skill-num" id="investigation_num">0</div><span id="skill_investigation" class="dot"></span><div data-i18n="investigation">Анализ</div></div>
-<div class="row"><div class="skill-num" id="arcana_num">0</div><span id="skill_arcana" class="dot"></span><div data-i18n="arcana">Магия</div></div>
-<div class="row"><div class="skill-num" id="history_num">0</div><span id="skill_history" class="dot"></span><div data-i18n="history">История</div></div>
-<div class="row"><div class="skill-num" id="nature_num">0</div><span id="skill_nature" class="dot"></span><div data-i18n="nature">Природа</div></div>
-<div class="row"><div class="skill-num" id="religion_num">0</div><span id="skill_religion" class="dot"></span><div data-i18n="religion">Религия</div></div>
-</div>
-</div>
-
-<!-- ХАРИЗМА -->
-<div class="stat-box">
-<div class="stat-title" data-i18n="cha">Харизма</div>
-<div class="stat-top">
-  <input id="cha_val" class="stat-val" type="number">
-  <input id="cha_mod" class="stat-mod" readonly>
-</div>
-<div class="row"><div class="skill-num" id="save_cha_num">0</div><span id="save_cha" class="dot"></span><div data-i18n="save_cha">Спасбросок Харизмы</div></div>
-<div class="skills">
-<div class="row"><div class="skill-num" id="deception_num">0</div><span id="skill_deception" class="dot"></span><div data-i18n="deception">Обман</div></div>
-<div class="row"><div class="skill-num" id="intimidation_num">0</div><span id="skill_intimidation" class="dot"></span><div data-i18n="intimidation">Запугивание</div></div>
-<div class="row"><div class="skill-num" id="performance_num">0</div><span id="skill_performance" class="dot"></span><div data-i18n="performance">Выступление</div></div>
-<div class="row"><div class="skill-num" id="persuasion_num">0</div><span id="skill_persuasion" class="dot"></span><div data-i18n="persuasion">Убеждение</div></div>
-</div>
-</div>
-</div>
-
-<!-- ======= СЕРЕДНЯ КОЛОНКА ======= -->
-<div class="col">
-
-<!-- ЛОВКОСТЬ -->
-<div class="stat-box">
-<div class="stat-title" data-i18n="dex">Ловкость</div>
-<div class="stat-top">
-  <input id="dex_val" class="stat-val" type="number">
-  <input id="dex_mod" class="stat-mod" readonly>
-</div>
-<div class="row"><div class="skill-num" id="save_dex_num">0</div><span id="save_dex" class="dot"></span><div data-i18n="save_dex">Спасбросок Ловкости</div></div>
-<div class="skills">
-<div class="row"><div class="skill-num" id="acrobatics_num">0</div><span id="skill_acrobatics" class="dot"></span><div data-i18n="acrobatics">Акробатика</div></div>
-<div class="row"><div class="skill-num" id="sleight_num">0</div><span id="skill_sleight" class="dot"></span><div data-i18n="sleight">Ловкость рук</div></div>
-<div class="row"><div class="skill-num" id="stealth_num">0</div><span id="skill_stealth" class="dot"></span><div data-i18n="stealth">Скрытность</div></div>
-</div>
-</div>
-
-<!-- МУДРОСТЬ -->
-<div class="stat-box">
-<div class="stat-title" data-i18n="wis">Мудрость</div>
-<div class="stat-top">
-  <input id="wis_val" class="stat-val" type="number">
-  <input id="wis_mod" class="stat-mod" readonly>
-</div>
-<div class="row"><div class="skill-num" id="save_wis_num">0</div><span id="save_wis" class="dot"></span><div data-i18n="save_wis">Спасбросок Мудрости</div></div>
-<div class="skills">
-<div class="row"><div class="skill-num" id="perception_num">0</div><span id="skill_perception" class="dot"></span><div data-i18n="perception">Восприятие</div></div>
-<div class="row"><div class="skill-num" id="insight_num">0</div><span id="skill_insight" class="dot"></span><div data-i18n="insight">Проницательность</div></div>
-<div class="row"><div class="skill-num" id="medicine_num">0</div><span id="skill_medicine" class="dot"></span><div data-i18n="medicine">Медицина</div></div>
-<div class="row"><div class="skill-num" id="survival_num">0</div><span id="skill_survival" class="dot"></span><div data-i18n="survival">Выживание</div></div>
-<div class="row"><div class="skill-num" id="animal_num">0</div><span id="skill_animal" class="dot"></span><div data-i18n="animal">Уход за животными</div></div>
-</div>
-</div>
-
-<div class="passive-box">
-<b data-i18n="passive_title">Пассивные навыки</b>
-<div><span data-i18n="perception">Восприятие</span>: <span id="pass_perception"></span></div>
-<div><span data-i18n="insight">Проницательность</span>: <span id="pass_insight"></span></div>
-<div><span data-i18n="investigation">Анализ</span>: <span id="pass_investigation"></span></div>
+<div class="row"><div class="skill-num" id="save_con_num">0</div><span id="save_con" class="dot"></span><div id="lbl_save_con">Спасбросок Телосложения</div></div>
 </div>
 
 </div>
-</div>
 
-<script src="stats.js"></script>
+</div>
 
 <script>
-/* ======== ПІДКЛЮЧЕННЯ ДО ПЕРЕМИКАЧА МОВ В INDEX ======== */
-
-const statsTranslations = {
+const translations = {
   ru: {
-    stats_title: "Характеристика персонажа",
+    title: "Характеристика персонажа",
     name: "Имя",
     class: "Класс",
     subclass: "Подкласс",
@@ -313,45 +232,14 @@ const statsTranslations = {
     pb: "Бонус мастерства",
     inspiration: "Вдохновение",
     initiative: "Инициатива",
-
     str: "Сила",
-    dex: "Ловкость",
     con: "Телосложение",
-    int: "Интеллект",
-    wis: "Мудрость",
-    cha: "Харизма",
-
     save_str: "Спасбросок Силы",
-    save_dex: "Спасбросок Ловкости",
     save_con: "Спасбросок Телосложения",
-    save_int: "Спасбросок Интеллекта",
-    save_wis: "Спасбросок Мудрости",
-    save_cha: "Спасбросок Харизмы",
-
-    athletics: "Атлетика",
-    acrobatics: "Акробатика",
-    sleight: "Ловкость рук",
-    stealth: "Скрытность",
-    perception: "Восприятие",
-    insight: "Проницательность",
-    medicine: "Медицина",
-    survival: "Выживание",
-    animal: "Уход за животными",
-    investigation: "Анализ",
-    arcana: "Магия",
-    history: "История",
-    nature: "Природа",
-    religion: "Религия",
-    deception: "Обман",
-    intimidation: "Запугивание",
-    performance: "Выступление",
-    persuasion: "Убеждение",
-
-    passive_title: "Пассивные навыки"
+    athletics: "Атлетика"
   },
-
-  ua: {
-    stats_title: "Характеристика персонажа",
+  uk: {
+    title: "Характеристика персонажа",
     name: "Ім'я",
     class: "Клас",
     subclass: "Підклас",
@@ -360,62 +248,47 @@ const statsTranslations = {
     pb: "Бонус майстерності",
     inspiration: "Натхнення",
     initiative: "Ініціатива",
-
     str: "Сила",
-    dex: "Спритність",
     con: "Тілобудова",
-    int: "Інтелект",
-    wis: "Мудрість",
-    cha: "Харизма",
-
-    save_str: "Рятівний кидок Сили",
-    save_dex: "Рятівний кидок Спритності",
-    save_con: "Рятівний кидок Тілобудови",
-    save_int: "Рятівний кидок Інтелекту",
-    save_wis: "Рятівний кидок Мудрості",
-    save_cha: "Рятівний кидок Харизми",
-
-    athletics: "Атлетика",
-    acrobatics: "Акробатика",
-    sleight: "Спритність рук",
-    stealth: "Скритність",
-    perception: "Сприйняття",
-    insight: "Проникливість",
-    medicine: "Медицина",
-    survival: "Виживання",
-    animal: "Догляд за тваринами",
-    investigation: "Аналіз",
-    arcana: "Магія",
-    history: "Історія",
-    nature: "Природа",
-    religion: "Релігія",
-    deception: "Обман",
-    intimidation: "Залякування",
-    performance: "Виступ",
-    persuasion: "Переконання",
-
-    passive_title: "Пасивні навички"
+    save_str: "Ряткидок Сили",
+    save_con: "Ряткидок Тілобудови",
+    athletics: "Атлетика"
   }
 };
 
-// Функція, яка читає мову з localStorage (ту, що ставить index)
-function applyStatsLang(){
-  const lang = localStorage.getItem("owlbear_lang") || "ru";
+function applyLanguage(){
+  const lang = localStorage.getItem("lang") || "ru";
+  const t = translations[lang];
 
-  document.querySelectorAll("[data-i18n]").forEach(el=>{
-    const key = el.dataset.i18n;
-    if(statsTranslations[lang][key]){
-      el.textContent = statsTranslations[lang][key];
-    }
-  });
+  document.getElementById("title_stats").textContent = t.title;
+  document.getElementById("lbl_name").textContent = t.name;
+  document.getElementById("lbl_class").textContent = t.class;
+  document.getElementById("lbl_subclass").textContent = t.subclass;
+  document.getElementById("lbl_race").textContent = t.race;
+  document.getElementById("lbl_level").textContent = t.level;
+  document.getElementById("lbl_pb").textContent = t.pb;
+  document.getElementById("lbl_inspiration").textContent = t.inspiration;
+  document.getElementById("lbl_initiative").textContent = t.initiative;
+
+  document.getElementById("t_str").textContent = t.str;
+  document.getElementById("t_con").textContent = t.con;
+  document.getElementById("lbl_save_str").textContent = t.save_str;
+  document.getElementById("lbl_save_con").textContent = t.save_con;
+  document.getElementById("lbl_athletics").textContent = t.athletics;
 }
 
-// Оновлюємо мову при завантаженні вкладки
-applyStatsLang();
+// Запуск при завантаженні
+applyLanguage();
 
-// Оновлюємо мову, якщо її змінять в index
-window.addEventListener("storage", applyStatsLang);
+// Слухаємо зміну мови з index.html
+window.addEventListener("storage", (e)=>{
+  if(e.key === "lang"){
+    applyLanguage();
+  }
+});
 </script>
+
+<script src="stats.js"></script>
 
 </body>
 </html>
