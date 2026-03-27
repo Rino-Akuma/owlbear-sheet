@@ -82,16 +82,22 @@ function renderWeapons(){
 
     const div = document.createElement("div");
     div.className="weapon-item";
+
     div.innerHTML = `
       <div>${w.name}</div>
       <div>+${bonus}</div>
       <div>${w.dice}</div>
       <div>${w.dmgType}</div>
       <div class="weapon-actions">
-        <button onclick="alert('${w.notes.replace(/'/g,"\\'")}')">📝</button>
+        <button class="note-btn">📝</button>
         <button onclick="deleteWeapon(${i})">🗑</button>
       </div>
     `;
+
+    div.querySelector(".note-btn").addEventListener("click", ()=>{
+      alert(w.notes || "Нет описания");
+    });
+
     weaponList.appendChild(div);
   });
 }
