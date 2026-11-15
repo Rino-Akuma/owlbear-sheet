@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Лист персонажа</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="app">
+
+  <aside class="side">
+    <h1 id="app-title"></h1>
+    <div class="side-actions">
+      <button id="btn-new" class="primary" type="button"></button>
+      <div class="row2">
+        <button id="btn-dup" type="button"></button>
+        <button id="btn-del" type="button" class="danger-text"></button>
+      </div>
+    </div>
+    <h2 id="chars-title" class="lbl"></h2>
+    <ul id="char-list" class="char-list"></ul>
+    <div id="empty" class="empty" hidden>
+      <p id="empty-text"></p>
+    </div>
+    <div class="side-foot">
+      <button id="btn-export" type="button"></button>
+      <button id="btn-export-all" type="button"></button>
+      <button id="btn-import" type="button"></button>
+      <input id="file" type="file" accept=".json,application/json" hidden>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div id="sheet-bar" class="sheet-bar" hidden>
+      <span id="sheet-system" class="chip"></span>
+      <span id="save-status" class="save-status"></span>
+    </div>
+    <div id="welcome" class="welcome" hidden>
+      <p>Створіть персонажа, щоб почати.</p>
+      <button id="btn-first" type="button" class="primary"></button>
+    </div>
+    <div id="sheet" class="sheet"></div>
+  </main>
+
+  <aside class="rolls">
+    <h2 id="rolls-title"></h2>
+    <div class="opts">
+      <label id="lbl-diff" class="field">Складність<input id="in-diff" type="number" min="0"></label>
+      <label id="lbl-bonus" class="field">Бонус<input id="in-bonus" type="number"></label>
+      <label id="lbl-crit-hi" class="field">Крит. успіх<input id="in-crit-hi" type="number" min="1" max="100"></label>
+      <label id="lbl-crit-lo" class="field">Крит. провал<input id="in-crit-lo" type="number" min="0" max="99"></label>
+    </div>
+    <p id="opts-hint" class="muted small"></p>
+    <div id="roll-groups"></div>
+    <div class="log-head-row">
+      <span class="lbl">Журнал</span>
+      <button id="btn-clear-log" type="button" class="link"></button>
+    </div>
+    <div id="log" class="log"></div>
+  </aside>
+
+</div>
+<div id="modal-root"></div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

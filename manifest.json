@@ -1,0 +1,13 @@
+{
+  "name": "Лист персонажа",
+  "version": "1.0.0",
+  "manifest_version": 1,
+  "description": "Листи персонажів для D&D та «Континенту»",
+  "action": {
+    "title": "Лист персонажа",
+    "icon": "https://raw.githack.com/Rino-Akuma/owlbear-sheet/main/icon.svg",
+    "popover": "https://raw.githack.com/Rino-Akuma/owlbear-sheet/main/index.html",
+    "width": 1100,
+    "height": 800
+  }
+}
