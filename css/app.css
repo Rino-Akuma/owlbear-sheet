@@ -200,7 +200,7 @@ button.chip-btn.on { background: var(--accent); color: var(--accent-ink); border
 #sheet[data-theme=dnd] .card > h2 { color: var(--text); }
 #sheet[data-theme=dnd] .field.computed .val { color: var(--accent); }
 
-@media (max-width: 1000px) {
+@media (max-width: 1250px) {
   .split { grid-template-columns: 1fr 1fr !important; }
   .split-col:last-child { grid-column: 1 / -1; }
 }
@@ -222,3 +222,27 @@ button.chip-btn.on { background: var(--accent); color: var(--accent-ink); border
 .note-pick { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .note-pick .note { margin: 0; flex: 1 1 260px; grid-column: auto; }
 .note-pick .lib-btn { margin: 0; }
+
+/* поправки зручності */
+input[type=number].stat-input, input[type=number].ab-score { -moz-appearance: textfield; appearance: textfield; min-width: 0; }
+input[type=number].stat-input::-webkit-inner-spin-button, input[type=number].stat-input::-webkit-outer-spin-button,
+input[type=number].ab-score::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.stat-input { padding: 4px 2px; }
+table.list th[style*="%"] { min-width: 140px; }
+table.list input[type=text] { min-width: 90px; }
+table.list input[type=number] { min-width: 52px; }
+table.list select { min-width: 80px; }
+
+/* середні вікна (поповер Owlbear): бокова панель стає верхньою смугою */
+@media (max-width: 1250px) and (min-width: 901px) {
+  .app { grid-template-columns: minmax(0, 1fr) 250px; grid-template-rows: auto minmax(0, 1fr); }
+  .side { grid-column: 1 / -1; flex-direction: row; flex-wrap: nowrap; align-items: center; padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--line); overflow: visible; gap: 10px; }
+  .side h1, .side h2, .side #empty { display: none; }
+  .side-actions { flex-direction: row; align-items: center; flex: 0 0 auto; }
+  .side-actions .row2 { display: flex; gap: 6px; }
+  .side-actions button { white-space: nowrap; }
+  .char-list { display: flex; flex-direction: row; gap: 6px; flex: 1 1 auto; min-width: 0; overflow-x: auto; margin: 0; padding: 0; list-style: none; }
+  .char-list li { flex: 0 0 auto; min-width: 130px; }
+  .side-foot { flex-direction: row; border: 0; padding: 0; flex: 0 0 auto; }
+  .side-foot button { white-space: nowrap; padding: 6px 10px; }
+}

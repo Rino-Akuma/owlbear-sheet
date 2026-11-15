@@ -187,7 +187,7 @@ export default {
       }],
     },
     {
-      title: 'Риси та навички', cols: 2,
+      title: 'Риси та навички', cols: 1,
       fields: [
         { id: 'traits', type: 'list', label: 'Риси', addLabel: 'Додати рису', columns: [
           { id: 'name', label: 'Назва', type: 'text', width: '38%' }, { id: 'desc', label: 'Ефект', type: 'text' }] },
