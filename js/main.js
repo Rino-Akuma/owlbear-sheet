@@ -46,7 +46,7 @@ let active = null;     // поточний запис персонажа
 let sheet = null;      // керування намальованим листом
 let saveTimer = null;
 const logEntries = [];
-const opts = { difficulty: 0, bonus: 0, critHi: 95, critLo: 5 };
+const opts = { difficulty: 0, bonus: 0, critHi: 95, critLo: 5, adv: 0 };
 
 const displayName = (c) => (c.data && c.data.name ? c.data.name : t.noName);
 
@@ -125,12 +125,21 @@ function drawSheet() {
   }
   $('#sheet-system').textContent = tpl.name;
   try {
-    sheet = mountSheet(area, tpl, active.data, { onChange: scheduleSave, getOpts: () => opts, log: pushLog });
+    sheet = mountSheet(area, tpl, active.data, { onChange: scheduleSave, getOpts: () => opts, log: pushLog, redraw: drawSheet });
   } catch (e) {
     area.replaceChildren(h('p', { class: 'error', text: `${t.templateError}: ${e.message}` }));
     return;
   }
+  applyRollOptions(tpl);
   drawRollGroups(tpl);
+}
+
+function applyRollOptions(tpl) {
+  const d20 = tpl.rollOptions === 'd20';
+  document.querySelectorAll('.d20-only').forEach((el) => { el.hidden = !d20; });
+  document.querySelectorAll('.d100-only').forEach((el) => { el.hidden = d20; });
+  if (!d20) { opts.adv = 0; $('#in-adv').value = '0'; }
+  $('#opts-hint').textContent = d20 ? '' : t.optionsHint;
 }
 
 function drawRollGroups(tpl) {
@@ -298,6 +307,9 @@ function bindStaticText() {
   $('#btn-first').textContent = t.createFirst;
   $('#rolls-title').textContent = t.rolls;
   $('#lbl-diff').firstChild.textContent = t.difficulty;
+  $('#lbl-adv').firstChild.textContent = t.advLabel;
+  const advOpts = $('#in-adv').options;
+  advOpts[0].text = t.advNormal; advOpts[1].text = t.advAdv; advOpts[2].text = t.advDis;
   $('#lbl-bonus').firstChild.textContent = t.extraBonus;
   $('#lbl-crit-hi').firstChild.textContent = t.critFrom;
   $('#lbl-crit-lo').firstChild.textContent = t.critTo;
@@ -306,6 +318,7 @@ function bindStaticText() {
 }
 
 function bindOpts() {
+  $('#in-adv').addEventListener('change', (e) => { opts.adv = Number(e.target.value) || 0; });
   const map = { '#in-diff': 'difficulty', '#in-bonus': 'bonus', '#in-crit-hi': 'critHi', '#in-crit-lo': 'critLo' };
   for (const [sel, key] of Object.entries(map)) {
     const el = $(sel);

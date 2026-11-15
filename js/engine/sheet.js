@@ -3,6 +3,7 @@
 
 import { compile } from './formula.js';
 import { d100, rollDie } from './dice.js';
+import { pickFromLibrary } from '../library.js';
 import { t } from '../i18n.js';
 
 function h(tag, attrs = {}, ...kids) {
@@ -33,7 +34,7 @@ export function fmt(v, format) {
 const optValue = (o) => (typeof o === 'object' ? o.value : o);
 const optLabel = (o) => (typeof o === 'object' ? o.label ?? o.value : o);
 
-/** Збирає всі поля шаблону (з секцій і з прихованих обчислюваних). */
+/** Збирає всі поля шаблону (з секцій, вкладок і з прихованих обчислюваних). */
 function indexFields(template) {
   const byId = new Map();
   const add = (f) => {
@@ -41,8 +42,23 @@ function indexFields(template) {
     if (byId.has(f.id)) throw new Error(`Шаблон: повторюється id «${f.id}»`);
     byId.set(f.id, f);
   };
+  // Блок характеристики автоматично створює: id_mod, id_save (володіння), id_savemod, а для кожної навички id та id_val.
+  const addField = (f) => {
+    add(f);
+    if (f.type !== 'ability') return;
+    add({ type: 'computed', hidden: true, id: `${f.id}_mod`, formula: `floor((${f.id} - 10) / 2)` });
+    add({ type: 'number', hidden: true, id: `${f.id}_save` });
+    add({ type: 'computed', hidden: true, id: `${f.id}_savemod`, formula: `${f.id}_mod + ${f.id}_save * pb` });
+    for (const sk of f.skills || []) {
+      add({ type: 'number', hidden: true, id: sk.id });
+      add({ type: 'computed', hidden: true, id: `${sk.id}_val`, formula: `${f.id}_mod + ${sk.id} * pb` });
+    }
+  };
   (template.computed || []).forEach((c) => add({ type: 'computed', hidden: true, ...c }));
-  for (const s of template.sections || []) (s.fields || []).forEach(add);
+  for (const s of template.sections || []) {
+    (s.fields || []).forEach(addField);
+    for (const tab of s.tabs || []) (tab.fields || []).forEach(addField);
+  }
   return byId;
 }
 
@@ -91,6 +107,7 @@ export function prepareTemplate(template) {
  * hooks: { onChange(), getOpts() -> {difficulty, bonus, critHi, critLo}, log(entry) }
  * Повертає { destroy() }.
  */
+const TAB_MEMORY = {};
 export function mountSheet(root, template, data, hooks) {
   const byId = prepareTemplate(template);
   const actions = template.actions || {};
@@ -132,13 +149,32 @@ export function mountSheet(root, template, data, hooks) {
     d100,
     rollDie,
     setData(id, val) { data[id] = val; changed(); },
+    addRow(listId, row) { if (!Array.isArray(data[listId])) data[listId] = []; data[listId].push(row); },
+    appendLine(id, line) { const cur = String(data[id] ?? ''); data[id] = cur ? `${cur}\n${line}` : line; },
     t,
   };
+
+  function pickButton(f) {
+    const cfg = f.pick;
+    return h('button', {
+      type: 'button', class: 'link lib-btn', text: cfg.label || t.libPick,
+      onclick: async (ev) => {
+        ev.preventDefault();
+        const entry = await pickFromLibrary(cfg);
+        if (!entry) return;
+        const fn = actions[cfg.action];
+        if (!fn) return;
+        fn(ctx, entry, f);
+        hooks.onChange();
+        (hooks.redraw || refresh)();
+      },
+    });
+  }
 
   // ---------- рендер полів ----------
   function labelWrap(f, control, extraClass = '') {
     return h('label', { class: `field ${extraClass}`, style: f.span ? `grid-column: span ${f.span}` : null },
-      h('span', { class: 'lbl', text: f.label || '' }), control);
+      h('span', { class: 'lbl' }, f.label || '', f.pick ? pickButton(f) : null), control);
   }
 
   function renderText(f) {
@@ -237,20 +273,51 @@ export function mountSheet(root, template, data, hooks) {
   function renderNote(f) {
     const el = h('p', { class: 'note', text: f.text, style: f.span ? `grid-column: span ${f.span}` : null });
     updaters.push(() => { el.hidden = f._show ? !f._show.fn(get) : false; });
+    if (f.pick) return h('div', { class: 'note-pick', style: f.span ? `grid-column: span ${f.span}` : null }, el, pickButton(f));
     return el;
   }
 
   // ---------- кидки ----------
   function outcomeEntry(def, nat, lines, success) {
     const o = hooks.getOpts();
-    const crit = nat >= o.critHi ? 'success' : nat <= o.critLo ? 'fail' : null;
+    const crit = def.die === 20
+      ? (nat === 20 ? 'success' : nat === 1 ? 'fail' : null)
+      : (nat >= o.critHi ? 'success' : nat <= o.critLo ? 'fail' : null);
     return { title: def.label, lines, success, crit };
   }
+
+  /** d20 з перевагою/недоліком, бонусом і складністю з панелі кидків. */
+  function rollD20(title, mod, extra = []) {
+    const o = hooks.getOpts();
+    const adv = o.adv || 0;
+    const r1 = rollDie(20);
+    const r2 = adv ? rollDie(20) : null;
+    const nat = adv > 0 ? Math.max(r1, r2) : adv < 0 ? Math.min(r1, r2) : r1;
+    const bonus = o.bonus || 0;
+    const total = nat + mod + bonus;
+    const parts = [adv ? `d20: ${r1}, ${r2} (${adv > 0 ? t.advantage : t.disadvantage}) → ${nat}` : `d20: ${nat}`];
+    parts.push(`${t.modifier}: ${fmt(mod, 'signed')}`);
+    if (bonus) parts.push(`${t.bonus}: ${fmt(bonus, 'signed')}`);
+    const dc = o.difficulty || 0;
+    const entry = {
+      title,
+      lines: [`${parts.join(' · ')} = ${total}`, ...(dc ? [t.vsDc(dc)] : []), ...extra],
+      success: dc ? total >= dc : null,
+      crit: nat === 20 ? 'success' : nat === 1 ? 'fail' : null,
+      headline: total,
+    };
+    hooks.log(entry);
+    return entry;
+  }
+  ctx.rollD20 = rollD20;
 
   function doRoll(def) {
     const o = hooks.getOpts();
     const mode = def.mode || 'check';
     const die = def.die || 100;
+    if (die === 20 && mode === 'check' && template.rollOptions === 'd20') {
+      return rollD20(def.label, def._mod ? Math.floor(def._mod.fn(get)) : 0);
+    }
     const nat = die === 100 ? d100() : rollDie(die);
     const mod = def._mod ? Math.floor(def._mod.fn(get)) : 0;
     const bonus = die === 100 ? o.bonus : 0;
@@ -355,26 +422,116 @@ export function mountSheet(root, template, data, hooks) {
       onclick: () => { rows.push(newRow()); renderRows(); changed(); },
     });
     return h('div', { class: 'list-wrap', style: f.span ? `grid-column: span ${f.span}` : null },
-      f.label ? h('div', { class: 'lbl', text: f.label }) : null, h('div', { class: 'scroll-x' }, table), add);
+      f.label ? h('div', { class: 'lbl', text: f.label }) : null, h('div', { class: 'scroll-x' }, table),
+      h('div', { class: 'list-btns' }, add, f.pick ? pickButton(f) : null));
+  }
+
+  // ---------- блок характеристики (як на Long Story Short) ----------
+  function profDot(id, maxLevel) {
+    const dot = h('button', {
+      type: 'button', class: 'dot', title: t.profTitle,
+      onclick: () => {
+        const cur = Number(data[id]) || 0;
+        data[id] = cur + 1 > maxLevel ? 0 : cur + 1;
+        changed();
+      },
+    });
+    updaters.push(() => { dot.className = `dot p${get(id)}`; });
+    return dot;
+  }
+
+  function rollButton(title, valueId) {
+    const b = h('button', { type: 'button', class: 'val-btn', title: t.rollIt, onclick: () => rollD20(title, get(valueId)) });
+    updaters.push(() => { b.textContent = fmt(get(valueId), 'signed'); });
+    return b;
+  }
+
+  function renderAbility(f) {
+    const score = h('input', { type: 'number', class: 'ab-score', min: 1, max: 30, value: data[f.id] ?? f.default ?? 10 });
+    score.addEventListener('input', () => { data[f.id] = score.value === '' ? 10 : Number(score.value); changed(); });
+    const head = h('div', { class: 'ab-head' }, h('span', { class: 'ab-name', text: f.label }), h('span', { class: 'ab-line' }), score);
+    const check = h('div', { class: 'pill' }, h('span', { class: 'pill-l', text: t.checkShort }), rollButton(`${f.label}: ${t.checkLower}`, `${f.id}_mod`));
+    const save = h('div', { class: 'pill' }, profDot(`${f.id}_save`, 1), h('span', { class: 'pill-l', text: t.saveShort }),
+      rollButton(`${f.label}: ${t.savingThrowLower}`, `${f.id}_savemod`));
+    const skills = (f.skills || []).map((sk) => h('div', { class: 'skill' },
+      profDot(sk.id, 2), h('span', { class: 'skill-name', text: sk.label }), rollButton(`${sk.label} (${f.label})`, `${sk.id}_val`)));
+    return h('div', { class: 'ability' }, head, h('div', { class: 'ab-row' }, check, save), skills);
+  }
+
+  function renderChips(f) {
+    const read = () => (Array.isArray(data[f.id]) ? data[f.id] : []);
+    const btns = (f.options || []).map((o) => h('button', {
+      type: 'button', class: 'chip-btn', text: o,
+      onclick: () => { const a = read(); data[f.id] = a.includes(o) ? a.filter((x) => x !== o) : [...a, o]; changed(); },
+    }));
+    updaters.push(() => { const a = read(); btns.forEach((b, i) => b.classList.toggle('on', a.includes(f.options[i]))); });
+    return h('div', { class: 'field chips-field', style: f.span ? `grid-column: span ${f.span}` : null },
+      f.label ? h('span', { class: 'lbl', text: f.label }) : null, h('div', { class: 'chips' }, btns));
+  }
+
+  const activeTab = TAB_MEMORY;
+  function renderTabs(s, idx) {
+    const bar = h('div', { class: 'tabbar' });
+    const panes = [];
+    const show = (i) => {
+      activeTab[idx] = i;
+      [...bar.children].forEach((b, j) => b.classList.toggle('on', j === i));
+      panes.forEach((p, j) => { p.hidden = j !== i; });
+    };
+    s.tabs.forEach((tab, i) => {
+      const grid = h('div', { class: 'grid', style: `--cols:${tab.cols || 2}` });
+      for (const f of tab.fields || []) {
+        const fn = RENDER[f.type];
+        if (!fn) throw new Error(`Поле «${f.id || f.label}»: невідомий тип «${f.type}»`);
+        if (!f.hidden) grid.append(fn(f));
+      }
+      panes.push(h('div', { class: 'tab-pane' }, grid));
+      bar.append(h('button', { type: 'button', class: 'tab', text: tab.title, onclick: () => show(i) }));
+    });
+    const wrap = h('div', { class: 'tabs' }, bar, ...panes);
+    show(activeTab[idx] || 0);
+    return wrap;
   }
 
   const RENDER = {
+    ability: renderAbility, chips: renderChips,
     text: renderText, longtext: renderLongText, number: renderNumber, checkbox: renderCheckbox,
     select: renderSelect, computed: renderComputed, stat: renderStat, counter: renderCounter,
     track: renderTrack, note: renderNote, roll: renderRoll, list: renderList,
   };
 
   const frag = document.createDocumentFragment();
-  for (const s of template.sections || []) {
-    const grid = h('div', { class: `grid ${s.class || ''}`, style: `--cols:${s.cols || 4}` });
-    for (const f of s.fields || []) {
-      const fn = RENDER[f.type];
-      if (!fn) throw new Error(`Поле «${f.id || f.label}»: невідомий тип «${f.type}»`);
-      if (f.hidden) continue;
-      grid.append(fn(f));
+  let split = null;
+  const sectionNode = (s, idx) => {
+    let inner;
+    if (s.tabs) {
+      inner = renderTabs(s, idx);
+    } else {
+      inner = h('div', { class: `grid ${s.class || ''}`, style: `--cols:${s.cols || 4}` });
+      for (const f of s.fields || []) {
+        const fn = RENDER[f.type];
+        if (!fn) throw new Error(`Поле «${f.id || f.label}»: невідомий тип «${f.type}»`);
+        if (f.hidden) continue;
+        inner.append(fn(f));
+      }
     }
-    frag.append(h('section', { class: 'card' }, s.title ? h('h2', { text: s.title }) : null, grid));
-  }
+    return h('section', { class: `card ${s.cardClass || ''}` }, s.title ? h('h2', { text: s.title }) : null, inner);
+  };
+  (template.sections || []).forEach((s, idx) => {
+    if (s.column) {
+      if (!split) {
+        const cols = template.columns || ['1fr', '1fr'];
+        split = { el: h('div', { class: 'split', style: `grid-template-columns:${cols.join(' ')}` }), cols: {} };
+        cols.forEach((_, i) => { split.cols[i] = h('div', { class: 'split-col' }); split.el.append(split.cols[i]); });
+        frag.append(split.el);
+      }
+      split.cols[Number(s.column) - 1].append(sectionNode(s, idx));
+    } else {
+      split = null;
+      frag.append(sectionNode(s, idx));
+    }
+  });
+  root.dataset.theme = template.theme || '';
   root.replaceChildren(frag);
   refresh();
   return { get, refresh, roll: doRoll, destroy() { root.replaceChildren(); } };
