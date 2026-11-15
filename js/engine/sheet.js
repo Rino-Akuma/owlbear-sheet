@@ -3,7 +3,7 @@
 
 import { compile } from './formula.js';
 import { d100, rollDie } from './dice.js';
-import { pickFromLibrary } from '../library.js';
+import { pickFromLibrary, showTextModal } from '../library.js';
 import { t } from '../i18n.js';
 
 function h(tag, attrs = {}, ...kids) {
@@ -108,6 +108,7 @@ export function prepareTemplate(template) {
  * Повертає { destroy() }.
  */
 const TAB_MEMORY = {};
+const PAGE_MEMORY = {};
 export function mountSheet(root, template, data, hooks) {
   const byId = prepareTemplate(template);
   const actions = template.actions || {};
@@ -149,6 +150,8 @@ export function mountSheet(root, template, data, hooks) {
     d100,
     rollDie,
     setData(id, val) { data[id] = val; changed(); },
+    touch: changed,
+    showText: (cfg) => showTextModal(cfg),
     addRow(listId, row) { if (!Array.isArray(data[listId])) data[listId] = []; data[listId].push(row); },
     appendLine(id, line) { const cur = String(data[id] ?? ''); data[id] = cur ? `${cur}\n${line}` : line; },
     t,
@@ -164,7 +167,7 @@ export function mountSheet(root, template, data, hooks) {
         if (!entry) return;
         const fn = actions[cfg.action];
         if (!fn) return;
-        fn(ctx, entry, f);
+        await fn(ctx, entry, f);
         hooks.onChange();
         (hooks.redraw || refresh)();
       },
@@ -254,6 +257,28 @@ export function mountSheet(root, template, data, hooks) {
     });
     return h('div', { class: `field counter ${f.class || ''}`, style: f.span ? `grid-column: span ${f.span}` : null },
       h('span', { class: 'lbl', text: f.label }), h('div', { class: 'counter-row' }, minus, input, maxEl, plus));
+  }
+
+  function renderSlots(f) {
+    const rows = [];
+    const levels = f.levels || 9;
+    const leftEls = [];
+    for (let n = 1; n <= levels; n++) {
+      const tk = `slots${n}`, lk = `slotsleft${n}`;
+      const total = h('input', { type: 'number', min: 0, max: 20, class: 'slot-total' });
+      const left = h('span', { class: 'slot-left' });
+      const total0 = () => Number(data[tk]) || 0;
+      const cur = () => (data[lk] == null ? total0() : Math.min(Number(data[lk]) || 0, total0()));
+      total.addEventListener('input', () => { data[tk] = Math.max(0, Number(total.value) || 0); if (data[lk] != null) data[lk] = Math.min(Number(data[lk]) || 0, data[tk]); changed(); });
+      const minus = h('button', { type: 'button', class: 'mini', text: '−', onclick: () => { data[lk] = Math.max(0, cur() - 1); changed(); } });
+      const plus = h('button', { type: 'button', class: 'mini', text: '+', onclick: () => { data[lk] = Math.min(total0(), cur() + 1); changed(); } });
+      updaters.push(() => { total.value = total0(); left.textContent = String(cur()); });
+      rows.push(h('tr', {}, h('th', { text: `${n}-й` }), h('td', {}, total), h('td', { class: 'slot-ctl' }, minus, left, plus)));
+    }
+    const rest = h('button', { type: 'button', class: 'link', text: t.longRest, onclick: () => { for (let n = 1; n <= levels; n++) delete data[`slotsleft${n}`]; changed(); } });
+    const table = h('table', { class: 'slots' }, h('thead', {}, h('tr', {}, h('th', { text: 'Рівень' }), h('th', { text: t.slotsTotal }), h('th', { text: t.slotsLeft }))), h('tbody', {}, rows));
+    return h('div', { class: 'field slots-wrap', style: f.span ? `grid-column: span ${f.span}` : null },
+      h('span', { class: 'lbl' }, f.label || '', ' ', rest), table);
   }
 
   function renderTrack(f) {
@@ -388,7 +413,7 @@ export function mountSheet(root, template, data, hooks) {
         ctl = h('input', { type: 'text', value: row[c.id] ?? '', placeholder: c.placeholder || '' });
         ctl.addEventListener('input', () => { row[c.id] = ctl.value; changed(); });
       }
-      return h('td', { class: c.type === 'checkbox' ? 'c-check' : '' }, ctl);
+      return h('td', { class: c.type === 'checkbox' ? 'c-check' : '', 'data-label': c.label }, ctl);
     }
 
     function renderRows() {
@@ -497,7 +522,7 @@ export function mountSheet(root, template, data, hooks) {
     ability: renderAbility, chips: renderChips,
     text: renderText, longtext: renderLongText, number: renderNumber, checkbox: renderCheckbox,
     select: renderSelect, computed: renderComputed, stat: renderStat, counter: renderCounter,
-    track: renderTrack, note: renderNote, roll: renderRoll, list: renderList,
+    track: renderTrack, note: renderNote, roll: renderRoll, list: renderList, slots: renderSlots,
   };
 
   const frag = document.createDocumentFragment();
@@ -515,22 +540,45 @@ export function mountSheet(root, template, data, hooks) {
         inner.append(fn(f));
       }
     }
-    return h('section', { class: `card ${s.cardClass || ''}` }, s.title ? h('h2', { text: s.title }) : null, inner);
+    return h('section', { class: `card ${s.cardClass || ''}`, style: s.order ? `order:${s.order}` : null }, s.title ? h('h2', { text: s.title }) : null, inner);
+  };
+  // ---------- сторінки (вкладки верхнього рівня) ----------
+  const pages = [];
+  const pageOf = (title) => {
+    let p = pages.find((x) => x.title === title);
+    if (!p) { p = { title, el: h('div', { class: 'page' }), split: null }; pages.push(p); }
+    return p;
   };
   (template.sections || []).forEach((s, idx) => {
+    const p = pageOf(s.page || '');
     if (s.column) {
-      if (!split) {
-        const cols = template.columns || ['1fr', '1fr'];
-        split = { el: h('div', { class: 'split', style: `grid-template-columns:${cols.join(' ')}` }), cols: {} };
-        cols.forEach((_, i) => { split.cols[i] = h('div', { class: 'split-col' }); split.el.append(split.cols[i]); });
-        frag.append(split.el);
+      if (!p.split) {
+        const cols = (template.pageColumns && template.pageColumns[p.title]) || template.columns || ['1fr', '1fr'];
+        p.split = { el: h('div', { class: 'split', style: `grid-template-columns:${cols.join(' ')}` }), cols: {} };
+        cols.forEach((_, i) => { p.split.cols[i] = h('div', { class: 'split-col' }); p.split.el.append(p.split.cols[i]); });
+        p.el.append(p.split.el);
       }
-      split.cols[Number(s.column) - 1].append(sectionNode(s, idx));
+      p.split.cols[Number(s.column) - 1].append(sectionNode(s, idx));
     } else {
-      split = null;
-      frag.append(sectionNode(s, idx));
+      p.split = null;
+      p.el.append(sectionNode(s, idx));
     }
   });
+  if (pages.length > 1) {
+    const key = template.id;
+    const bar = h('div', { class: 'pagebar' });
+    const show = (i) => {
+      PAGE_MEMORY[key] = i;
+      [...bar.children].forEach((b2, j) => b2.classList.toggle('on', j === i));
+      pages.forEach((p, j) => { p.el.hidden = j !== i; });
+    };
+    pages.forEach((p, i) => bar.append(h('button', { type: 'button', class: 'pagetab', text: p.title, onclick: () => { show(i); root.closest('.main')?.scrollTo(0, 0); } })));
+    frag.append(bar);
+    pages.forEach((p) => frag.append(p.el));
+    show(Math.min(PAGE_MEMORY[key] || 0, pages.length - 1));
+  } else {
+    pages.forEach((p) => frag.append(p.el));
+  }
   root.dataset.theme = template.theme || '';
   root.replaceChildren(frag);
   refresh();

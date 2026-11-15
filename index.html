@@ -13,6 +13,7 @@
     <h1 id="app-title"></h1>
     <div class="side-actions">
       <button id="btn-new" class="primary" type="button"></button>
+      <button id="btn-menu" class="menu-btn" type="button" aria-label="Меню">⋯</button>
       <div class="row2">
         <button id="btn-dup" type="button"></button>
         <button id="btn-del" type="button" class="danger-text"></button>
@@ -28,6 +29,7 @@
       <button id="btn-export-all" type="button"></button>
       <button id="btn-import" type="button"></button>
       <input id="file" type="file" accept=".json,application/json" hidden>
+      <label id="win-wrap" class="field win-wrap" hidden><span class="lbl">Розмір вікна</span><select id="win-size"><option value="narrow">Вузьке (карта видна)</option><option value="mid">Середнє</option><option value="wide">Широке</option></select></label>
     </div>
   </aside>
 
@@ -43,7 +45,8 @@
     <div id="sheet" class="sheet"></div>
   </main>
 
-  <aside class="rolls">
+  <aside class="rolls" id="rolls">
+    <button id="rolls-strip" class="rolls-strip" type="button"><span id="strip-last">Кидки</span><b id="strip-arrow">▲</b></button>
     <h2 id="rolls-title"></h2>
     <div class="opts">
       <label id="lbl-adv" class="field d20-only" hidden>Кидок<select id="in-adv"><option value="0">Звичайний</option><option value="1">З перевагою</option><option value="-1">З недоліком</option></select></label>

@@ -1,5 +1,6 @@
 // Шаблон «D&D 5e» (редакція 2014) у стилі Long Story Short. Увесь текст — українською.
 import { parseDice, rollDice } from '../engine/dice.js';
+import { loadLib } from '../library.js';
 
 const sign = (n) => (n >= 0 ? `+${n}` : `${n}`);
 
@@ -35,9 +36,15 @@ const libActions = {
     (e.sk || []).forEach((k) => { ctx.data[SKILL_ID[k] || k] = Math.max(1, Number(ctx.data[SKILL_ID[k] || k]) || 0); });
   },
   pickFeat(ctx, e) { ctx.appendLine('feats', e.ab ? `${e.n} [${Object.entries(e.ab).map(([k, v]) => `${ABIL_UA[k] || k} +${v}`).join(', ')}]` : e.n); },
-  pickSpell(ctx, e) {
-    const key = e.l === 0 ? 'cantrips' : `spells${e.l}`;
-    ctx.appendLine(key, `${e.n}${e.dmg ? ` (${dnum(e.dmg)})` : ''}${e.k ? ' · конц.' : ''}`);
+  async pickSpell(ctx, e) {
+    let text = '';
+    try { text = (await loadLib('spells-text'))[`${e.n}|${e.s}`] || ''; } catch { /* без опису */ }
+    const tm = { action: 'дія', bonus: 'бонус. дія', reaction: 'реакція', minute: 'хв', hour: 'год' };
+    const [num, unit] = String(e.t || '').split(' ');
+    ctx.addRow('spellbook', {
+      name: e.n, level: e.l, time: `${num} ${tm[unit] || unit || ''}`.trim(), range: e.r || '', dmg: e.dmg ? dnum(e.dmg) : '',
+      school: SCHOOLS[e.sc] || e.sc, comps: e.c || '', dur: `${e.k ? 'концентрація, ' : ''}${e.d || ''}`, text,
+    });
   },
   pickWeapon(ctx, e) {
     const str = ctx.get('str_mod'), dex = ctx.get('dex_mod');
@@ -57,6 +64,26 @@ const libActions = {
 
 const actions = {
   ...libActions,
+  spellInfo(ctx, row) {
+    const meta = [row.level === 0 ? 'замовляння' : `${row.level}-й рівень`, row.school, row.time, row.range, row.comps, row.dur].filter(Boolean).join(' · ');
+    ctx.showText({ title: row.name || 'Закляття', meta, text: row.text || '', onSave: (v) => { row.text = v; ctx.touch(); },
+      buttons: row.dmg ? [{ label: 'Кинути шкоду', primary: true, onclick: () => actions.spellDamage(ctx, row) }] : [] });
+  },
+  spellCast(ctx, row) {
+    const n = Number(row.level) || 0;
+    if (n === 0) return ctx.log({ title: `Вимовлено: ${row.name}`, lines: ['Замовляння не витрачає ячейку'], success: null, crit: null });
+    const total = Number(ctx.data[`slots${n}`]) || 0;
+    const left = ctx.data[`slotsleft${n}`] == null ? total : Number(ctx.data[`slotsleft${n}`]) || 0;
+    if (left <= 0) return ctx.log({ title: `Вимовлено: ${row.name}`, lines: [`Немає ячейок ${n}-го рівня`], success: false, crit: null });
+    ctx.setData(`slotsleft${n}`, left - 1);
+    ctx.log({ title: `Вимовлено: ${row.name}`, lines: [`Ячейка ${n}-го рівня: лишилось ${left - 1} з ${total}`], success: null, crit: null });
+  },
+  spellDamage(ctx, row) {
+    const dice = parseDice(row.dmg);
+    if (!dice) return ctx.log({ title: row.name || 'Шкода', lines: ['Вкажіть шкоду кубиками, наприклад 8д6'], success: null, crit: null });
+    const r = rollDice(dice);
+    ctx.log({ title: `Шкода: ${row.name}`, lines: [`${diceText(dice)}: [${r.rolls.join(', ')}]${dice.plus ? ` ${sign(dice.plus)}` : ''}`], success: null, crit: null, headline: r.total });
+  },
   attackRoll(ctx, row) {
     ctx.rollD20(`Атака: ${row.name || 'зброя'}`, Number(row.bonus) || 0);
   },
@@ -89,7 +116,7 @@ for (let n = 1; n <= 9; n++) spellLevelTexts.push(text(`spells${n}`, `${n}-й р
 const throwRolls = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
 const abilityNames = { str: 'Сила', dex: 'Спритність', con: 'Статура', int: 'Інтелект', wis: 'Мудрість', cha: 'Харизма' };
 
-export default {
+const template = {
   id: 'dnd5e',
   name: 'D&D 5e',
   version: 1,
@@ -115,7 +142,7 @@ export default {
   sections: [
     // ---------- шапка ----------
     {
-      cols: 6, class: 'hdr',
+      page: 'Персонаж', cols: 6, class: 'hdr',
       fields: [
         { id: 'name', type: 'text', label: 'Ім’я персонажа', span: 2, placeholder: 'Безіменний персонаж' },
         { id: 'class', type: 'text', label: 'Клас і підклас', span: 2, pick: { title: 'Клас', kind: 'classes', action: 'pickClass', meta: (e) => `к${e.hd}${e.sc ? ' · чарівник' : ''}` } },
@@ -134,7 +161,7 @@ export default {
 
     // ---------- ліва колонка: Сила, Статура, Інтелект, Харизма ----------
     {
-      column: 1, cols: 1, cardClass: 'plain',
+      page: 'Характеристики', column: 1, cols: 1, cardClass: 'plain',
       fields: [
         ability('str', 'Сила', [{ id: 'athletics', label: 'Атлетика' }]),
         ability('con', 'Статура', []),
@@ -151,7 +178,7 @@ export default {
 
     // ---------- середня колонка: Спритність, Мудрість, пасивні, володіння ----------
     {
-      column: 2, cols: 1, cardClass: 'plain',
+      page: 'Характеристики', column: 2, cols: 1, cardClass: 'plain',
       fields: [
         ability('dex', 'Спритність', [
           { id: 'acrobatics', label: 'Акробатика' }, { id: 'sleight', label: 'Спритність рук' }, { id: 'stealth', label: 'Непомітність' },
@@ -163,7 +190,7 @@ export default {
       ],
     },
     {
-      column: 2, cols: 3, title: 'Пасивні відчуття',
+      page: 'Характеристики', column: 2, cols: 3, title: 'Пасивні відчуття',
       fields: [
         { id: 'pp_view', type: 'computed', label: 'Сприйняття', formula: 'passive_perception' },
         { id: 'pi_view', type: 'computed', label: 'Проникливість', formula: 'passive_insight' },
@@ -171,7 +198,7 @@ export default {
       ],
     },
     {
-      column: 2, cols: 1, title: 'Володіння',
+      page: 'Характеристики', column: 2, cols: 1, title: 'Володіння',
       fields: [
         { id: 'armor_prof', type: 'chips', label: 'Броня', options: ['Легка', 'Середня', 'Важка', 'Щит'] },
         { id: 'weapon_prof', type: 'chips', label: 'Зброя', options: ['Проста', 'Військова', 'Інша'] },
@@ -181,7 +208,7 @@ export default {
 
     // ---------- права колонка: стани + вкладки ----------
     {
-      column: 3, cols: 4,
+      page: 'Бій', title: 'Стан', cols: 4,
       fields: [
         { id: 'init_view', type: 'computed', label: 'Ініціатива', formula: 'init', format: 'signed' },
         { id: 'init_bonus', type: 'number', label: 'Бонус ініціативи', default: 0 },
@@ -195,11 +222,8 @@ export default {
       ],
     },
     {
-      column: 3,
-      tabs: [
-        {
-          title: 'Атаки', cols: 1,
-          fields: [
+      page: 'Бій', title: 'Атаки', cols: 1,
+      fields: [
             {
               id: 'attacks', type: 'list', addLabel: 'Додати атаку',
               pick: { title: 'Зброя', label: 'Зброя з бібліотеки', kind: 'items', action: 'pickWeapon', meta: (e) => `${e.dmg || ''} ${DMG_TYPE[e.dt] || ''} · ${e.cat || ''}`,
@@ -215,32 +239,64 @@ export default {
                 { label: 'Крит', action: 'critDamage', hint: 'Кубики шкоди подвоєно' },
               ],
             },
-            text('attack_notes', 'Атаки та закляття'),
-            text('abilities_notes', 'Вміння та здібності'),
-          ],
-        },
-        {
-          title: 'Здібності', cols: 2,
-          fields: [
-            { id: 'jh_view', type: 'computed', label: 'Стрибок у висоту (фути)', formula: 'jump_high' },
-            { id: 'jl_view', type: 'computed', label: 'Стрибок у довжину (фути)', formula: 'jump_long' },
-            text('extra_abilities', 'Додаткові здібності та вміння', { span: 2 }),
+            text('attack_notes', 'Нотатки до бою'),
+      ],
+    },
+    {
+      page: 'Закляття', title: 'Параметри заклинання', cols: 3,
+      fields: [
+        { id: 'spell_abil', type: 'select', label: 'Характеристика', options: [{ value: 0, label: '—' }, { value: 1, label: 'Інтелект' }, { value: 2, label: 'Мудрість' }, { value: 3, label: 'Харизма' }], default: 0 },
+        { id: 'sdc_view', type: 'computed', label: 'Спаскидок (СЛ)', formula: 'spell_dc' },
+        { id: 'sat_view', type: 'computed', label: 'Бонус атаки', formula: 'spell_atk', format: 'signed' },
+      ],
+    },
+    {
+      page: 'Закляття', title: 'Ячейки заклять', cols: 1,
+      fields: [{ id: 'slots_view', type: 'slots', levels: 9 }],
+    },
+    {
+      page: 'Закляття', title: 'Книга заклять', cols: 1,
+      fields: [{
+        id: 'spellbook', type: 'list', addLabel: 'Додати закляття вручну', empty: 'Заклять немає. Додайте з бібліотеки — з описом.', minWidth: '520px',
+        pick: { title: 'Закляття', label: 'Закляття з бібліотеки', kind: 'spells', action: 'pickSpell', meta: (e) => `${e.l === 0 ? 'замовляння' : e.l + '-й рівень'} · ${SCHOOLS[e.sc] || e.sc}${e.dmg ? ' · ' + dnum(e.dmg) : ''}`,
+      facets: [{ label: 'Рівень', get: (e) => e.l, fmt: (v) => (v === 0 ? 'замовляння' : v + '-й рівень') }, { label: 'Клас', get: (e) => e.cl || [] }] },
+        columns: [
+          { id: 'name', label: 'Назва', type: 'text' },
+          { id: 'level', label: 'Рів.', type: 'number', min: 0, max: 9, default: 1, width: '64px' },
+          { id: 'time', label: 'Час', type: 'text', width: '90px', placeholder: '1 дія' },
+          { id: 'range', label: 'Дистанція', type: 'text', width: '100px' },
+          { id: 'dmg', label: 'Шкода', type: 'text', width: '90px', placeholder: '8д6' },
+        ],
+        rowActions: [
+          { label: 'Опис', action: 'spellInfo', hint: 'Як діє закляття' },
+          { label: 'Вимовити', action: 'spellCast', hint: 'Витрачає ячейку цього рівня' },
+          { label: 'Шкода', action: 'spellDamage' },
+        ],
+      }],
+    },
+    {
+      page: 'Здібності', title: 'Здібності та риси', cols: 2,
+      fields: [
+        { id: 'jh_view', type: 'computed', label: 'Стрибок у висоту (фути)', formula: 'jump_high' },
+        { id: 'jl_view', type: 'computed', label: 'Стрибок у довжину (фути)', formula: 'jump_long' },
+        text('abilities_notes', 'Вміння та здібності', { span: 2, rows: 6 }),
+        text('extra_abilities', 'Додаткові здібності та вміння', { span: 2 }),
             text('feats', 'Риси', { span: 2, pick: { title: 'Риса', kind: 'feats', action: 'pickFeat', meta: (e) => (e.pre ? 'є вимоги' : '') } }),
-          ],
-        },
-        {
-          title: 'Спорядження', cols: 2,
-          fields: [
-            { id: 'carry_view', type: 'computed', label: 'Вантажопідйомність (фунти)', formula: 'carry' },
-            { id: 'size', type: 'select', label: 'Розмір', options: ['Крихітний', 'Малий', 'Середній', 'Великий', 'Величезний', 'Гігантський'], default: 'Середній' },
+      ],
+    },
+    {
+      page: 'Спорядження', title: 'Спорядження', cols: 2,
+      fields: [
+        { id: 'carry_view', type: 'computed', label: 'Вантажопідйомність (фунти)', formula: 'carry' },
+        { id: 'size', type: 'select', label: 'Розмір', options: ['Крихітний', 'Малий', 'Середній', 'Великий', 'Величезний', 'Гігантський'], default: 'Середній' },
             text('equipment', 'Спорядження', { span: 2, rows: 6, pick: { title: 'Предмет', kind: 'items', action: 'pickGear', meta: (e) => `${ITEM_TYPES[e.ty] || e.ty}${e.ac ? ' · КБ ' + e.ac : ''}${e.dmg ? ' · ' + dnum(e.dmg) : ''}${e.rar ? ' · ' + e.rar : ''}${money(e.v) ? ' · ' + money(e.v) : ''}`,
       facets: [{ label: 'Тип', get: (e) => ITEM_TYPES[e.ty] || e.ty }, { label: 'Рідкість', get: (e) => e.rar || [] }] } }),
-            text('treasure', 'Скарби', { span: 2 }),
-          ],
-        },
-        {
-          title: 'Особистість', cols: 2,
-          fields: [
+        text('treasure', 'Скарби', { span: 2 }),
+      ],
+    },
+    {
+      page: 'Особистість', title: 'Особистість', cols: 2,
+      fields: [
             { id: 'background', type: 'text', label: 'Передісторія', pick: { title: 'Передісторія', kind: 'backgrounds', action: 'pickBackground', meta: (e) => (e.sk || []).join(', ') } },
             { id: 'alignment', type: 'text', label: 'Світогляд' },
             text('appearance', 'Зовнішність', { span: 2, rows: 2 }),
@@ -256,32 +312,19 @@ export default {
             text('ideals', 'Ідеали', { span: 2 }),
             text('bonds', 'Прив’язаності', { span: 2 }),
             text('flaws', 'Слабкості', { span: 2 }),
-          ],
-        },
-        { title: 'Цілі', cols: 1, fields: [text('goals', 'Цілі та завдання', { rows: 10 })] },
-        {
-          title: 'Нотатки', cols: 1,
-          fields: [{
-            id: 'notes', type: 'list', addLabel: 'Додати нотатку', empty: 'Нотаток немає',
-            columns: [{ id: 'title', label: 'Заголовок', type: 'text', width: '30%' }, { id: 'body', label: 'Текст', type: 'text' }],
-          }],
-        },
-        {
-          title: 'Закляття', cols: 3,
-          fields: [
-            { id: 'spell_abil', type: 'select', label: 'Характеристика', options: [{ value: 0, label: '—' }, { value: 1, label: 'Інтелект' }, { value: 2, label: 'Мудрість' }, { value: 3, label: 'Харизма' }], default: 0 },
-            { id: 'sdc_view', type: 'computed', label: 'Спаскидок (СЛ)', formula: 'spell_dc' },
-            { id: 'sat_view', type: 'computed', label: 'Бонус атаки', formula: 'spell_atk', format: 'signed' },
-            { type: 'note', span: 3, text: 'Додати закляття зі списку можна кнопкою нижче; воно потрапить у відповідний рівень.', pick: { title: 'Закляття', label: 'Закляття з бібліотеки', kind: 'spells', action: 'pickSpell', meta: (e) => `${e.l === 0 ? 'замовляння' : e.l + '-й рівень'} · ${SCHOOLS[e.sc] || e.sc}${e.dmg ? ' · ' + dnum(e.dmg) : ''}`,
-      facets: [{ label: 'Рівень', get: (e) => e.l, fmt: (v) => (v === 0 ? 'замовляння' : v + '-й рівень') }, { label: 'Клас', get: (e) => e.cl || [] }] } },
-            { type: 'note', span: 3, text: 'Ячейки: впишіть, скільки їх усього, а лічильник «лишилось» зменшуйте під час гри.' },
-            ...slotFields,
-            ...spellLevelTexts.map((f) => ({ ...f, span: 3 })),
-          ],
-        },
+            text('goals', 'Цілі та завдання', { span: 2, rows: 4 }),
       ],
     },
+    {
+      page: 'Нотатки', title: 'Нотатки', cols: 1,
+      fields: [{
+        id: 'notes', type: 'list', addLabel: 'Додати нотатку', empty: 'Нотаток немає',
+        columns: [{ id: 'title', label: 'Заголовок', type: 'text', width: '30%' }, { id: 'body', label: 'Текст', type: 'text' }],
+      }],
+    },
   ],
+
+  pageColumns: { 'Характеристики': ['1fr', '1fr'] },
 
   rolls: [
     { group: 'Перевірки', items: throwRolls.map((id) => ({ id: `c_${id}`, mode: 'check', die: 20, label: abilityNames[id], mod: `${id}_mod` })) },
@@ -292,3 +335,14 @@ export default {
     ] },
   ],
 };
+
+// Блоки характеристик — окремими секціями, щоб у вузькому вікні йшли в порядку Сил–Спр–Стат–Інт–Мдр–Хар
+const ORDER = { str: 1, dex: 2, con: 3, int: 4, wis: 5, cha: 6, passive: 7, prof: 8 };
+template.sections = template.sections.flatMap((sec) => {
+  if (sec.cardClass === 'plain') return sec.fields.map((f) => ({ ...sec, fields: [f], order: ORDER[f.id] }));
+  if (sec.title === 'Пасивні відчуття') return [{ ...sec, order: ORDER.passive }];
+  if (sec.title === 'Володіння') return [{ ...sec, order: ORDER.prof }];
+  return [sec];
+});
+
+export default template;

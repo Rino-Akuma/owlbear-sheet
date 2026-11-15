@@ -233,10 +233,32 @@ table.list input[type=text] { min-width: 90px; }
 table.list input[type=number] { min-width: 52px; }
 table.list select { min-width: 80px; }
 
-/* середні вікна (поповер Owlbear): бокова панель стає верхньою смугою */
-@media (max-width: 1250px) and (min-width: 901px) {
+
+/* ---------- сторінки-вкладки ---------- */
+.pagebar { display: flex; gap: 4px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; position: sticky; top: -14px; z-index: 5; background: var(--bg); padding: 8px 0 8px; margin: -8px 0 8px; border-bottom: 1px solid var(--line); }
+.pagetab { flex: 0 0 auto; white-space: nowrap; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.pagetab.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink, #1a1204); }
+.page { display: flex; flex-direction: column; gap: 12px; }
+.page[hidden] { display: none; }
+
+/* ячейки заклять */
+table.slots { border-collapse: collapse; width: 100%; max-width: 420px; }
+table.slots th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 4px 6px; }
+table.slots tbody th { color: inherit; font-size: 14px; }
+table.slots td { padding: 3px 6px; }
+.slot-total { width: 70px; }
+.slot-ctl { display: flex; align-items: center; gap: 8px; }
+.slot-left { min-width: 2ch; text-align: center; font-size: 20px; font-weight: 700; }
+.desc-text { white-space: pre-wrap; line-height: 1.5; overflow-y: auto; max-height: 55vh; }
+.desc-area { min-height: 220px; line-height: 1.5; }
+.menu-btn { display: none; }
+.rolls-strip { display: none; }
+.win-wrap { margin: 0; }
+
+/* ---------- середні й вузькі вікна: бокова панель стає верхньою смугою ---------- */
+@media (max-width: 1250px) {
   .app { grid-template-columns: minmax(0, 1fr) 250px; grid-template-rows: auto minmax(0, 1fr); }
-  .side { grid-column: 1 / -1; flex-direction: row; flex-wrap: nowrap; align-items: center; padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--line); overflow: visible; gap: 10px; }
+  .side { grid-column: 1 / -1; position: relative; flex-direction: row; flex-wrap: nowrap; align-items: center; padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--line); overflow: visible; gap: 10px; }
   .side h1, .side h2, .side #empty { display: none; }
   .side-actions { flex-direction: row; align-items: center; flex: 0 0 auto; }
   .side-actions .row2 { display: flex; gap: 6px; }
@@ -245,4 +267,56 @@ table.list select { min-width: 80px; }
   .char-list li { flex: 0 0 auto; min-width: 130px; }
   .side-foot { flex-direction: row; border: 0; padding: 0; flex: 0 0 auto; }
   .side-foot button { white-space: nowrap; padding: 6px 10px; }
+}
+@media (max-width: 900px) {
+  html, body { height: 100%; }
+  .app { display: flex; flex-direction: column; height: 100vh; }
+  .side { flex: 0 0 auto; }
+  .main { flex: 1 1 auto; overflow-y: auto; padding: 10px 12px 70px; }
+  .menu-btn { display: inline-block; padding: 6px 12px; font-size: 18px; line-height: 1; }
+  .side-actions .row2, .side-foot, .win-wrap { display: none; }
+  .side.menu-open .row2, .side.menu-open .side-foot, .side.menu-open .win-wrap:not([hidden]) {
+    display: flex; position: absolute; right: 8px; z-index: 30; background: var(--panel); border: 1px solid var(--line); padding: 8px; border-radius: 10px; gap: 6px; flex-direction: column; min-width: 220px; box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  }
+  .side.menu-open .row2 { top: 52px; flex-direction: row; }
+  .side.menu-open .side-foot { top: 104px; }
+  .side.menu-open .win-wrap { top: 236px; }
+  .side-actions { flex: 0 0 auto; }
+  .char-list li { min-width: 110px; }
+
+  .rolls { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; border: 0; border-top: 1px solid var(--line); padding: 0; max-height: 70vh; overflow-y: auto; gap: 0; box-shadow: 0 -6px 20px rgba(0,0,0,.35); }
+  .rolls:not(.open) > *:not(.rolls-strip) { display: none !important; }
+  .rolls.open > *:not(.rolls-strip) { display: block; margin: 0 12px; }
+  .rolls.open #roll-groups { display: flex; }
+  .rolls.open .opts { display: grid; }
+  .rolls.open > h2 { margin-top: 10px; }
+  .rolls.open > :last-child { margin-bottom: 14px; }
+  .rolls-strip { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 12px 14px; border: 0; background: var(--panel); font-weight: 700; font-size: 15px; position: sticky; top: 0; cursor: pointer; }
+  .rolls-strip b { color: var(--accent); }
+  .grid { --cols: 2 !important; }
+  .grid > [style*="span"] { grid-column: 1 / -1 !important; }
+  .split { grid-template-columns: 1fr !important; }
+}
+/* списки як картки на вузькому екрані */
+@media (max-width: 700px) {
+  .scroll-x { overflow-x: visible; }
+  table.list, table.list tbody { display: block; min-width: 0 !important; }
+  table.list thead { display: none; }
+  table.list tr { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px; margin-bottom: 8px; }
+  table.list tr.empty { display: block; background: none; border: 0; padding: 0; }
+  table.list td { display: block; padding: 0; }
+  table.list td:first-child { grid-column: 1 / -1; }
+  table.list td[data-label]::before { content: attr(data-label); display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 2px; }
+  table.list td.c-check { text-align: left; }
+  table.list td.c-act { grid-column: 1 / -1; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-start; }
+  table.list td.c-act .mini { margin: 0; padding: 7px 12px; font-size: 13px; }
+  table.list input[type=text], table.list input[type=number], table.list select { min-width: 0; }
+  table.list th[style*="%"] { min-width: 0; }
+}
+
+.list-wrap, .slots-wrap { grid-column: 1 / -1; }
+@media (max-width: 900px) {
+  .split { display: flex !important; flex-direction: column; align-items: stretch !important; }
+  .split-col { display: contents; }
+  .card.plain .grid { --cols: 1 !important; }
 }

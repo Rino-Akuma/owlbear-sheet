@@ -37,6 +37,14 @@ const actions = {
   },
 
   // Вимовляння заклинання: автоуспіх, якщо Воля вища за складність (крім 5 і 6 рівнів), інакше d100 + Воля/5.
+  showDesc(ctx, row) {
+    ctx.showText({
+      title: row.name || 'Закляття',
+      meta: [row.school, row.level ? `рівень ${row.level}` : '', row.cost ? `МВ ${row.cost}` : '', row.range].filter(Boolean).join(' · '),
+      text: row.desc || '',
+      onSave: (v) => { row.desc = v; ctx.touch(); },
+    });
+  },
   castSpell(ctx, row) {
     const o = ctx.opts();
     const level = Math.max(1, Math.min(6, Number(row.level) || 1));
@@ -111,7 +119,7 @@ export default {
 
   sections: [
     {
-      title: 'Персонаж', cols: 4,
+      page: 'Персонаж', title: 'Персонаж', cols: 4,
       fields: [
         { id: 'name', type: 'text', label: 'Ім’я', span: 2 },
         { id: 'race', type: 'text', label: 'Раса' },
@@ -120,7 +128,7 @@ export default {
       ],
     },
     {
-      title: 'Характеристики', cols: 4,
+      page: 'Персонаж', title: 'Характеристики', cols: 4,
       fields: [
         { id: 'str', type: 'stat', label: 'Сила', min: 0, max: STAT_MAX, default: 20, eff: 'str_eff', mod: 'str_mod' },
         { id: 'dex', type: 'stat', label: 'Спритність', min: 0, max: STAT_MAX, default: 20, eff: 'dex_eff', mod: 'dex_mod' },
@@ -131,7 +139,7 @@ export default {
       ],
     },
     {
-      title: 'Стан', cols: 4,
+      page: 'Стан', title: 'Стан', cols: 4,
       fields: [
         { id: 'hp', type: 'counter', label: 'Здоров’я', max: 'max_hp', class: 'big', span: 2 },
         { id: 'armor', type: 'number', label: 'Обладунок', min: 0, default: 0 },
@@ -153,7 +161,7 @@ export default {
       ],
     },
     {
-      title: 'Зброя', cols: 1,
+      page: 'Зброя', title: 'Зброя', cols: 1,
       fields: [{
         id: 'weapons', type: 'list', minWidth: '640px', addLabel: 'Додати зброю', empty: 'Зброї немає',
         columns: [
@@ -167,9 +175,9 @@ export default {
       }],
     },
     {
-      title: 'Закляття', cols: 1,
+      page: 'Закляття', title: 'Закляття', cols: 1,
       fields: [{
-        id: 'spells', type: 'list', minWidth: '940px', addLabel: 'Додати закляття', empty: 'Заклять немає',
+        id: 'spells', type: 'list', minWidth: '720px', addLabel: 'Додати закляття', empty: 'Заклять немає',
         columns: [
           { id: 'name', label: 'Назва', type: 'text' },
           { id: 'school', label: 'Школа', type: 'select', options: ['Вогонь', 'Вітер', 'Земля', 'Вода', 'Розум', 'Некромантія'], width: '110px' },
@@ -178,16 +186,16 @@ export default {
           { id: 'dmg', label: 'Шкода', type: 'text', placeholder: '1д8', width: '90px' },
           { id: 'range', label: 'Дальність', type: 'text', width: '100px' },
           { id: 'conc', label: 'Конц.', type: 'checkbox', width: '56px' },
-          { id: 'desc', label: 'Опис', type: 'text' },
         ],
         rowActions: [
+          { label: 'Опис', action: 'showDesc', hint: 'Як діє закляття' },
           { label: 'Вимовити', action: 'castSpell', hint: 'Витрачає МВ і перевіряє успіх' },
           { label: 'Шкода', action: 'spellDamage' },
         ],
       }],
     },
     {
-      title: 'Риси та навички', cols: 1,
+      page: 'Риси', title: 'Риси та навички', cols: 1,
       fields: [
         { id: 'traits', type: 'list', label: 'Риси', addLabel: 'Додати рису', columns: [
           { id: 'name', label: 'Назва', type: 'text', width: '38%' }, { id: 'desc', label: 'Ефект', type: 'text' }] },
@@ -200,7 +208,7 @@ export default {
       ],
     },
     {
-      title: 'Інвентар', cols: 4,
+      page: 'Інвентар', title: 'Інвентар', cols: 4,
       fields: [
         { id: 'gold', type: 'number', label: 'Гроші (зол. монет)', min: 0, default: 0 },
         { id: 'items', type: 'list', label: 'Предмети', span: 4, addLabel: 'Додати предмет', columns: [

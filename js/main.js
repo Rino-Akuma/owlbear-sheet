@@ -1,4 +1,5 @@
 import { t } from './i18n.js';
+import { initOwlbear, setWindowSize } from './owlbear.js';
 import { TEMPLATES, getTemplate } from './templates/index.js';
 import { mountSheet, fmt } from './engine/sheet.js';
 import {
@@ -157,6 +158,8 @@ function drawRollGroups(tpl) {
 // ---------- журнал кидків ----------
 function pushLog(entry) {
   logEntries.unshift(entry);
+  const sl = $('#strip-last');
+  if (sl) sl.textContent = entry.headline !== undefined && entry.headline !== null ? `${entry.title}: ${fmt(entry.headline)}` : entry.title;
   if (logEntries.length > 30) logEntries.pop();
   renderLog();
 }
@@ -345,6 +348,25 @@ async function init() {
   $('#btn-clear-log').addEventListener('click', () => { logEntries.length = 0; renderLog(); });
   window.addEventListener('pagehide', () => { if (saveTimer) flushSave(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && saveTimer) flushSave(); });
+
+  // меню та шторка кидків (вузький режим)
+  $('#btn-menu').addEventListener('click', (e) => { e.stopPropagation(); document.querySelector('.side').classList.toggle('menu-open'); });
+  document.addEventListener('click', (e) => { if (!e.target.closest('.side')) document.querySelector('.side').classList.remove('menu-open'); });
+  document.querySelector('.side').addEventListener('click', (e) => { if (e.target.closest('.side-foot button, .row2 button')) document.querySelector('.side').classList.remove('menu-open'); });
+  $('#rolls-strip').addEventListener('click', () => {
+    const r = $('#rolls'); r.classList.toggle('open');
+    $('#strip-arrow').textContent = r.classList.contains('open') ? '▼' : '▲';
+  });
+  initOwlbear().then(async (ok) => {
+    if (!ok) return;
+    const sel = $('#win-size');
+    $('#win-wrap').hidden = false;
+    let saved = 'narrow';
+    try { saved = localStorage.getItem('owlbear-sheet:win') || 'narrow'; } catch { /* ігноруємо */ }
+    sel.value = saved;
+    sel.addEventListener('change', () => { try { localStorage.setItem('owlbear-sheet:win', sel.value); } catch { /* ігноруємо */ } setWindowSize(sel.value); });
+    setWindowSize(saved);
+  });
 
   requestPersistence();
   characters = await listCharacters();

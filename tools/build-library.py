@@ -94,6 +94,42 @@ for f in sorted(os.listdir(os.path.join(D,'spells'))):
         if s.get('damageInflict'): e['dt']=s['damageInflict']
         spells.append(e)
 dump('spells.json',spells)
+# --- Описи заклять (звичайний текст, мітки 5etools прибрано)
+def clean(t):
+    def sub(m):
+        tag,body=m.group(1),m.group(2); parts=body.split('|')
+        if tag in('scaledamage','scaledice'): return parts[-1] if len(parts)>2 else parts[0]
+        if tag=='chance': return parts[0]+'%'
+        if tag=='dc': return 'СЛ '+parts[0]
+        if tag=='hit': return ('+' if not parts[0].startswith('-') else '')+parts[0]
+        if tag=='h': return 'Влучання: '
+        if tag in('actSave','actSaveFail','actSaveSuccess','actTrigger','actResponse'): return parts[0]
+        return parts[2] if tag in('spell','item','creature','condition','skill','sense','action','filter') and len(parts)>2 and parts[2] else parts[0]
+    prev=None
+    while prev!=t: prev=t; t=re.sub(r'\{@(\w+)\s?([^{}]*)\}',sub,t)
+    return t
+def flat(e,depth=0):
+    out=[]
+    for x in e:
+        if isinstance(x,str): out.append(clean(x))
+        elif x.get('type')=='list': out+=['• '+(clean(i) if isinstance(i,str) else clean(' '.join(flat([i])))) for i in x['items']]
+        elif x.get('type') in('entries','inset','insetReadaloud','section'):
+            if x.get('name'): out.append(clean(x['name'])+'.')
+            out+=flat(x.get('entries',[]))
+        elif x.get('type')=='table':
+            rows=[' | '.join(clean(str(c) if not isinstance(c,dict) else json.dumps(c.get('roll',c),ensure_ascii=False)) for c in r) for r in x.get('rows',[])]
+            out+=[' | '.join(clean(c) for c in x.get('colLabels',[]))]+rows
+        elif x.get('entries'): out+=flat(x['entries'])
+    return out
+texts={}
+for f in sorted(os.listdir(os.path.join(D,'spells'))):
+    if not f.startswith('spells-'): continue
+    for sp in json.load(open(os.path.join(D,'spells',f),encoding='utf-8'))['spell']:
+        if not ok(sp): continue
+        body=flat(sp.get('entries',[]))
+        if sp.get('entriesHigherLevel'): body+=['На вищих рівнях.']+flat(sp['entriesHigherLevel'][0].get('entries',[]) if isinstance(sp['entriesHigherLevel'][0],dict) else [])
+        texts[f"{sp['name']}|{sp['source']}"]='\n'.join(body)
+dump('spells-text.json',texts)
 # --- Предмети
 ib=L('items-base.json'); items=[]
 for i in ib['baseitem']:

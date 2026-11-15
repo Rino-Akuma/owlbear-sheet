@@ -66,3 +66,19 @@ export function pickFromLibrary(cfg) {
     }).catch((err) => { list.replaceChildren(el('p', { class: 'error', text: `${t.libError}: ${err.message}` })); });
   });
 }
+
+/** Вікно з текстом (опис закляття тощо). cfg: { title, meta, text, onSave? } — якщо є onSave, текст можна редагувати. */
+export function showTextModal(cfg) {
+  const root = document.getElementById('modal-root');
+  const close = () => root.replaceChildren();
+  const body = cfg.onSave
+    ? el('textarea', { class: 'desc-area', rows: '12', placeholder: t.descEmpty })
+    : el('div', { class: 'desc-text', text: cfg.text || t.descEmpty });
+  if (cfg.onSave) { body.value = cfg.text || ''; body.addEventListener('input', () => cfg.onSave(body.value)); }
+  const extra = (cfg.buttons || []).map((b) => el('button', { type: 'button', class: b.primary ? 'primary' : '', text: b.label, onclick: () => b.onclick() }));
+  const box = el('div', { class: 'modal wide', role: 'dialog' },
+    el('h3', { text: cfg.title }), cfg.meta ? el('div', { class: 'muted small', text: cfg.meta }) : null, body,
+    el('div', { class: 'modal-actions' }, ...extra, el('button', { type: 'button', text: t.close, onclick: close })));
+  root.replaceChildren(el('div', { class: 'backdrop', onclick: (e) => { if (e.target.classList.contains('backdrop')) close(); } }, box));
+  return close;
+}
