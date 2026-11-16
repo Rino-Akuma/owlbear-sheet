@@ -153,13 +153,51 @@ for i in ib['baseitem']:
     if i.get('strength'): e['str']=i['strength']
     items.append(e)
 im=L('items.json')['item']
+RAR_SKIP=('none',None)
 for i in im:
-    if not ok(i) or i.get('rarity') in (None,'none'): continue
-    e={'n':i['name'],'s':i['source'],'ty':str(i.get('type','')).split('|')[0] or 'W','rar':i['rarity'],'wt':i.get('weight',0),'v':i.get('value',0),'mg':1}
-    if i.get('reqAttune'): e['at']=1
+    if not ok(i): continue
+    mundane = i.get('rarity') in RAR_SKIP
+    e={'n':i['name'],'s':i['source'],'ty':str(i.get('type','')).split('|')[0] or ('OTH' if mundane else 'W'),'wt':i.get('weight',0),'v':i.get('value',0)}
+    if not mundane:
+        e['rar']=i['rarity']; e['mg']=1
+        if i.get('reqAttune'): e['at']=1
     for k,kk in (('dmg1','dmg'),('dmgType','dt'),('ac','ac'),('bonusWeapon','bw'),('bonusAc','bac')):
         if i.get(k) is not None: e[kk]=i[k]
     items.append(e)
+# --- Чарівні варіанти (+1 зброя/броня, Flame Tongue тощо): розгортаємо на конкретні базові предмети
+def _norm(v): return str(v).split('|')[0]
+def _match(base, req):
+    for k,v in req.items():
+        if k=='type':
+            if _norm(base.get('type'))!=_norm(v): return False
+        elif k=='property':
+            if _norm(v) not in [_norm(p) for p in base.get('property',[])]: return False
+        elif k=='name':
+            if base.get('name')!=v: return False
+        elif isinstance(v,bool):
+            if bool(base.get(k))!=v: return False
+        else:
+            if base.get(k)!=v: return False
+    return True
+bases=[b for b in ib['baseitem'] if ok(b)]
+seen={(x['n'],x['s']) for x in items}
+for mv in L('magicvariants.json')['magicvariant']:
+    inh=mv.get('inherits',{})
+    if mv.get('edition')=='one' or inh.get('source') not in OK or inh.get('rarity') in RAR_SKIP: continue
+    for b in bases:
+        if not any(_match(b,r) for r in mv.get('requires',[])): continue
+        if any(_match(b,r) for r in mv.get('excludes',[]) if isinstance(r,dict)): continue
+        name=f"{inh.get('namePrefix','')}{b['name']}{inh.get('nameSuffix','')}"
+        if (name,inh['source']) in seen: continue
+        seen.add((name,inh['source']))
+        e={'n':name,'s':inh['source'],'ty':str(b.get('type','')).split('|')[0],'rar':inh['rarity'],'wt':b.get('weight',0),'v':b.get('value',0),'mg':1}
+        if inh.get('reqAttune'): e['at']=1
+        for k,kk in (('dmg1','dmg'),('dmgType','dt'),('ac','ac'),('weaponCategory','cat'),('range','rg')):
+            if b.get(k) is not None: e[kk]=b[k]
+        if b.get('property'): e['pr']=[p.split('|')[0] for p in b['property']]
+        if inh.get('bonusWeapon'): e['bw']=inh['bonusWeapon']
+        if inh.get('bonusAc'): e['bac']=inh['bonusAc']
+        items.append(e)
 dump('items.json',items)
 # --- Риси, передісторії
 fe=[]; ftx={}

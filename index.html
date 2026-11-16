@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Лист персонажа</title>
 <link rel="stylesheet" href="css/app.css">
+<script type="module">
+  // Розігріваємо SDK Owlbear якнайраніше (поки вантажиться решта аддона).
+  if (window.parent !== window) {
+    import('https://esm.sh/@owlbear-rodeo/sdk@3.1.0').catch(() => {});
+    import('https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3.1.0/+esm').catch(() => {});
+  }
+</script>
 </head>
 <body>
 <div class="app">

@@ -13,7 +13,7 @@ const SIZES = { T: 'Крихітний', S: 'Малий', M: 'Середній',
 const SKILL_ID = { 'sleight of hand': 'sleight', 'animal handling': 'animal' };
 const DMG_TYPE = { S: 'рубляча', P: 'колюча', B: 'дробна' };
 const SCHOOLS = { abjuration: 'захист', conjuration: 'виклик', divination: 'віщування', enchantment: 'зачарування', evocation: 'воплощення', illusion: 'ілюзія', necromancy: 'некромантія', transmutation: 'перетворення' };
-const ITEM_TYPES = { M: 'ближній бій', R: 'дальній бій', LA: 'легка броня', MA: 'середня броня', HA: 'важка броня', S: 'щит', G: 'спорядження', W: 'чарівний предмет' };
+const ITEM_TYPES = { M: 'ближній бій', R: 'дальній бій', A: 'боєприпаси', AF: 'боєприпаси', LA: 'легка броня', MA: 'середня броня', HA: 'важка броня', S: 'щит', G: 'спорядження', W: 'чарівний предмет', P: 'зілля', RG: 'каблучка', WD: 'жезл/паличка', RD: 'посох', SC: 'сувій', SCF: 'фокус чаклунства', AT: 'інструменти майстра', T: 'інструменти', GS: 'ігровий набір', INS: 'музичний інструмент', TG: 'товар', '$G': 'коштовність', '$A': 'витвір мистецтва', '$C': 'монети', MNT: 'їздова тварина', TAH: 'упряж', VEH: 'транспорт', SHP: 'корабель', AIR: 'повітряний транспорт', FD: 'їжа', EXP: 'вибухівка', SPC: 'особливе', OTH: 'інше' };
 const money = (v) => (v ? `${v / 100} зм` : '');
 const dnum = (e) => String(e).replace('d', 'д');
 const pbOf = (ctx) => ctx.get('pb');
@@ -116,8 +116,10 @@ const libActions = {
     const str = ctx.get('str_mod'), dex = ctx.get('dex_mod');
     const fin = (e.pr || []).includes('F');
     const m = e.ty === 'R' ? dex : fin ? Math.max(str, dex) : str;
-    const dm = `${dnum(e.dmg || '1')}${m ? (m > 0 ? `+${m}` : m) : ''} ${DMG_TYPE[e.dt] || ''}`.trim();
-    ctx.addRow('attacks', { name: e.n, bonus: m + pbOf(ctx), dmg: dm });
+    const bw = Number(e.bw) || 0; // магічний бонус (+1/+2/+3)
+    const dmgMod = m + bw;
+    const dm = `${dnum(e.dmg || '1')}${dmgMod ? (dmgMod > 0 ? `+${dmgMod}` : dmgMod) : ''} ${DMG_TYPE[e.dt] || ''}`.trim();
+    ctx.addRow('attacks', { name: e.n, bonus: m + bw + pbOf(ctx), dmg: dm });
   },
   pickGear(ctx, e) {
     if (['LA', 'MA', 'HA'].includes(e.ty) && e.ac) {
@@ -312,7 +314,7 @@ const template = {
             {
               id: 'attacks', type: 'list', addLabel: 'Додати атаку',
               pick: { title: 'Зброя', label: 'Зброя з бібліотеки', kind: 'items', action: 'pickWeapon', meta: (e) => `${e.dmg || ''} ${DMG_TYPE[e.dt] || ''} · ${e.cat || ''}`,
-                facets: [{ label: 'Категорія', get: (e) => (e.cat && e.dmg && !e.mg ? e.cat : []) }] }, empty: 'Атак немає', minWidth: '480px',
+                facets: [{ label: 'Категорія', get: (e) => (e.cat && e.dmg ? (e.mg ? 'магічна' : e.cat) : []) }] }, empty: 'Атак немає', minWidth: '480px',
               columns: [
                 { id: 'name', label: 'Назва', type: 'text' },
                 { id: 'bonus', label: 'Бонус', type: 'number', default: 0, width: '70px' },

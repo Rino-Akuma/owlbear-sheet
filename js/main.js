@@ -1,5 +1,5 @@
 import { t } from './i18n.js';
-import { initOwlbear, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, obrActive, pickSelectedToken, syncHpBar, removeHpBar } from './owlbear.js';
+import { initOwlbear, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, inOwlbear, obrActive, pickSelectedToken, syncHpBar, removeHpBar } from './owlbear.js';
 import { setProvider, rollPool, describeGroup } from './engine/dice.js';
 import { TEMPLATES, getTemplate } from './templates/index.js';
 import { mountSheet, fmt } from './engine/sheet.js';
@@ -451,8 +451,10 @@ async function init() {
     const r = $('#rolls'); r.classList.toggle('open');
     $('#strip-arrow').textContent = r.classList.contains('open') ? '▼' : '▲';
   });
-  initOwlbear().then(async (ok) => {
-    if (!ok) return;
+  // Інтерфейс Owlbear вмикаємо одразу, не чекаючи SDK: виклики самі дочекаються готовності.
+  const hideObr = () => { $('#lbl-vis').hidden = true; $('#win-wrap').hidden = true; document.querySelectorAll('.win-ctl').forEach((e) => { e.hidden = true; }); };
+  initOwlbear().then((ok) => { if (!ok && inOwlbear()) hideObr(); else if (ok) syncToken(); });
+  if (inOwlbear()) {
     $('#lbl-vis').hidden = false;
     drawTokenBtn(); syncToken();
     setProvider(makeDiceProvider(() => opts.vis));
@@ -469,7 +471,7 @@ async function init() {
     document.querySelectorAll('.win-grow').forEach((b) => b.addEventListener('click', async () => { remember(await resizeWindow(1.12)); sel.value = 'custom'; }));
     document.querySelectorAll('.win-shrink').forEach((b) => b.addEventListener('click', async () => { remember(await resizeWindow(1 / 1.12)); sel.value = 'custom'; }));
     if (saved === 'custom' && Array.isArray(custom)) { sel.value = 'custom'; applySize(custom[0], custom[1]); } else setWindowSize(saved === 'custom' ? 'narrow' : saved);
-  });
+  }
 
   requestPersistence();
   characters = await listCharacters();

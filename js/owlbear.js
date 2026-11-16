@@ -6,34 +6,61 @@ export const SOURCE = 'rino-akuma.owlbear-sheet';       // ідентифіка�
 export const CH_ROLL = `${SOURCE}/roll-announce`;       // канал «показати кидок усім»
 
 let OBR = null;
+let sdkMod = null;
+let readyP = null;
 let playerInfo = { id: '', name: 'Гравець' };
 let dicePlus = { ready: false, checkedAt: 0 };
 let lastDicePlusAt = 0;
 
-export async function initOwlbear() {
-  if (window.parent === window) return false; // не в iframe
-  try {
-    const mod = await Promise.race([
-      import(SDK_URL),
-      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000)),
-    ]);
-    OBR = mod.default || mod.OBR;
-    if (!OBR || !OBR.isAvailable) return false;
-    await new Promise((res) => OBR.onReady(res));
-    try { playerInfo = { id: await OBR.player.getId(), name: (await OBR.player.getName()) || 'Гравець' }; } catch { /* ігноруємо */ }
-    checkDicePlus();
-    return true;
-  } catch (e) {
-    console.warn('Owlbear SDK недоступний:', e.message);
-    return false;
+export const getObr = () => OBR;
+export const inOwlbear = () => window.parent !== window;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// Два дзеркала SDK: беремо те, що відповість першим; без таймаутів назавжди — лише повтори.
+const SDK_URLS = [SDK_URL, 'https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3.1.0/+esm'];
+async function loadSdk() {
+  for (let i = 0; i < 6; i++) {
+    try {
+      const q = i ? `${SDK_URLS[0].includes('?') ? '&' : '?'}r=${i}` : '';
+      return await Promise.any([import(SDK_URLS[0] + q), import(SDK_URLS[1] + (i ? `?r=${i}` : ''))]);
+    } catch (e) { await sleep(1000 * (i + 1)); }
   }
+  throw new Error('SDK не завантажився');
+}
+
+/** Запускає підключення до Owlbear. Повертає проміс, який завершується, коли SDK готовий (false — не в Owlbear/помилка). */
+export function initOwlbear() {
+  if (readyP) return readyP;
+  if (!inOwlbear()) return (readyP = Promise.resolve(false));
+  readyP = (async () => {
+    try {
+      sdkMod = await loadSdk();
+      OBR = sdkMod.default || sdkMod.OBR;
+      if (!OBR || !OBR.isAvailable) { OBR = null; return false; }
+      await new Promise((res) => OBR.onReady(res));
+      try { playerInfo = { id: await OBR.player.getId(), name: (await OBR.player.getName()) || 'Гравець' }; } catch { /* ігноруємо */ }
+      checkDicePlus();
+      return true;
+    } catch (e) {
+      console.warn('Owlbear SDK недоступний:', e.message);
+      return false;
+    }
+  })();
+  return readyP;
+}
+/** Чекає готовності SDK, але не довше за ms. */
+export async function whenReady(ms = 15000) {
+  if (OBR) return true;
+  if (!readyP) initOwlbear();
+  return Promise.race([readyP, sleep(ms).then(() => false)]);
 }
 
 const LIM = { w: [420, 1700], h: [480, 1100] };
 let cur = SIZES.narrow.slice();
 export const currentSize = () => cur.slice();
 export async function applySize(w, h) {
+  await whenReady();
   cur = [Math.max(LIM.w[0], Math.min(LIM.w[1], Math.round(w))), Math.max(LIM.h[0], Math.min(LIM.h[1], Math.round(h)))];
+  if (!OBR) return cur.slice();
   try { await OBR.action.setWidth(cur[0]); await OBR.action.setHeight(cur[1]); } catch (e) { console.warn(e); }
   return cur.slice();
 }
@@ -52,7 +79,7 @@ export async function checkDicePlus(force = false) {
   dicePlus.ready = await new Promise((resolve) => {
     let unsub = () => {};
     const done = (v) => { unsub(); clearTimeout(tm); resolve(v); };
-    const tm = setTimeout(() => done(false), 1000);
+    const tm = setTimeout(() => done(false), 2500);
     unsub = OBR.broadcast.onMessage('dice-plus/isReady', (ev) => {
       const d = ev.data || {};
       if (d.requestId === requestId && d.ready === true) done(true);
@@ -66,6 +93,7 @@ export const dicePlusReady = () => dicePlus.ready;
 /** Створює джерело кубиків для рушія: просить Dice+ кинути кубики й повертає їхні значення. */
 export function makeDiceProvider(getVisibility) {
   const inner = async (notation, groups) => {
+    await whenReady(6000);
     if (!OBR || !(await checkDicePlus(true))) throw new Error('Dice+ не знайдено (перевірте, що розширення Dice+ увімкнене й GM дозволив джерело)');
     const rollId = uid();
     const target = getVisibility() || 'everyone';
@@ -119,11 +147,11 @@ export function rollToastText(m) {
 
 // ---------- смужка HP на токені ----------
 const BAR_KEY = `${SOURCE}/hpbar`;
-export const obrActive = () => !!OBR;
+export const obrActive = () => inOwlbear();
 
 /** Прив'язує персонажа до виділеного на карті токена. Повертає { ok, id?, reason? }. */
 export async function pickSelectedToken() {
-  if (!OBR) return { ok: false, reason: 'no-obr' };
+  if (!(await whenReady())) return { ok: false, reason: 'no-obr' };
   const sel = (await OBR.player.getSelection()) || [];
   if (!sel.length) return { ok: false, reason: 'no-selection' };
   const items = await OBR.scene.items.getItems(sel);
@@ -141,7 +169,7 @@ export async function removeHpBar(tokenId) {
 
 /** Створює/оновлює смужку HP під токеном. Повертає 'ok' або 'missing' (токен видалено). */
 export async function syncHpBar(tokenId, hp, max) {
-  if (!OBR || !tokenId) return 'ok';
+  if (!tokenId || !(await whenReady())) return 'ok';
   const [token] = await OBR.scene.items.getItems([tokenId]);
   if (!token) return 'missing';
   const dpi = await OBR.scene.grid.getDpi();
@@ -170,7 +198,7 @@ export async function syncHpBar(tokenId, hp, max) {
     return 'ok';
   }
   if (existing.length) await OBR.scene.items.deleteItems(existing.map((e) => e.id));
-  const { buildShape } = await import(SDK_URL);
+  const { buildShape } = sdkMod;
   const mk = (kind, fill, opacity) => buildShape()
     .shapeType('RECTANGLE').width(geo[kind].w).height(bh).position({ x: geo[kind].x, y: geo[kind].y })
     .fillColor(fill).fillOpacity(opacity).strokeColor('#000000').strokeOpacity(kind === 'bg' ? 0.9 : 0).strokeWidth(kind === 'bg' ? 2 : 0)

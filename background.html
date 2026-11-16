@@ -3,10 +3,10 @@
 <body>
 <script type="module">
   // Працює завжди, поки аддон увімкнено в кімнаті: показує сповіщення про кидки інших гравців.
-  import { SDK_URL, CH_ROLL, rollToastText } from './js/owlbear.js';
-  const mod = await import(SDK_URL);
-  const OBR = mod.default || mod.OBR;
-  OBR.onReady(() => {
+  import { CH_ROLL, rollToastText, whenReady, getObr } from './js/owlbear.js';
+  await whenReady(60000);
+  const OBR = getObr();
+  if (OBR) OBR.onReady(() => {
     OBR.broadcast.onMessage(CH_ROLL, async (ev) => {
       const m = ev.data;
       if (!m) return;
