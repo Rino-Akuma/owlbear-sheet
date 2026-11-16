@@ -378,3 +378,6 @@ details.more summary { cursor: pointer; font-size: 12px; color: var(--muted); ma
 .gm-det { display: grid; gap: 8px; }
 .gm-det h4 { margin: 0 0 2px; font-size: 12px; text-transform: uppercase; color: var(--muted); }
 .gm-det ul { margin: 0; padding-left: 16px; font-size: 13px; }
+
+.room-btn.on { background: var(--accent); color: var(--accent-ink); }
+.room-btn.attention { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }

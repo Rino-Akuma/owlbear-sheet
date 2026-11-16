@@ -264,3 +264,13 @@ export async function onCmd(cb) {
     } catch (e) { console.warn(e.message); }
   });
 }
+
+// ---------- який персонаж грає саме в цій кімнаті ----------
+// Вікно аддона спільне для всіх кімнат, тому гравець явно обирає персонажа для кожної кімнати.
+const roomKey = () => `owlbear-sheet:room:${(OBR && OBR.room && OBR.room.id) || 'none'}`;
+export function getRoomChar() {
+  try { return localStorage.getItem(roomKey()) || null; } catch { return null; }
+}
+export function setRoomChar(id) {
+  try { if (id) localStorage.setItem(roomKey(), id); else localStorage.removeItem(roomKey()); } catch { /* ігноруємо */ }
+}

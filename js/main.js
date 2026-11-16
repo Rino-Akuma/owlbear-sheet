@@ -1,5 +1,5 @@
 import { t } from './i18n.js';
-import { initOwlbear, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, inOwlbear, obrActive, pickSelectedToken, syncHpBar, removeHpBar, publishSummary, isGM, watchTable, sendCmd, myId } from './owlbear.js';
+import { initOwlbear, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, inOwlbear, obrActive, pickSelectedToken, syncHpBar, removeHpBar, publishSummary, isGM, watchTable, sendCmd, myId, getRoomChar, setRoomChar } from './owlbear.js';
 import { setProvider, rollPool, describeGroup } from './engine/dice.js';
 import { TEMPLATES, getTemplate } from './templates/index.js';
 import { mountSheet, fmt } from './engine/sheet.js';
@@ -67,9 +67,29 @@ function publishNow() {
   if (!inOwlbear()) return;
   clearTimeout(sumTimer);
   sumTimer = setTimeout(() => {
-    if (!active || !sheet) { publishSummary(null); return; }
+    const rc = getRoomChar();
+    // ГМ бачить лише персонажа, обраного для цієї кімнати; інші листи гравця не публікуються.
+    if (!rc || (!active && !characters.some((c) => c.id === rc))) { publishSummary(null); return; }
+    if (!active || active.id !== rc || !sheet) return; // обраний персонаж зараз не відкритий — лишаємо попереднє зведення
     try { publishSummary(buildSummary(active, sheet.get)); } catch (e) { console.warn('Зведення:', e.message); }
   }, 300);
+}
+function drawRoomBtn() {
+  const b = $('#btn-room');
+  b.hidden = !inOwlbear() || !active;
+  if (b.hidden) return;
+  const on = getRoomChar() === active.id;
+  b.textContent = on ? '✓ Грає в цій кімнаті' : 'Грати цим персонажем у кімнаті';
+  b.classList.toggle('on', on);
+  b.classList.toggle('attention', !on && !getRoomChar());
+  b.title = on ? 'ГМ бачить зведення цього персонажа. Натисніть, щоб прибрати' : 'Лише обраний персонаж видимий ГМу в цій кімнаті';
+  renderList();
+}
+function onRoomBtn() {
+  if (!active) return;
+  if (getRoomChar() === active.id) { setRoomChar(null); publishSummary(null); } else { setRoomChar(active.id); }
+  drawRoomBtn();
+  publishNow();
 }
 let gmCtl = null;
 function openGm() {
@@ -155,7 +175,7 @@ function renderList() {
       h('button', {
         type: 'button', class: `char ${active && active.id === c.id ? 'on' : ''}`,
         onclick: () => openCharacter(c.id),
-      }, h('b', { text: displayName(c) }), h('small', { text: sub }))));
+      }, h('b', { text: `${inOwlbear() && getRoomChar() === c.id ? '★ ' : ''}${displayName(c)}` }), h('small', { text: sub }))));
   }
   $('#empty').hidden = characters.length > 0;
   $('#btn-dup').disabled = $('#btn-del').disabled = $('#btn-export').disabled = !active;
@@ -200,6 +220,7 @@ function drawSheet() {
   applyRollOptions(tpl);
   drawRollGroups(tpl);
   drawTokenBtn();
+  drawRoomBtn();
   syncToken();
   publishNow();
 }
@@ -292,6 +313,7 @@ async function onDelete() {
   if (!ok) return;
   clearTimeout(saveTimer);
   const id = active.id;
+  if (getRoomChar() === id) setRoomChar(null);
   await deleteCharacter(id);
   characters = characters.filter((c) => c.id !== id);
   active = null;
@@ -462,6 +484,7 @@ async function init() {
   bindOpts();
   $('#btn-new').addEventListener('click', onNew);
   $('#btn-token').addEventListener('click', onToken);
+  $('#btn-room').addEventListener('click', onRoomBtn);
   $('#btn-gm').addEventListener('click', openGm);
   // Фонова сторінка змінила лист (стани/ініціатива від ГМа) — підтягуємо зміни у відкритий лист.
   if ('BroadcastChannel' in window) {
@@ -501,7 +524,7 @@ async function init() {
   });
   // Інтерфейс Owlbear вмикаємо одразу, не чекаючи SDK: виклики самі дочекаються готовності.
   const hideObr = () => { $('#lbl-vis').hidden = true; $('#win-wrap').hidden = true; document.querySelectorAll('.win-ctl').forEach((e) => { e.hidden = true; }); };
-  initOwlbear().then((ok) => { if (!ok && inOwlbear()) hideObr(); else if (ok) { syncToken(); publishNow(); isGM().then((gm) => { $('#btn-gm').hidden = !gm; }); } });
+  initOwlbear().then((ok) => { if (!ok && inOwlbear()) hideObr(); else if (ok) { syncToken(); drawRoomBtn(); publishNow(); isGM().then((gm) => { $('#btn-gm').hidden = !gm; }); } });
   if (inOwlbear()) {
     $('#lbl-vis').hidden = false;
     drawTokenBtn(); syncToken();

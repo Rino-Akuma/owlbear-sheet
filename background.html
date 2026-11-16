@@ -3,7 +3,7 @@
 <body>
 <script type="module">
   // Працює завжди, поки аддон увімкнено в кімнаті: показує сповіщення про кидки інших гравців.
-  import { CH_ROLL, rollToastText, whenReady, getObr, onCmd, patchSummary, myId } from './js/owlbear.js';
+  import { CH_ROLL, rollToastText, whenReady, getObr, onCmd, patchSummary, myId, getRoomChar } from './js/owlbear.js';
   import { listCharacters, saveCharacter } from './js/storage.js';
   await whenReady(60000);
   const OBR = getObr();
@@ -26,14 +26,14 @@
     try {
       const all = await listCharacters();
       if (m.type === 'conds' && m.to === myId()) {
-        const rec = all.find((c) => c.id === m.charId);
+        const rec = all.find((c) => c.id === m.charId && c.id === getRoomChar());
         if (!rec) return;
         rec.data.conditions = Array.isArray(m.conds) ? m.conds.slice(0, 30) : [];
         await saveCharacter(rec);
         patchSummary({ conds: rec.data.conditions });
         bc && bc.postMessage({ type: 'reload', id: rec.id });
       } else if (m.type === 'clear-init') {
-        for (const rec of all) if (rec.data.init_roll !== undefined && rec.data.init_roll !== null) { rec.data.init_roll = null; await saveCharacter(rec); }
+        for (const rec of all.filter((c) => c.id === getRoomChar())) if (rec.data.init_roll !== undefined && rec.data.init_roll !== null) { rec.data.init_roll = null; await saveCharacter(rec); }
         patchSummary({ init: null });
         bc && bc.postMessage({ type: 'reload' });
       }
