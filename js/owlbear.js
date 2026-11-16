@@ -208,3 +208,59 @@ export async function syncHpBar(tokenId, hp, max, fixedColor = null) {
   await OBR.scene.items.addItems([mk('bg', '#1a1a1a', 0.8), mk('fill', color, 1)]);
   return 'ok';
 }
+
+// ---------- меню ГМа: зведення гравців і команди ----------
+export const SUM_KEY = `${SOURCE}/summary`;
+export const CH_CMD = `${SOURCE}/cmd`;
+export const myId = () => playerInfo.id;
+
+/** Публікує (або прибирає, якщо null) зведення активного персонажа цього гравця. */
+export async function publishSummary(sum) {
+  if (!(await whenReady())) return;
+  try { await OBR.player.setMetadata({ [SUM_KEY]: sum || undefined }); } catch (e) { console.warn('Зведення:', e.message); }
+}
+/** Змінює частину вже опублікованого зведення (наприклад, стани, поставлені ГМом). */
+export async function patchSummary(patch) {
+  if (!(await whenReady())) return;
+  try {
+    const cur = (await OBR.player.getMetadata())[SUM_KEY];
+    if (cur) await OBR.player.setMetadata({ [SUM_KEY]: { ...cur, ...patch } });
+  } catch (e) { console.warn(e.message); }
+}
+export async function isGM() {
+  if (!(await whenReady())) return false;
+  try { return (await OBR.player.getRole()) === 'GM'; } catch { return false; }
+}
+async function getTable() {
+  const [players, own] = await Promise.all([OBR.party.getPlayers(), OBR.player.getMetadata()]);
+  return [
+    { id: playerInfo.id, name: playerInfo.name, self: true, color: null, sum: own[SUM_KEY] },
+    ...players.map((p) => ({ id: p.id, name: p.name, color: p.color, self: false, sum: p.metadata && p.metadata[SUM_KEY] })),
+  ].filter((x) => x.sum);
+}
+/** Підписка на зміни зведень усіх гравців. Повертає функцію відписки. */
+export async function watchTable(cb) {
+  if (!(await whenReady())) return () => {};
+  const run = () => getTable().then(cb).catch((e) => console.warn(e.message));
+  const u1 = OBR.party.onChange(run);
+  const u2 = OBR.player.onChange(run);
+  run();
+  return () => { u1(); u2(); };
+}
+export async function sendCmd(msg) {
+  if (!(await whenReady())) return;
+  try { await OBR.broadcast.sendMessage(CH_CMD, msg, { destination: 'ALL' }); } catch (e) { console.warn(e.message); }
+}
+/** Слухає команди ГМа; обробник викликається лише для повідомлень, надісланих справжнім ГМом. */
+export async function onCmd(cb) {
+  if (!(await whenReady())) return () => {};
+  return OBR.broadcast.onMessage(CH_CMD, async (ev) => {
+    try {
+      const conn = ev.connectionId;
+      let gm = false;
+      if (conn && conn === (await OBR.player.getConnectionId())) gm = (await OBR.player.getRole()) === 'GM';
+      else gm = (await OBR.party.getPlayers()).some((p) => p.connectionId === conn && p.role === 'GM');
+      if (gm && ev.data) cb(ev.data);
+    } catch (e) { console.warn(e.message); }
+  });
+}

@@ -1,5 +1,6 @@
 // Шаблон «D&D 5e» (редакція 2014) у стилі Long Story Short. Увесь текст — українською.
 import { parseDice, rollDice } from '../engine/dice.js';
+import { CONDITIONS } from '../conditions.js';
 import { loadLib, pickFromLibrary, pickMany } from '../library.js';
 
 const sign = (n) => (n >= 0 ? `+${n}` : `${n}`);
@@ -299,12 +300,12 @@ const template = {
       fields: [
         { id: 'init_view', type: 'computed', label: 'Ініціатива', formula: 'init', format: 'signed' },
         { id: 'init_bonus', type: 'number', label: 'Бонус ініціативи', default: 0 },
+        { id: 'init_roll', type: 'number', label: 'Кинута ініціатива (бачить ГМ)', hint: 'Запам’ятовується після кидка й не зникає з очищенням історії' },
         { id: 'inspiration', type: 'checkbox', label: 'Натхнення' },
         { id: 'exhaustion', type: 'track', label: 'Виснаження', max: 6, span: 4 },
         {
           id: 'conditions', type: 'chips', label: 'Ефекти та стани', span: 4,
-          options: ['Осліплений', 'Зачарований', 'Оглухлий', 'Виснажений', 'Наляканий', 'Схоплений', 'Недієздатний', 'Невидимий',
-            'Паралізований', 'Скам’янілий', 'Отруєний', 'Лежачий', 'Обмежений', 'Приголомшений', 'Непритомний'],
+          options: CONDITIONS.dnd5e,
         },
       ],
     },
@@ -442,7 +443,7 @@ const template = {
     { group: 'Перевірки', items: throwRolls.map((id) => ({ id: `c_${id}`, mode: 'check', die: 20, label: abilityNames[id], mod: `${id}_mod` })) },
     { group: 'Спаскидки', items: throwRolls.map((id) => ({ id: `s_${id}`, mode: 'check', die: 20, label: `${abilityNames[id]}: спаскидок`, mod: `${id}_savemod` })) },
     { group: 'Інше', items: [
-      { id: 'init', mode: 'check', die: 20, label: 'Ініціатива', mod: 'init' },
+      { id: 'init', mode: 'check', die: 20, label: 'Ініціатива', mod: 'init', store: 'init_roll' },
       { id: 'death', mode: 'threshold', die: 20, label: 'Спаскидок від смерті (від 10)', min: 10 },
     ] },
   ],

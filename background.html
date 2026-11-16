@@ -3,7 +3,8 @@
 <body>
 <script type="module">
   // Працює завжди, поки аддон увімкнено в кімнаті: показує сповіщення про кидки інших гравців.
-  import { CH_ROLL, rollToastText, whenReady, getObr } from './js/owlbear.js';
+  import { CH_ROLL, rollToastText, whenReady, getObr, onCmd, patchSummary, myId } from './js/owlbear.js';
+  import { listCharacters, saveCharacter } from './js/storage.js';
   await whenReady(60000);
   const OBR = getObr();
   if (OBR) OBR.onReady(() => {
@@ -16,6 +17,27 @@
         await OBR.notification.show(rollToastText(m), variant);
       } catch (e) { console.warn(e); }
     });
+  });
+
+  // Команди ГМа: стани персонажа й очищення ініціативи. Пишемо прямо в сховище листів
+  // (воно спільне з вікном аддона) і повідомляємо відкрите вікно через BroadcastChannel.
+  const bc = 'BroadcastChannel' in self ? new BroadcastChannel('owlbear-sheet') : null;
+  onCmd(async (m) => {
+    try {
+      const all = await listCharacters();
+      if (m.type === 'conds' && m.to === myId()) {
+        const rec = all.find((c) => c.id === m.charId);
+        if (!rec) return;
+        rec.data.conditions = Array.isArray(m.conds) ? m.conds.slice(0, 30) : [];
+        await saveCharacter(rec);
+        patchSummary({ conds: rec.data.conditions });
+        bc && bc.postMessage({ type: 'reload', id: rec.id });
+      } else if (m.type === 'clear-init') {
+        for (const rec of all) if (rec.data.init_roll !== undefined && rec.data.init_roll !== null) { rec.data.init_roll = null; await saveCharacter(rec); }
+        patchSummary({ init: null });
+        bc && bc.postMessage({ type: 'reload' });
+      }
+    } catch (e) { console.warn(e); }
   });
 </script>
 </body></html>

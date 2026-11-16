@@ -344,7 +344,14 @@ export function mountSheet(root, template, data, hooks) {
   }
   ctx.rollD20 = rollD20;
 
+  /** Кидок із запам'ятовуванням результату в лист (ініціатива): def.store = id поля. */
   async function doRoll(def) {
+    const entry = await doRollInner(def);
+    if (def.store && entry && Number.isFinite(Number(entry.headline))) { data[def.store] = Number(entry.headline); changed(); }
+    return entry;
+  }
+
+  async function doRollInner(def) {
     const o = hooks.getOpts();
     const mode = def.mode || 'check';
     const die = def.die || 100;

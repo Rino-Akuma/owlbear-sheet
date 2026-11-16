@@ -1,8 +1,10 @@
 import { t } from './i18n.js';
-import { initOwlbear, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, inOwlbear, obrActive, pickSelectedToken, syncHpBar, removeHpBar } from './owlbear.js';
+import { initOwlbear, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, inOwlbear, obrActive, pickSelectedToken, syncHpBar, removeHpBar, publishSummary, isGM, watchTable, sendCmd, myId } from './owlbear.js';
 import { setProvider, rollPool, describeGroup } from './engine/dice.js';
 import { TEMPLATES, getTemplate } from './templates/index.js';
 import { mountSheet, fmt } from './engine/sheet.js';
+import { buildSummary } from './summary.js';
+import { mountGm } from './gm.js';
 import {
   listCharacters, saveCharacter, deleteCharacter, newId, requestPersistence,
   makeBackup, readBackup, SCHEMA_VERSION,
@@ -59,6 +61,32 @@ function setStatus(text, cls = '') {
   el.className = `save-status ${cls}`;
 }
 
+// ---------- зведення для ГМа ----------
+let sumTimer = null;
+function publishNow() {
+  if (!inOwlbear()) return;
+  clearTimeout(sumTimer);
+  sumTimer = setTimeout(() => {
+    if (!active || !sheet) { publishSummary(null); return; }
+    try { publishSummary(buildSummary(active, sheet.get)); } catch (e) { console.warn('Зведення:', e.message); }
+  }, 300);
+}
+let gmCtl = null;
+function openGm() {
+  const panel = $('#gm-panel');
+  panel.hidden = false;
+  gmCtl = mountGm(panel, {
+    onTable: (cb) => watchTable(cb),
+    setConds: (playerId, charId, conds) => sendCmd({ type: 'conds', to: playerId, charId, conds }),
+    clearInit: () => sendCmd({ type: 'clear-init' }),
+    close: closeGm,
+  });
+}
+function closeGm() {
+  $('#gm-panel').hidden = true;
+  if (gmCtl) { gmCtl.destroy(); gmCtl = null; }
+}
+
 // ---------- смужка HP на токені ----------
 async function syncToken() {
   if (!active || !active.tokenId || !sheet) return;
@@ -109,6 +137,7 @@ async function flushSave() {
     await saveCharacter(active);
     setStatus(`✓ ${t.saved}`, 'ok');
     syncToken();
+    publishNow();
   } catch {
     setStatus(t.saveError, 'err');
   }
@@ -151,6 +180,7 @@ function drawSheet() {
     area.replaceChildren();
     $('#welcome').hidden = false;
     $('#sheet-bar').hidden = true;
+    publishNow();
     return;
   }
   $('#welcome').hidden = true;
@@ -171,6 +201,7 @@ function drawSheet() {
   drawRollGroups(tpl);
   drawTokenBtn();
   syncToken();
+  publishNow();
 }
 
 function applyRollOptions(tpl) {
@@ -431,6 +462,18 @@ async function init() {
   bindOpts();
   $('#btn-new').addEventListener('click', onNew);
   $('#btn-token').addEventListener('click', onToken);
+  $('#btn-gm').addEventListener('click', openGm);
+  // Фонова сторінка змінила лист (стани/ініціатива від ГМа) — підтягуємо зміни у відкритий лист.
+  if ('BroadcastChannel' in window) {
+    new BroadcastChannel('owlbear-sheet').onmessage = async (ev) => {
+      if (!ev.data || ev.data.type !== 'reload' || !active) return;
+      const rec = (await listCharacters()).find((c) => c.id === active.id);
+      if (!rec) return;
+      active.data.conditions = rec.data.conditions || [];
+      active.data.init_roll = rec.data.init_roll ?? null;
+      drawSheet();
+    };
+  }
   $('#bar-color').addEventListener('input', async (e) => { if (!active) return; active.barColor = e.target.value; $('#bar-auto').classList.remove('on'); await saveCharacter(active); syncToken(); });
   $('#bar-auto').addEventListener('click', async () => { if (!active) return; active.barColor = null; $('#bar-auto').classList.add('on'); await saveCharacter(active); syncToken(); });
   $('#btn-first').addEventListener('click', onNew);
@@ -458,7 +501,7 @@ async function init() {
   });
   // Інтерфейс Owlbear вмикаємо одразу, не чекаючи SDK: виклики самі дочекаються готовності.
   const hideObr = () => { $('#lbl-vis').hidden = true; $('#win-wrap').hidden = true; document.querySelectorAll('.win-ctl').forEach((e) => { e.hidden = true; }); };
-  initOwlbear().then((ok) => { if (!ok && inOwlbear()) hideObr(); else if (ok) syncToken(); });
+  initOwlbear().then((ok) => { if (!ok && inOwlbear()) hideObr(); else if (ok) { syncToken(); publishNow(); isGM().then((gm) => { $('#btn-gm').hidden = !gm; }); } });
   if (inOwlbear()) {
     $('#lbl-vis').hidden = false;
     drawTokenBtn(); syncToken();

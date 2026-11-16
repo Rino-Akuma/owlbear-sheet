@@ -1,5 +1,6 @@
 // Шаблон системи «Континент» (d100). Усі формули взяті з «Посібника по Континенту».
 import { parseDice, rollDice } from '../engine/dice.js';
+import { CONDITIONS } from '../conditions.js';
 
 const STAT_MAX = 200;
 
@@ -145,6 +146,8 @@ export default {
         { id: 'armor', type: 'number', label: 'Обладунок', min: 0, default: 0 },
         { id: 'speed', type: 'number', label: 'Швидкість (м)', min: 0, default: 0 },
         { id: 'hp_mult', type: 'number', label: 'Множник HP (риса «Стійкий» ×3 / ×4)', min: 1, default: 2 },
+        { id: 'init_roll', type: 'number', label: 'Кинута ініціатива (бачить ГМ)', hint: 'Запам’ятовується після кидка й не зникає з очищенням історії' },
+        { id: 'conditions', type: 'chips', label: 'Стани', span: 4, options: CONDITIONS.kontynent },
         { id: 'react_bonus', type: 'number', label: 'Бонус до дій у відповідь', min: 0, default: 0 },
         { id: 'react_std', type: 'computed', label: 'Дії у відповідь', formula: '1 + react_bonus' },
         { id: 'react_fencing', type: 'computed', label: 'Дії у відповідь (фехтувальна зброя)', formula: 'max(1, floor(dex_eff / 20)) + react_bonus' },
@@ -235,7 +238,7 @@ export default {
       { id: 's_wil', mode: 'save', label: 'Воля', stat: 'wil_eff' },
     ] },
     { group: 'Бій', items: [
-      { id: 'init', mode: 'check', label: 'Ініціатива (d20)', die: 20 },
+      { id: 'init', mode: 'check', label: 'Ініціатива (d20)', die: 20, store: 'init_roll' },
       { id: 'b_block', mode: 'check', label: 'Блок удару', mod: 'dex_mod' },
       { id: 'b_shield_s', mode: 'check', label: 'Блок малим щитом', mod: 'floor(str_eff / 2.5)' },
       { id: 'b_shield_l', mode: 'check', label: 'Блок великим щитом', mod: 'floor(str_eff / 2)' },
