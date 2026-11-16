@@ -347,3 +347,7 @@ details.more summary { cursor: pointer; font-size: 12px; color: var(--muted); ma
 .win-ctl { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; }
 .win-ctl[hidden] { display: none; }
 .win-ctl .mini { padding: 2px 10px; font-size: 16px; }
+
+.bar-color { display: inline-flex; gap: 4px; align-items: center; }
+.bar-color input[type=color] { width: 30px; height: 26px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: none; }
+.bar-color .on { background: var(--accent); color: var(--accent-ink); }

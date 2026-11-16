@@ -65,13 +65,16 @@ async function syncToken() {
   const hp = Number(sheet.get('hp')) || 0;
   const max = [sheet.get('max_hp'), sheet.get('hp_max')].map(Number).find((v) => v > 0) || 0;
   try {
-    if ((await syncHpBar(active.tokenId, hp, max)) === 'missing') { active.tokenId = null; await saveCharacter(active); drawTokenBtn(); }
+    if ((await syncHpBar(active.tokenId, hp, max, active.barColor || null)) === 'missing') { active.tokenId = null; await saveCharacter(active); drawTokenBtn(); }
   } catch (e) { console.warn('Смужка HP:', e.message); }
 }
 function drawTokenBtn() {
   const b = $('#btn-token');
   b.hidden = !obrActive() || !active;
-  if (b.hidden) return;
+  if (b.hidden) { $('#bar-color-wrap').hidden = true; return; }
+  $('#bar-color-wrap').hidden = !active.tokenId;
+  $('#bar-color').value = active.barColor || '#3fae5a';
+  $('#bar-auto').classList.toggle('on', !active.barColor);
   b.textContent = active.tokenId ? 'Токен: прив’язано ✕' : 'Прив’язати до токена';
   b.title = active.tokenId ? 'Прибрати смужку HP з токена' : 'Спершу виділіть токен на карті, потім натисніть';
 }
@@ -428,6 +431,8 @@ async function init() {
   bindOpts();
   $('#btn-new').addEventListener('click', onNew);
   $('#btn-token').addEventListener('click', onToken);
+  $('#bar-color').addEventListener('input', async (e) => { if (!active) return; active.barColor = e.target.value; $('#bar-auto').classList.remove('on'); await saveCharacter(active); syncToken(); });
+  $('#bar-auto').addEventListener('click', async () => { if (!active) return; active.barColor = null; $('#bar-auto').classList.add('on'); await saveCharacter(active); syncToken(); });
   $('#btn-first').addEventListener('click', onNew);
   $('#btn-dup').addEventListener('click', onDuplicate);
   $('#btn-del').addEventListener('click', onDelete);

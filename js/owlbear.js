@@ -168,7 +168,7 @@ export async function removeHpBar(tokenId) {
 }
 
 /** Створює/оновлює смужку HP під токеном. Повертає 'ok' або 'missing' (токен видалено). */
-export async function syncHpBar(tokenId, hp, max) {
+export async function syncHpBar(tokenId, hp, max, fixedColor = null) {
   if (!tokenId || !(await whenReady())) return 'ok';
   const [token] = await OBR.scene.items.getItems([tokenId]);
   if (!token) return 'missing';
@@ -183,7 +183,7 @@ export async function syncHpBar(tokenId, hp, max) {
   const ratio = max > 0 ? Math.max(0, Math.min(1, hp / max)) : 0;
   const bh = Math.max(7, h * 0.1), bw = w * 0.9;
   const bx = left + w * 0.05, by = top + h - bh - Math.max(2, h * 0.03);
-  const color = ratio > 0.5 ? '#3fae5a' : ratio > 0.25 ? '#e0b030' : '#d04a3a';
+  const color = fixedColor || (ratio > 0.5 ? '#3fae5a' : ratio > 0.25 ? '#e0b030' : '#d04a3a');
   const geo = { bg: { x: bx, y: by, w: bw }, fill: { x: bx, y: by, w: Math.max(0.01, bw * ratio) } };
 
   const existing = await OBR.scene.items.getItems((i) => i.metadata[BAR_KEY] && i.metadata[BAR_KEY].token === tokenId);
