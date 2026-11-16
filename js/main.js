@@ -1,6 +1,6 @@
 import { t } from './i18n.js';
-import { initOwlbear, setWindowSize, makeDiceProvider, announceRoll, dicePlusReady } from './owlbear.js';
-import { setProvider } from './engine/dice.js';
+import { initOwlbear, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady } from './owlbear.js';
+import { setProvider, rollMany, rollExtra } from './engine/dice.js';
 import { TEMPLATES, getTemplate } from './templates/index.js';
 import { mountSheet, fmt } from './engine/sheet.js';
 import {
@@ -48,7 +48,7 @@ let active = null;     // поточний запис персонажа
 let sheet = null;      // керування намальованим листом
 let saveTimer = null;
 const logEntries = [];
-const opts = { difficulty: 0, bonus: 0, critHi: 95, critLo: 5, adv: 0, vis: 'everyone' };
+const opts = { difficulty: 0, bonus: 0, critHi: 95, critLo: 5, adv: 0, vis: 'everyone', extra: '' };
 
 const displayName = (c) => (c.data && c.data.name ? c.data.name : t.noName);
 
@@ -325,6 +325,18 @@ function bindStaticText() {
 function bindOpts() {
   $('#in-adv').addEventListener('change', (e) => { opts.adv = Number(e.target.value) || 0; });
   $('#in-vis').addEventListener('change', (e) => { opts.vis = e.target.value; });
+  $('#in-extra').addEventListener('input', (e) => { opts.extra = e.target.value; });
+  $('#fr-go').addEventListener('click', async () => {
+    const count = Math.max(1, Math.min(20, Number($('#fr-count').value) || 1));
+    const sides = Number($('#fr-die').value) || 20;
+    const mod = Number($('#fr-mod').value) || 0;
+    const rolls = await rollMany(sides, count, { mod: mod + opts.bonus });
+    const ex = await rollExtra(opts.extra);
+    const sum = rolls.reduce((a, b) => a + b, 0);
+    const total = sum + mod + opts.bonus + ex.total;
+    const modTxt = [mod ? fmt(mod, 'signed') : '', opts.bonus ? fmt(opts.bonus, 'signed') : '', ...ex.parts].filter(Boolean).join(' ');
+    pushLog({ title: `${count}д${sides}`, lines: [`[${rolls.join(', ')}]${modTxt ? ` ${modTxt}` : ''} = ${total}`], success: null, crit: null, headline: total });
+  });
   const map = { '#in-diff': 'difficulty', '#in-bonus': 'bonus', '#in-crit-hi': 'critHi', '#in-crit-lo': 'critLo' };
   for (const [sel, key] of Object.entries(map)) {
     const el = $(sel);
@@ -369,8 +381,14 @@ async function init() {
     let saved = 'narrow';
     try { saved = localStorage.getItem('owlbear-sheet:win') || 'narrow'; } catch { /* ігноруємо */ }
     sel.value = saved;
-    sel.addEventListener('change', () => { try { localStorage.setItem('owlbear-sheet:win', sel.value); } catch { /* ігноруємо */ } setWindowSize(sel.value); });
-    setWindowSize(saved);
+    sel.addEventListener('change', () => { if (sel.value === 'custom') return; try { localStorage.setItem('owlbear-sheet:win', sel.value); } catch { /* ігноруємо */ } setWindowSize(sel.value); });
+    let custom = null;
+    try { custom = JSON.parse(localStorage.getItem('owlbear-sheet:wh') || 'null'); } catch { /* ігноруємо */ }
+    const remember = (wh) => { try { localStorage.setItem('owlbear-sheet:wh', JSON.stringify(wh)); localStorage.setItem('owlbear-sheet:win', 'custom'); } catch { /* ігноруємо */ } };
+    document.querySelectorAll('.win-ctl').forEach((e) => { e.hidden = false; });
+    document.querySelectorAll('.win-grow').forEach((b) => b.addEventListener('click', async () => { remember(await resizeWindow(1.12)); sel.value = 'custom'; }));
+    document.querySelectorAll('.win-shrink').forEach((b) => b.addEventListener('click', async () => { remember(await resizeWindow(1 / 1.12)); sel.value = 'custom'; }));
+    if (saved === 'custom' && Array.isArray(custom)) { sel.value = 'custom'; applySize(custom[0], custom[1]); } else setWindowSize(saved === 'custom' ? 'narrow' : saved);
   });
 
   requestPersistence();

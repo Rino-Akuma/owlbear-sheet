@@ -29,7 +29,7 @@
       <button id="btn-export-all" type="button"></button>
       <button id="btn-import" type="button"></button>
       <input id="file" type="file" accept=".json,application/json" hidden>
-      <label id="win-wrap" class="field win-wrap" hidden><span class="lbl">Розмір вікна</span><select id="win-size"><option value="narrow">Вузьке (карта видна)</option><option value="mid">Середнє</option><option value="wide">Широке</option></select></label>
+      <label id="win-wrap" class="field win-wrap" hidden><span class="lbl">Розмір вікна</span><select id="win-size"><option value="narrow">Вузьке (карта видна)</option><option value="mid">Середнє</option><option value="wide">Широке</option><option value="custom" hidden>Своє</option></select></label>
     </div>
   </aside>
 
@@ -37,6 +37,7 @@
     <div id="sheet-bar" class="sheet-bar" hidden>
       <span id="sheet-system" class="chip"></span>
       <span id="save-status" class="save-status"></span>
+      <span class="win-ctl" hidden><span class="muted small">Вікно</span><button type="button" class="mini win-shrink" title="Зменшити вікно">−</button><button type="button" class="mini win-grow" title="Збільшити вікно">+</button></span>
     </div>
     <div id="welcome" class="welcome" hidden>
       <p>Створіть персонажа, щоб почати.</p>
@@ -53,10 +54,20 @@
       <label id="lbl-vis" class="field" hidden>Хто бачить кидок<select id="in-vis"><option value="everyone">Усі</option><option value="dm">Майстер</option><option value="self">Лише я</option></select></label>
       <label id="lbl-diff" class="field">Складність<input id="in-diff" type="number" min="0"></label>
       <label id="lbl-bonus" class="field">Бонус<input id="in-bonus" type="number"></label>
+      <label id="lbl-extra" class="field span2">Додаткові кубики до перевірки<input id="in-extra" type="text" placeholder="наприклад: 1д4 або 1д4, -1д6"></label>
       <label id="lbl-crit-hi" class="field d100-only">Крит. успіх<input id="in-crit-hi" type="number" min="1" max="100"></label>
       <label id="lbl-crit-lo" class="field d100-only">Крит. провал<input id="in-crit-lo" type="number" min="0" max="99"></label>
     </div>
     <p id="opts-hint" class="muted small"></p>
+    <div class="free-roll">
+      <span class="lbl">Вільний кидок</span>
+      <div class="free-row">
+        <input id="fr-count" type="number" min="1" max="20" value="1" title="Кількість кубиків">
+        <select id="fr-die" title="Кубик"><option>4</option><option>6</option><option>8</option><option>10</option><option>12</option><option selected>20</option><option>100</option></select>
+        <input id="fr-mod" type="number" value="0" title="Модифікатор">
+        <button id="fr-go" type="button" class="primary">Кинути</button>
+      </div>
+    </div>
     <div id="roll-groups"></div>
     <div class="log-head-row">
       <span class="lbl">Журнал</span>

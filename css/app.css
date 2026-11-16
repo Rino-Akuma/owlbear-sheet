@@ -320,3 +320,12 @@ table.slots td { padding: 3px 6px; }
   .split-col { display: contents; }
   .card.plain .grid { --cols: 1 !important; }
 }
+
+.free-roll { margin: 8px 0 10px; }
+.free-row { display: grid; grid-template-columns: 64px 1fr 72px auto; gap: 6px; align-items: center; }
+.free-row input, .free-row select { min-width: 0; }
+.field.span2 { grid-column: 1 / -1; }
+.sheet-bar { display: flex; align-items: center; gap: 10px; }
+.win-ctl { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; }
+.win-ctl[hidden] { display: none; }
+.win-ctl .mini { padding: 2px 10px; font-size: 16px; }

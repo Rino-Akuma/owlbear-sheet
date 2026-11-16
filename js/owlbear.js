@@ -29,10 +29,17 @@ export async function initOwlbear() {
   }
 }
 
-export async function setWindowSize(key) {
-  const [w, h] = SIZES[key] || SIZES.narrow;
-  try { await OBR.action.setWidth(w); await OBR.action.setHeight(h); } catch (e) { console.warn(e); }
+const LIM = { w: [420, 1700], h: [480, 1100] };
+let cur = SIZES.narrow.slice();
+export const currentSize = () => cur.slice();
+export async function applySize(w, h) {
+  cur = [Math.max(LIM.w[0], Math.min(LIM.w[1], Math.round(w))), Math.max(LIM.h[0], Math.min(LIM.h[1], Math.round(h)))];
+  try { await OBR.action.setWidth(cur[0]); await OBR.action.setHeight(cur[1]); } catch (e) { console.warn(e); }
+  return cur.slice();
 }
+export const setWindowSize = (key) => applySize(...(SIZES[key] || SIZES.narrow));
+/** Збільшити/зменшити вікно кроком (у відсотках від поточного розміру). */
+export const resizeWindow = (factor) => applySize(cur[0] * factor, cur[1] * factor);
 
 // ---------- Dice+ (3D-кубики на столі) ----------
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
@@ -58,7 +65,7 @@ export const dicePlusReady = () => dicePlus.ready;
 
 /** Створює джерело кубиків для рушія: просить Dice+ кинути кубики й повертає їхні значення. */
 export function makeDiceProvider(getVisibility) {
-  return async (sides, count) => {
+  return async (sides, count, meta = {}) => {
     if (!OBR || !(await checkDicePlus())) throw new Error('Dice+ не знайдено');
     const rollId = uid();
     const target = getVisibility() || 'everyone';
@@ -74,12 +81,12 @@ export function makeDiceProvider(getVisibility) {
       }));
       OBR.broadcast.sendMessage('dice-plus/roll-request', {
         rollId, playerId: playerInfo.id, playerName: playerInfo.name, rollTarget: target,
-        diceNotation: `${count}d${sides}`, showResults: true, timestamp: Date.now(), source: SOURCE,
+        diceNotation: `${count}d${sides}${meta.keep || ''}${meta.mod ? (meta.mod > 0 ? '+' : '') + meta.mod : ''}`, showResults: true, timestamp: Date.now(), source: SOURCE,
       }, { destination: 'ALL' }).catch((e) => finish(reject, e));
     });
     lastDicePlusAt = Date.now();
     const groups = (result.result && result.result.groups) || [];
-    return groups.flatMap((g) => (g.dice || []).filter((d) => d.kept !== false).map((d) => Number(d.value)));
+    return groups.flatMap((g) => (g.dice || []).map((d) => Number(d.value)));
   };
 }
 

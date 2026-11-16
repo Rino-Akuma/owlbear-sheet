@@ -16,10 +16,10 @@ let provider = null;
 export function setProvider(fn) { provider = fn; }
 
 /** Кидає count кубиків із sides граней. Повертає масив значень. */
-export async function rollMany(sides, count = 1) {
+export async function rollMany(sides, count = 1, meta = {}) {
   if (provider) {
     try {
-      const vals = await provider(sides, count);
+      const vals = await provider(sides, count, meta);
       if (Array.isArray(vals) && vals.length === count && vals.every((v) => Number.isInteger(v) && v >= 1 && v <= sides)) return vals;
     } catch (e) { console.warn('Зовнішні кубики недоступні, кидаю самостійно:', e.message); }
   }
@@ -37,6 +37,22 @@ export function parseDice(text) {
 }
 
 export async function rollDice({ count, sides, plus }) {
-  const rolls = await rollMany(sides, count);
+  const rolls = await rollMany(sides, count, { mod: plus });
   return { rolls, total: rolls.reduce((a, b) => a + b, 0) + plus };
+}
+
+/** Додаткові кубики з рядка на кшталт «1д4, -1д6, 2к8» → { total, parts[] }. Кидає кожну групу окремо. */
+export async function rollExtra(text) {
+  const re = /([+-]?)\s*(\d*)\s*[дкdk]\s*(\d+)/gi;
+  let total = 0; const parts = []; let m;
+  while ((m = re.exec(String(text ?? ''))) !== null) {
+    const sign = m[1] === '-' ? -1 : 1;
+    const count = Math.min(20, Number(m[2] || 1)); const sides = Number(m[3]);
+    if (sides < 2 || sides > 1000) continue;
+    const rolls = await rollMany(sides, count, { mod: 0 });
+    const sum = rolls.reduce((a, b) => a + b, 0) * sign;
+    total += sum;
+    parts.push(`${sign < 0 ? '−' : '+'}${count}д${sides}: [${rolls.join(', ')}]`);
+  }
+  return { total, parts };
 }
