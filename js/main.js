@@ -1,5 +1,6 @@
 import { t } from './i18n.js';
-import { initOwlbear, setWindowSize } from './owlbear.js';
+import { initOwlbear, setWindowSize, makeDiceProvider, announceRoll, dicePlusReady } from './owlbear.js';
+import { setProvider } from './engine/dice.js';
 import { TEMPLATES, getTemplate } from './templates/index.js';
 import { mountSheet, fmt } from './engine/sheet.js';
 import {
@@ -47,7 +48,7 @@ let active = null;     // поточний запис персонажа
 let sheet = null;      // керування намальованим листом
 let saveTimer = null;
 const logEntries = [];
-const opts = { difficulty: 0, bonus: 0, critHi: 95, critLo: 5, adv: 0 };
+const opts = { difficulty: 0, bonus: 0, critHi: 95, critLo: 5, adv: 0, vis: 'everyone' };
 
 const displayName = (c) => (c.data && c.data.name ? c.data.name : t.noName);
 
@@ -158,6 +159,7 @@ function drawRollGroups(tpl) {
 // ---------- журнал кидків ----------
 function pushLog(entry) {
   logEntries.unshift(entry);
+  announceRoll(entry, opts.vis);
   const sl = $('#strip-last');
   if (sl) sl.textContent = entry.headline !== undefined && entry.headline !== null ? `${entry.title}: ${fmt(entry.headline)}` : entry.title;
   if (logEntries.length > 30) logEntries.pop();
@@ -322,6 +324,7 @@ function bindStaticText() {
 
 function bindOpts() {
   $('#in-adv').addEventListener('change', (e) => { opts.adv = Number(e.target.value) || 0; });
+  $('#in-vis').addEventListener('change', (e) => { opts.vis = e.target.value; });
   const map = { '#in-diff': 'difficulty', '#in-bonus': 'bonus', '#in-crit-hi': 'critHi', '#in-crit-lo': 'critLo' };
   for (const [sel, key] of Object.entries(map)) {
     const el = $(sel);
@@ -359,6 +362,8 @@ async function init() {
   });
   initOwlbear().then(async (ok) => {
     if (!ok) return;
+    $('#lbl-vis').hidden = false;
+    setProvider(makeDiceProvider(() => opts.vis));
     const sel = $('#win-size');
     $('#win-wrap').hidden = false;
     let saved = 'narrow';

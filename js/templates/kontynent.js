@@ -8,23 +8,23 @@ const checkRoll = (id, label, mod) => ({ id, type: 'roll', mode: 'check', label,
 const actions = {
   // Шкода зброї: (база + d100, не більше характеристики) × коефіцієнт.
   // Якщо характеристика більша за 100 — можливий другий кидок (правило з посібника).
-  weaponDamage(ctx, row) {
+  async weaponDamage(ctx, row) {
     const stat = ctx.get(row.stat === 'СПР' ? 'dex_eff' : 'str_eff');
     const dice = parseDice(row.base);
     if (!dice) {
       return ctx.log({ title: row.name || 'Зброя', lines: ['Вкажіть базову шкоду, наприклад 1д8'], success: null, crit: null });
     }
-    const r1 = ctx.d100();
+    const r1 = await ctx.d100();
     const excess = Math.max(0, stat - 100);
     const threshold = 100 - excess;
     let r2 = null;
     let raw = r1;
     if (stat > 100 && r1 >= threshold) {
-      r2 = ctx.d100();
+      r2 = await ctx.d100();
       raw = r1 + r2;
     }
     const bonus = Math.min(raw, stat);
-    const base = rollDice(dice);
+    const base = await rollDice(dice);
     const coef = Number(row.coef);
     const k = Number.isFinite(coef) ? coef : 1;
     const total = Math.round((base.total + bonus) * k);
@@ -45,7 +45,7 @@ const actions = {
       onSave: (v) => { row.desc = v; ctx.touch(); },
     });
   },
-  castSpell(ctx, row) {
+  async castSpell(ctx, row) {
     const o = ctx.opts();
     const level = Math.max(1, Math.min(6, Number(row.level) || 1));
     const std = { 1: 30, 2: 50, 3: 75, 4: 85, 5: 100 };
@@ -59,7 +59,7 @@ const actions = {
       success = true;
       lines.push('Воля вища за складність — успіх автоматично');
     } else {
-      const nat = ctx.d100();
+      const nat = await ctx.d100();
       const mod = Math.floor(wil / 5);
       const total = nat + mod + o.bonus;
       success = diff ? total > diff : null;
@@ -82,12 +82,12 @@ const actions = {
     ctx.setData('mv', Math.max(0, cur - cost));
   },
 
-  spellDamage(ctx, row) {
+  async spellDamage(ctx, row) {
     const dice = parseDice(row.dmg);
     if (!dice) {
       return ctx.log({ title: row.name || 'Закляття', lines: ['Вкажіть шкоду кубиками, наприклад 1д8'], success: null, crit: null });
     }
-    const r = rollDice(dice);
+    const r = await rollDice(dice);
     ctx.log({
       title: `Шкода: ${row.name || 'закляття'}`,
       lines: [`${dice.count}д${dice.sides}${dice.plus ? (dice.plus > 0 ? '+' : '') + dice.plus : ''}: [${r.rolls.join(', ')}]`,

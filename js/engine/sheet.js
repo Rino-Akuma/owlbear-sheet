@@ -2,7 +2,7 @@
 // Про жодну конкретну систему (D&D, «Континент») тут нічого не відомо.
 
 import { compile } from './formula.js';
-import { d100, rollDie } from './dice.js';
+import { d100, rollMany } from './dice.js';
 import { pickFromLibrary, showTextModal } from '../library.js';
 import { t } from '../i18n.js';
 
@@ -134,6 +134,7 @@ export function mountSheet(root, template, data, hooks) {
   const maxOf = (f) => (f._max ? Math.max(0, Math.floor(f._max.fn(get))) : Number(f.maxValue ?? 0));
 
   function refresh() {
+    if (typeof template.derive === 'function') template.derive(data);
     cache = new Map();
     updaters.forEach((u) => u());
   }
@@ -148,9 +149,10 @@ export function mountSheet(root, template, data, hooks) {
     opts: () => hooks.getOpts(),
     log: (e) => hooks.log(e),
     d100,
-    rollDie,
+    rollMany,
     setData(id, val) { data[id] = val; changed(); },
     touch: changed,
+    redraw: () => (hooks.redraw || refresh)(),
     showText: (cfg) => showTextModal(cfg),
     addRow(listId, row) { if (!Array.isArray(data[listId])) data[listId] = []; data[listId].push(row); },
     appendLine(id, line) { const cur = String(data[id] ?? ''); data[id] = cur ? `${cur}\n${line}` : line; },
@@ -183,6 +185,7 @@ export function mountSheet(root, template, data, hooks) {
   function renderText(f) {
     const input = h('input', { type: 'text', value: data[f.id] ?? f.default ?? '', placeholder: f.placeholder || '' });
     input.addEventListener('input', () => { data[f.id] = input.value; changed(); });
+    updaters.push(() => { const v = data[f.id] ?? f.default ?? ''; if (document.activeElement !== input && input.value !== String(v)) input.value = v; });
     return labelWrap(f, input);
   }
 
@@ -199,6 +202,7 @@ export function mountSheet(root, template, data, hooks) {
       data[f.id] = input.value === '' ? 0 : Number(input.value);
       changed();
     });
+    updaters.push(() => { const v = data[f.id] ?? f.default ?? 0; if (document.activeElement !== input && String(input.value) !== String(v)) input.value = v; });
     return labelWrap(f, input);
   }
 
@@ -312,11 +316,10 @@ export function mountSheet(root, template, data, hooks) {
   }
 
   /** d20 з перевагою/недоліком, бонусом і складністю з панелі кидків. */
-  function rollD20(title, mod, extra = []) {
+  async function rollD20(title, mod, extra = []) {
     const o = hooks.getOpts();
     const adv = o.adv || 0;
-    const r1 = rollDie(20);
-    const r2 = adv ? rollDie(20) : null;
+    const [r1, r2 = null] = await rollMany(20, adv ? 2 : 1);
     const nat = adv > 0 ? Math.max(r1, r2) : adv < 0 ? Math.min(r1, r2) : r1;
     const bonus = o.bonus || 0;
     const total = nat + mod + bonus;
@@ -336,14 +339,14 @@ export function mountSheet(root, template, data, hooks) {
   }
   ctx.rollD20 = rollD20;
 
-  function doRoll(def) {
+  async function doRoll(def) {
     const o = hooks.getOpts();
     const mode = def.mode || 'check';
     const die = def.die || 100;
     if (die === 20 && mode === 'check' && template.rollOptions === 'd20') {
-      return rollD20(def.label, def._mod ? Math.floor(def._mod.fn(get)) : 0);
+      return await rollD20(def.label, def._mod ? Math.floor(def._mod.fn(get)) : 0);
     }
-    const nat = die === 100 ? d100() : rollDie(die);
+    const nat = die === 100 ? await d100() : (await rollMany(die, 1))[0];
     const mod = def._mod ? Math.floor(def._mod.fn(get)) : 0;
     const bonus = die === 100 ? o.bonus : 0;
     const total = nat + mod + bonus;

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="uk"><head><meta charset="UTF-8"><title>Лист персонажа (фон)</title></head>
+<body>
+<script type="module">
+  // Працює завжди, поки аддон увімкнено в кімнаті: показує сповіщення про кидки інших гравців.
+  import { SDK_URL, CH_ROLL, rollToastText } from './js/owlbear.js';
+  const mod = await import(SDK_URL);
+  const OBR = mod.default || mod.OBR;
+  OBR.onReady(() => {
+    OBR.broadcast.onMessage(CH_ROLL, async (ev) => {
+      const m = ev.data;
+      if (!m) return;
+      try {
+        if (m.vis === 'dm' && (await OBR.player.getRole()) !== 'GM') return;
+        const variant = m.crit === 'success' || m.success === true ? 'SUCCESS' : m.crit === 'fail' || m.success === false ? 'ERROR' : 'INFO';
+        await OBR.notification.show(rollToastText(m), variant);
+      } catch (e) { console.warn(e); }
+    });
+  });
+</script>
+</body></html>

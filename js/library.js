@@ -53,7 +53,7 @@ export function pickFromLibrary(cfg) {
       });
       function draw() {
         const q = search.value.trim().toLowerCase();
-        const res = all.filter((e) => (!q || e.n.toLowerCase().includes(q))
+        const res = all.filter((e) => (!cfg.filter || cfg.filter(e)) && (!q || e.n.toLowerCase().includes(q))
           && sel.every(([f, s]) => !s.value || [].concat(f.get(e) ?? []).map(String).includes(s.value)));
         if (q) res.sort((x, y) => (y.n.toLowerCase() === q) - (x.n.toLowerCase() === q) || (y.n.toLowerCase().startsWith(q)) - (x.n.toLowerCase().startsWith(q)));
         list.replaceChildren(...res.slice(0, 80).map((e) => el('button', { type: 'button', class: 'lib-item', onclick: () => close(e) },
@@ -81,4 +81,26 @@ export function showTextModal(cfg) {
     el('div', { class: 'modal-actions' }, ...extra, el('button', { type: 'button', text: t.close, onclick: close })));
   root.replaceChildren(el('div', { class: 'backdrop', onclick: (e) => { if (e.target.classList.contains('backdrop')) close(); } }, box));
   return close;
+}
+
+/** Вибір кількох пунктів зі списку (наприклад, навичок класу). cfg: { title, hint, options:[{value,label}], count } → масив значень або null. */
+export function pickMany(cfg) {
+  return new Promise((resolve) => {
+    const root = document.getElementById('modal-root');
+    const close = (v) => { root.replaceChildren(); resolve(v); };
+    const chosen = new Set();
+    const ok = el('button', { type: 'button', class: 'primary', text: t.confirmPick, onclick: () => close([...chosen]) });
+    const info = el('div', { class: 'muted small' });
+    const sync = () => {
+      info.textContent = t.pickCount(chosen.size, cfg.count);
+      ok.disabled = chosen.size !== cfg.count;
+      boxes.forEach(([v, b]) => { b.classList.toggle('on', chosen.has(v)); b.disabled = !chosen.has(v) && chosen.size >= cfg.count; });
+    };
+    const boxes = cfg.options.map((o) => [o.value, el('button', { type: 'button', class: 'chip-btn', text: o.label, onclick: () => { chosen.has(o.value) ? chosen.delete(o.value) : chosen.add(o.value); sync(); } })]);
+    const box = el('div', { class: 'modal wide', role: 'dialog' }, el('h3', { text: cfg.title }), cfg.hint ? el('div', { class: 'muted small', text: cfg.hint }) : null, info,
+      el('div', { class: 'chips' }, boxes.map(([, b]) => b)),
+      el('div', { class: 'modal-actions' }, el('button', { type: 'button', text: t.skip, onclick: () => close(null) }), ok));
+    root.replaceChildren(el('div', { class: 'backdrop' }, box));
+    sync();
+  });
 }
