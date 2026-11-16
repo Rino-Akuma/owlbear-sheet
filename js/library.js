@@ -42,12 +42,14 @@ export function pickFromLibrary(cfg) {
     search.focus();
 
     loadLib(cfg.kind).then((all) => {
-      (cfg.facets || []).forEach((f) => {
+      let shown = 80;
+      const facets = [...(cfg.facets || []), { label: 'Джерело', get: (e) => e.s }];
+      facets.forEach((f) => {
         const vals = new Set();
         all.forEach((e) => [].concat(f.get(e) ?? []).forEach((v) => vals.add(v)));
         const s = el('select', {}, el('option', { value: '', text: f.label }),
           [...vals].sort((a, b) => (typeof a === 'number' ? a - b : String(a).localeCompare(String(b)))).map((v) => el('option', { value: String(v), text: f.fmt ? f.fmt(v) : String(v) })));
-        s.addEventListener('change', draw);
+        s.addEventListener('change', () => { shown = 80; draw(); });
         sel.push([f, s]);
         facetBox.append(s);
       });
@@ -56,12 +58,15 @@ export function pickFromLibrary(cfg) {
         const res = all.filter((e) => (!cfg.filter || cfg.filter(e)) && (!q || e.n.toLowerCase().includes(q))
           && sel.every(([f, s]) => !s.value || [].concat(f.get(e) ?? []).map(String).includes(s.value)));
         if (q) res.sort((x, y) => (y.n.toLowerCase() === q) - (x.n.toLowerCase() === q) || (y.n.toLowerCase().startsWith(q)) - (x.n.toLowerCase().startsWith(q)));
-        list.replaceChildren(...res.slice(0, 80).map((e) => el('button', { type: 'button', class: 'lib-item', onclick: () => close(e) },
+        list.replaceChildren(...res.slice(0, shown).map((e) => el('button', { type: 'button', class: 'lib-item', onclick: () => close(e) },
           el('b', { text: e.n }), el('span', { class: 'muted small', text: ` ${e.s} · ${cfg.meta ? cfg.meta(e) : ''}` }))));
         if (!res.length) list.replaceChildren(el('p', { class: 'muted', text: t.libNothing }));
-        else if (res.length > 80) list.append(el('p', { class: 'muted small', text: t.libMore(res.length - 80) }));
+        else {
+          list.append(el('p', { class: 'muted small', text: `Показано ${Math.min(shown, res.length)} з ${res.length}` }));
+          if (res.length > shown) list.append(el('button', { type: 'button', class: 'lib-more', text: `Показати ще ${Math.min(80, res.length - shown)}`, onclick: () => { shown += 80; draw(); } }));
+        }
       }
-      search.addEventListener('input', draw);
+      search.addEventListener('input', () => { shown = 80; draw(); });
       draw();
     }).catch((err) => { list.replaceChildren(el('p', { class: 'error', text: `${t.libError}: ${err.message}` })); });
   });

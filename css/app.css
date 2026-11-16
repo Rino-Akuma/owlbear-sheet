@@ -381,3 +381,5 @@ details.more summary { cursor: pointer; font-size: 12px; color: var(--muted); ma
 
 .room-btn.on { background: var(--accent); color: var(--accent-ink); }
 .room-btn.attention { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }
+
+.lib-more { width: 100%; padding: 8px; margin-top: 6px; }

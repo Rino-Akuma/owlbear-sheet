@@ -4,7 +4,17 @@
 Зберігаються лише назви й механіка (без довгих текстів книг)."""
 import json, re, sys, os
 D = sys.argv[1]; OUT = os.path.join(os.path.dirname(__file__), '..', 'js', 'data')
-OK = {'PHB','DMG','XGE','TCE','SCAG','VGM','MTF','ERLW','EGW','GGR','MOT','AI','FTD','SCC','AAG','BGDIA','CoS','ToA','WDH','WDMM','LLK','GoS','OoW','RMBRE','TTP','CRCotN','DSotDQ','SAC','MPMM','VRGR','MM','SDW','BAM','BMT','PaBTSO','HftT','IDRotF','KftGV','LMoP','SKT','TftYP','TLK','PotA','HotDQ','RoT','OGA','LR','SLW','WBtW','CM','JttRC','QftIS','DoDk','PSA','PSI','PSK','PSD','PSX','PSZ','AWM','NRH','ABH','AZfyT','GHLoE','CC','Screen','SCREEN','Ravenloft','VD','DIP','HAT-TG','HAT-LMI','NRH-TCMC','NRH-AVitW','NRH-ASS','NRH-CoI','NRH-AWoL','NRH-TLT','SjA','SatO','MCV1SC','MCV2DC','MCV3MC','MCV4EC','LRDT','TD','ASI','HoL','TCoS','LoX','VEoR','SCREEN','DC','GotSF','GoS','KKW','DMTCRG','MFF','XMtS'}
+# Беремо все, що вийшло до 2024-09-17 (2014-правила): книги, пригоди, EEPC тощо.
+# Відкидаємо правила 2024+ (XPHB, XDMG, XMM…) і книги 2024+ року (FRHoF, EFA, WoW, AU…).
+LATE_FROM = '2024-09-17'
+LATE = set()
+for _f, _k in (('books.json', 'book'), ('adventures.json', 'adventure')):
+    for _x in json.load(open(os.path.join(D, _f), encoding='utf-8')).get(_k, []):
+        if (_x.get('published') or '0') >= LATE_FROM: LATE.add(_x['source'])
+class _Ok:
+    def __contains__(self, s): return s not in LATE
+LATE.discard('ABH')  # 2014-правила, хоч вийшла пізно
+OK = _Ok()
 def ok(x): return x.get('source') in OK and x.get('edition')!='one'
 def dump(name, obj):
     p=os.path.join(OUT,name); json.dump(obj, open(p,'w',encoding='utf-8'), ensure_ascii=False, separators=(',',':'))
