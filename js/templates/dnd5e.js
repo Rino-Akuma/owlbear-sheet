@@ -157,7 +157,7 @@ const actions = {
   async spellDamage(ctx, row) {
     const dice = parseDice(row.dmg);
     if (!dice) return ctx.log({ title: row.name || 'Шкода', lines: ['Вкажіть шкоду кубиками, наприклад 8д6'], success: null, crit: null });
-    const r = await rollDice(dice);
+    const r = await rollDice({ ...dice, label: `Шкода ${row.name || ''}` });
     ctx.log({ title: `Шкода: ${row.name}`, lines: [`${diceText(dice)}: [${r.rolls.join(', ')}]${dice.plus ? ` ${sign(dice.plus)}` : ''}`], success: null, crit: null, headline: r.total });
   },
   attackRoll(ctx, row) {
@@ -166,13 +166,13 @@ const actions = {
   async damageRoll(ctx, row) {
     const dice = parseDice(row.dmg);
     if (!dice) return ctx.log({ title: row.name || 'Шкода', lines: ['Вкажіть шкоду кубиками, наприклад 1д8+3'], success: null, crit: null });
-    const r = await rollDice(dice);
+    const r = await rollDice({ ...dice, label: `Шкода ${row.name || 'зброя'}` });
     ctx.log({ title: `Шкода: ${row.name || 'зброя'}`, lines: [`${diceText(dice)}: [${r.rolls.join(', ')}]${dice.plus ? ` ${sign(dice.plus)}` : ''}`], success: null, crit: null, headline: r.total });
   },
   async critDamage(ctx, row) {
     const dice = parseDice(row.dmg);
     if (!dice) return ctx.log({ title: row.name || 'Шкода', lines: ['Вкажіть шкоду кубиками, наприклад 1д8+3'], success: null, crit: null });
-    const r = await rollDice({ ...dice, count: dice.count * 2 });
+    const r = await rollDice({ ...dice, count: dice.count * 2, label: `Критична шкода ${row.name || 'зброя'}` });
     ctx.log({ title: `Критична шкода: ${row.name || 'зброя'}`, lines: [`${dice.count * 2}д${dice.sides}${dice.plus ? sign(dice.plus) : ''}: [${r.rolls.join(', ')}]${dice.plus ? ` ${sign(dice.plus)}` : ''}`], success: null, crit: 'success', headline: r.total });
   },
 };

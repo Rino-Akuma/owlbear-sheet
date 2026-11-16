@@ -25,7 +25,7 @@ const actions = {
       raw = r1 + r2;
     }
     const bonus = Math.min(raw, stat);
-    const base = await rollDice(dice);
+    const base = await rollDice({ ...dice, label: `Шкода ${row.name || 'зброї'}` });
     const coef = Number(row.coef);
     const k = Number.isFinite(coef) ? coef : 1;
     const total = Math.round((base.total + bonus) * k);
@@ -88,7 +88,7 @@ const actions = {
     if (!dice) {
       return ctx.log({ title: row.name || 'Закляття', lines: ['Вкажіть шкоду кубиками, наприклад 1д8'], success: null, crit: null });
     }
-    const r = await rollDice(dice);
+    const r = await rollDice({ ...dice, label: `Шкода ${row.name || 'закляття'}` });
     ctx.log({
       title: `Шкода: ${row.name || 'закляття'}`,
       lines: [`${dice.count}д${dice.sides}${dice.plus ? (dice.plus > 0 ? '+' : '') + dice.plus : ''}: [${r.rolls.join(', ')}]`,

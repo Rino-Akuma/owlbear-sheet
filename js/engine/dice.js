@@ -41,13 +41,14 @@ function localGroup(g) {
  * Один кидок усього пулу: групи кубиків + плоский модифікатор → ОДИН запит до Dice+.
  * Повертає { groups:[{sides,count,keep,sign,dice:[{value,kept}],sum}], mod, total, notation }.
  */
-export async function rollPool(groups, mod = 0) {
+export async function rollPool(groups, mod = 0, label = '') {
   groups = groups.map((g) => ({ sign: 1, keep: '', ...g }));
   const notation = buildNotation(groups, mod);
   let dice = null;
   if (provider) {
     try {
-      const flat = await provider(notation, groups);
+      const tag = String(label || '').replace(/[^\p{L}\p{N} ]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 40);
+      const flat = await provider(tag ? `${notation} #${tag}` : notation, groups);
       if (!Array.isArray(flat) || !flat.length) throw new Error('порожня відповідь');
       // Розкладаємо кубики Dice+ по наших групах за типом кубика й порядком (Dice+ міг об'єднати групи).
       const queues = {};
@@ -93,8 +94,8 @@ export function parseDice(text) {
   return { count: Number(m[1]), sides: Number(m[2]), plus };
 }
 
-export async function rollDice({ count, sides, plus }) {
-  const r = await rollPool([{ sides, count }], plus);
+export async function rollDice({ count, sides, plus, label }) {
+  const r = await rollPool([{ sides, count }], plus, label);
   return { rolls: keptVals(r.groups[0]), total: r.total, notation: r.notation };
 }
 

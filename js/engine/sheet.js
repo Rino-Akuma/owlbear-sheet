@@ -323,6 +323,7 @@ export function mountSheet(root, template, data, hooks) {
     const pool = await rollPool(
       [{ sides: 20, count: adv ? 2 : 1, keep: adv > 0 ? 'kh1' : adv < 0 ? 'kl1' : '' }],
       mod + bonus,
+      title,
     );
     const g0 = pool.groups[0];
     const nat = keptVals(g0)[0];
@@ -363,6 +364,7 @@ export function mountSheet(root, template, data, hooks) {
     const pool = await rollPool(
       [{ sides: die, count: 1 }],
       mode === 'save' ? 0 : mod + bonus,
+      def.label,
     );
     const nat = pool.groups[0].dice[0].value;
     const total = pool.total;

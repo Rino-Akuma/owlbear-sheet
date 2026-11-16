@@ -127,7 +127,6 @@ export function makeDiceProvider(getVisibility) {
 // ---------- показати кидок усім (коли Dice+ не використано) ----------
 export async function announceRoll(entry, visibility) {
   if (!OBR || visibility === 'self') return;
-  if (Date.now() - lastDicePlusAt < 3000) return; // Dice+ уже показав кидок на столі
   try {
     await OBR.broadcast.sendMessage(CH_ROLL, {
       name: playerInfo.name, vis: visibility || 'everyone',
