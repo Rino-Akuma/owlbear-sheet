@@ -1,5 +1,5 @@
 import { t } from './i18n.js';
-import { initOwlbear, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady } from './owlbear.js';
+import { initOwlbear, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, obrActive, pickSelectedToken, syncHpBar, removeHpBar } from './owlbear.js';
 import { setProvider, rollPool, describeGroup } from './engine/dice.js';
 import { TEMPLATES, getTemplate } from './templates/index.js';
 import { mountSheet, fmt } from './engine/sheet.js';
@@ -59,6 +59,37 @@ function setStatus(text, cls = '') {
   el.className = `save-status ${cls}`;
 }
 
+// ---------- смужка HP на токені ----------
+async function syncToken() {
+  if (!active || !active.tokenId || !sheet) return;
+  const hp = Number(sheet.get('hp')) || 0;
+  const max = [sheet.get('max_hp'), sheet.get('hp_max')].map(Number).find((v) => v > 0) || 0;
+  try {
+    if ((await syncHpBar(active.tokenId, hp, max)) === 'missing') { active.tokenId = null; await saveCharacter(active); drawTokenBtn(); }
+  } catch (e) { console.warn('Смужка HP:', e.message); }
+}
+function drawTokenBtn() {
+  const b = $('#btn-token');
+  b.hidden = !obrActive() || !active;
+  if (b.hidden) return;
+  b.textContent = active.tokenId ? 'Токен: прив’язано ✕' : 'Прив’язати до токена';
+  b.title = active.tokenId ? 'Прибрати смужку HP з токена' : 'Спершу виділіть токен на карті, потім натисніть';
+}
+async function onToken() {
+  if (!active) return;
+  if (active.tokenId) {
+    await removeHpBar(active.tokenId);
+    active.tokenId = null;
+  } else {
+    const r = await pickSelectedToken();
+    if (!r.ok) { setStatus('Спершу виділіть токен на карті', 'err'); return; }
+    active.tokenId = r.id;
+  }
+  await saveCharacter(active);
+  drawTokenBtn();
+  syncToken();
+}
+
 function scheduleSave() {
   if (!active) return;
   setStatus(t.saving, 'busy');
@@ -74,6 +105,7 @@ async function flushSave() {
   try {
     await saveCharacter(active);
     setStatus(`✓ ${t.saved}`, 'ok');
+    syncToken();
   } catch {
     setStatus(t.saveError, 'err');
   }
@@ -134,6 +166,8 @@ function drawSheet() {
   }
   applyRollOptions(tpl);
   drawRollGroups(tpl);
+  drawTokenBtn();
+  syncToken();
 }
 
 function applyRollOptions(tpl) {
@@ -393,6 +427,7 @@ async function init() {
   bindStaticText();
   bindOpts();
   $('#btn-new').addEventListener('click', onNew);
+  $('#btn-token').addEventListener('click', onToken);
   $('#btn-first').addEventListener('click', onNew);
   $('#btn-dup').addEventListener('click', onDuplicate);
   $('#btn-del').addEventListener('click', onDelete);
@@ -419,6 +454,7 @@ async function init() {
   initOwlbear().then(async (ok) => {
     if (!ok) return;
     $('#lbl-vis').hidden = false;
+    drawTokenBtn(); syncToken();
     setProvider(makeDiceProvider(() => opts.vis));
     const sel = $('#win-size');
     $('#win-wrap').hidden = false;

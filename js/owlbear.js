@@ -116,3 +116,67 @@ export function rollToastText(m) {
   const num = m.headline !== null && m.headline !== undefined ? ` — ${m.headline}` : '';
   return `${m.name}: ${m.title}${num}${verdict}`;
 }
+
+// ---------- смужка HP на токені ----------
+const BAR_KEY = `${SOURCE}/hpbar`;
+export const obrActive = () => !!OBR;
+
+/** Прив'язує персонажа до виділеного на карті токена. Повертає { ok, id?, reason? }. */
+export async function pickSelectedToken() {
+  if (!OBR) return { ok: false, reason: 'no-obr' };
+  const sel = (await OBR.player.getSelection()) || [];
+  if (!sel.length) return { ok: false, reason: 'no-selection' };
+  const items = await OBR.scene.items.getItems(sel);
+  const it = items.find((i) => i.type === 'IMAGE') || items[0];
+  return it ? { ok: true, id: it.id, name: it.name || it.text?.plainText || '' } : { ok: false, reason: 'no-selection' };
+}
+
+export async function removeHpBar(tokenId) {
+  if (!OBR || !tokenId) return;
+  try {
+    const bars = await OBR.scene.items.getItems((i) => i.metadata[BAR_KEY] && i.metadata[BAR_KEY].token === tokenId);
+    if (bars.length) await OBR.scene.items.deleteItems(bars.map((b) => b.id));
+  } catch (e) { console.warn(e); }
+}
+
+/** Створює/оновлює смужку HP під токеном. Повертає 'ok' або 'missing' (токен видалено). */
+export async function syncHpBar(tokenId, hp, max) {
+  if (!OBR || !tokenId) return 'ok';
+  const [token] = await OBR.scene.items.getItems([tokenId]);
+  if (!token) return 'missing';
+  const dpi = await OBR.scene.grid.getDpi();
+  const img = token.image || { width: dpi, height: dpi };
+  const k = dpi / ((token.grid && token.grid.dpi) || dpi);
+  const w = img.width * token.scale.x * k;
+  const h = img.height * token.scale.y * k;
+  const off = (token.grid && token.grid.offset) || { x: img.width / 2, y: img.height / 2 };
+  const left = token.position.x - off.x * token.scale.x * k;
+  const top = token.position.y - off.y * token.scale.y * k;
+  const ratio = max > 0 ? Math.max(0, Math.min(1, hp / max)) : 0;
+  const bh = Math.max(7, h * 0.1), bw = w * 0.9;
+  const bx = left + w * 0.05, by = top + h - bh - Math.max(2, h * 0.03);
+  const color = ratio > 0.5 ? '#3fae5a' : ratio > 0.25 ? '#e0b030' : '#d04a3a';
+  const geo = { bg: { x: bx, y: by, w: bw }, fill: { x: bx, y: by, w: Math.max(0.01, bw * ratio) } };
+
+  const existing = await OBR.scene.items.getItems((i) => i.metadata[BAR_KEY] && i.metadata[BAR_KEY].token === tokenId);
+  if (existing.length >= 2) {
+    await OBR.scene.items.updateItems(existing, (drafts) => {
+      for (const d of drafts) {
+        const g = geo[d.metadata[BAR_KEY].kind]; if (!g) continue;
+        d.position = { x: g.x, y: g.y }; d.width = g.w; d.height = bh;
+        if (d.metadata[BAR_KEY].kind === 'fill') d.style.fillColor = color;
+      }
+    });
+    return 'ok';
+  }
+  if (existing.length) await OBR.scene.items.deleteItems(existing.map((e) => e.id));
+  const { buildShape } = await import(SDK_URL);
+  const mk = (kind, fill, opacity) => buildShape()
+    .shapeType('RECTANGLE').width(geo[kind].w).height(bh).position({ x: geo[kind].x, y: geo[kind].y })
+    .fillColor(fill).fillOpacity(opacity).strokeColor('#000000').strokeOpacity(kind === 'bg' ? 0.9 : 0).strokeWidth(kind === 'bg' ? 2 : 0)
+    .attachedTo(tokenId).layer('ATTACHMENT').locked(true).disableHit(true)
+    .name(kind === 'bg' ? 'HP (фон)' : 'HP')
+    .metadata({ [BAR_KEY]: { token: tokenId, kind } }).build();
+  await OBR.scene.items.addItems([mk('bg', '#1a1a1a', 0.8), mk('fill', color, 1)]);
+  return 'ok';
+}
