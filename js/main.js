@@ -1,6 +1,6 @@
 import { t } from './i18n.js';
 import { initOwlbear, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady } from './owlbear.js';
-import { setProvider, rollMany, rollExtra } from './engine/dice.js';
+import { setProvider, rollPool, parseExtra, describeGroup, keptVals } from './engine/dice.js';
 import { TEMPLATES, getTemplate } from './templates/index.js';
 import { mountSheet, fmt } from './engine/sheet.js';
 import {
@@ -330,11 +330,10 @@ function bindOpts() {
     const count = Math.max(1, Math.min(20, Number($('#fr-count').value) || 1));
     const sides = Number($('#fr-die').value) || 20;
     const mod = Number($('#fr-mod').value) || 0;
-    const rolls = await rollMany(sides, count, { mod: mod + opts.bonus });
-    const ex = await rollExtra(opts.extra);
-    const sum = rolls.reduce((a, b) => a + b, 0);
-    const total = sum + mod + opts.bonus + ex.total;
-    const modTxt = [mod ? fmt(mod, 'signed') : '', opts.bonus ? fmt(opts.bonus, 'signed') : '', ...ex.parts].filter(Boolean).join(' ');
+    const pool = await rollPool([{ sides, count }, ...parseExtra(opts.extra)], mod + opts.bonus);
+    const rolls = keptVals(pool.groups[0]);
+    const total = pool.total;
+    const modTxt = [mod ? fmt(mod, 'signed') : '', opts.bonus ? fmt(opts.bonus, 'signed') : '', ...pool.groups.slice(1).map(describeGroup)].filter(Boolean).join(' ');
     pushLog({ title: `${count}д${sides}`, lines: [`[${rolls.join(', ')}]${modTxt ? ` ${modTxt}` : ''} = ${total}`], success: null, crit: null, headline: total });
   });
   const map = { '#in-diff': 'difficulty', '#in-bonus': 'bonus', '#in-crit-hi': 'critHi', '#in-crit-lo': 'critLo' };

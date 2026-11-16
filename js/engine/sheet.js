@@ -2,7 +2,7 @@
 // Про жодну конкретну систему (D&D, «Континент») тут нічого не відомо.
 
 import { compile } from './formula.js';
-import { rollExtra, d100, rollMany } from './dice.js';
+import { d100, rollPool, parseExtra, describeGroup, keptVals } from './dice.js';
 import { pickFromLibrary, showTextModal } from '../library.js';
 import { t } from '../i18n.js';
 
@@ -149,7 +149,7 @@ export function mountSheet(root, template, data, hooks) {
     opts: () => hooks.getOpts(),
     log: (e) => hooks.log(e),
     d100,
-    rollMany,
+    rollPool,
     setData(id, val) { data[id] = val; changed(); },
     touch: changed,
     redraw: () => (hooks.redraw || refresh)(),
@@ -320,14 +320,17 @@ export function mountSheet(root, template, data, hooks) {
     const o = hooks.getOpts();
     const adv = o.adv || 0;
     const bonus = o.bonus || 0;
-    const [r1, r2 = null] = await rollMany(20, adv ? 2 : 1, { mod: mod + bonus, keep: adv > 0 ? 'kh1' : adv < 0 ? 'kl1' : '' });
-    const nat = adv > 0 ? Math.max(r1, r2) : adv < 0 ? Math.min(r1, r2) : r1;
-    const ex = await rollExtra(o.extra);
-    const total = nat + mod + bonus + ex.total;
-    const parts = [adv ? `d20: ${r1}, ${r2} (${adv > 0 ? t.advantage : t.disadvantage}) → ${nat}` : `d20: ${nat}`];
+    const pool = await rollPool(
+      [{ sides: 20, count: adv ? 2 : 1, keep: adv > 0 ? 'kh1' : adv < 0 ? 'kl1' : '' }, ...parseExtra(o.extra)],
+      mod + bonus,
+    );
+    const g0 = pool.groups[0];
+    const nat = keptVals(g0)[0];
+    const total = pool.total;
+    const parts = [adv ? `d20: ${g0.dice.map((d) => d.value).join(', ')} (${adv > 0 ? t.advantage : t.disadvantage}) → ${nat}` : `d20: ${nat}`];
     parts.push(`${t.modifier}: ${fmt(mod, 'signed')}`);
     if (bonus) parts.push(`${t.bonus}: ${fmt(bonus, 'signed')}`);
-    parts.push(...ex.parts);
+    parts.push(...pool.groups.slice(1).map(describeGroup));
     const dc = o.difficulty || 0;
     const entry = {
       title,
@@ -350,14 +353,18 @@ export function mountSheet(root, template, data, hooks) {
     }
     const mod = def._mod ? Math.floor(def._mod.fn(get)) : 0;
     const bonus = die === 100 ? o.bonus : 0;
-    const nat = (await rollMany(die, 1, { mod: mode === 'save' ? 0 : mod + bonus }))[0];
-    const ex = mode === 'save' ? { total: 0, parts: [] } : await rollExtra(o.extra);
-    const total = nat + mod + bonus + ex.total;
+    const pool = await rollPool(
+      [{ sides: die, count: 1 }, ...(mode === 'save' ? [] : parseExtra(o.extra))],
+      mode === 'save' ? 0 : mod + bonus,
+    );
+    const nat = pool.groups[0].dice[0].value;
+    const total = pool.total;
     const parts = [`d${die}: ${nat}`];
     if (def._mod) parts.push(`${t.modifier}: ${fmt(mod, 'signed')}`);
     if (bonus) parts.push(`${t.bonus}: ${fmt(bonus, 'signed')}`);
-    parts.push(...ex.parts);
-    const sum = `${parts.join(' · ')}${def._mod || bonus || ex.parts.length ? ` = ${total}` : ''}`;
+    const exParts = pool.groups.slice(1).map(describeGroup);
+    parts.push(...exParts);
+    const sum = `${parts.join(' · ')}${def._mod || bonus || exParts.length ? ` = ${total}` : ''}`;
     let entry;
     if (mode === 'save') {
       const stat = get(def.stat);

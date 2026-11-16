@@ -65,7 +65,7 @@ export const dicePlusReady = () => dicePlus.ready;
 
 /** Створює джерело кубиків для рушія: просить Dice+ кинути кубики й повертає їхні значення. */
 export function makeDiceProvider(getVisibility) {
-  return async (sides, count, meta = {}) => {
+  return async (notation, groups) => {
     if (!OBR || !(await checkDicePlus())) throw new Error('Dice+ не знайдено');
     const rollId = uid();
     const target = getVisibility() || 'everyone';
@@ -81,12 +81,11 @@ export function makeDiceProvider(getVisibility) {
       }));
       OBR.broadcast.sendMessage('dice-plus/roll-request', {
         rollId, playerId: playerInfo.id, playerName: playerInfo.name, rollTarget: target,
-        diceNotation: `${count}d${sides}${meta.keep || ''}${meta.mod ? (meta.mod > 0 ? '+' : '') + meta.mod : ''}`, showResults: true, timestamp: Date.now(), source: SOURCE,
+        diceNotation: notation, showResults: true, timestamp: Date.now(), source: SOURCE,
       }, { destination: 'ALL' }).catch((e) => finish(reject, e));
     });
     lastDicePlusAt = Date.now();
-    const groups = (result.result && result.result.groups) || [];
-    return groups.flatMap((g) => (g.dice || []).map((d) => Number(d.value)));
+    return (result.result && result.result.groups || []).flatMap((g) => (g.dice || []).map((d) => ({ value: Number(d.value), kept: d.kept !== false })));
   };
 }
 
