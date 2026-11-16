@@ -48,11 +48,22 @@ export async function rollPool(groups, mod = 0) {
   if (provider) {
     try {
       const flat = await provider(notation, groups);
-      const need = groups.reduce((a, g) => a + g.count, 0);
-      if (Array.isArray(flat) && flat.length === need && flat.every((d) => Number.isInteger(d.value) && d.value >= 1)) {
-        let k = 0;
-        dice = groups.map((g) => flat.slice(k, (k += g.count)).map((d) => ({ value: d.value, kept: d.kept !== false })));
-      }
+      if (!Array.isArray(flat) || !flat.length) throw new Error('порожня відповідь');
+      // Розкладаємо кубики Dice+ по наших групах за типом кубика й порядком (Dice+ міг об'єднати групи).
+      const queues = {};
+      for (const d of flat) (queues[d.sides || 0] ||= []).push(d);
+      const anyQ = flat.slice();
+      const take = (g) => {
+        const q = queues[g.sides] && queues[g.sides].length ? queues[g.sides] : (queues[0] && queues[0].length ? queues[0] : null);
+        const out = [];
+        for (let i = 0; i < g.count; i++) {
+          const d = q && q.shift();
+          out.push(d && Number.isFinite(d.value) ? { value: d.value, kept: d.kept !== false } : localGroup({ sides: g.sides, count: 1 })[0]);
+        }
+        return out;
+      };
+      void anyQ;
+      dice = groups.map(take);
     } catch (e) { console.warn('Зовнішні кубики недоступні, кидаю самостійно:', e.message); }
   }
   if (!dice) dice = groups.map(localGroup);

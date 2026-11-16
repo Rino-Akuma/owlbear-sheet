@@ -49,25 +49,32 @@
   <aside class="rolls" id="rolls">
     <button id="rolls-strip" class="rolls-strip" type="button"><span id="strip-last">Кидки</span><b id="strip-arrow">▲</b></button>
     <h2 id="rolls-title"></h2>
-    <div class="opts">
-      <label id="lbl-adv" class="field d20-only" hidden>Кидок<select id="in-adv"><option value="0">Звичайний</option><option value="1">З перевагою</option><option value="-1">З недоліком</option></select></label>
-      <label id="lbl-vis" class="field" hidden>Хто бачить кидок<select id="in-vis"><option value="everyone">Усі</option><option value="dm">Майстер</option><option value="self">Лише я</option></select></label>
-      <label id="lbl-diff" class="field">Складність<input id="in-diff" type="number" min="0"></label>
-      <label id="lbl-bonus" class="field">Бонус<input id="in-bonus" type="number"></label>
-      <label id="lbl-extra" class="field span2">Додаткові кубики до перевірки<input id="in-extra" type="text" placeholder="наприклад: 1д4 або 1д4, -1д6"></label>
-      <label id="lbl-crit-hi" class="field d100-only">Крит. успіх<input id="in-crit-hi" type="number" min="1" max="100"></label>
-      <label id="lbl-crit-lo" class="field d100-only">Крит. провал<input id="in-crit-lo" type="number" min="0" max="99"></label>
+    <div id="seg-adv" class="seg d20-only" role="group" hidden>
+      <button type="button" data-adv="-1">Недолік</button>
+      <button type="button" data-adv="0" class="on">Звичайно</button>
+      <button type="button" data-adv="1">Перевага</button>
     </div>
-    <p id="opts-hint" class="muted small"></p>
-    <div class="free-roll">
-      <span class="lbl">Вільний кидок</span>
-      <div class="free-row">
-        <input id="fr-count" type="number" min="1" max="20" value="1" title="Кількість кубиків">
-        <select id="fr-die" title="Кубик"><option>4</option><option>6</option><option>8</option><option>10</option><option>12</option><option selected>20</option><option>100</option></select>
-        <input id="fr-mod" type="number" value="0" title="Модифікатор">
-        <button id="fr-go" type="button" class="primary">Кинути</button>
+    <div class="tray">
+      <div id="tray-dice" class="tray-dice"></div>
+      <div id="tray-pool" class="tray-pool"></div>
+      <div class="tray-row">
+        <div class="stepper"><button type="button" id="tr-minus" aria-label="−">−</button><input id="tr-mod" type="number" value="0" title="Модифікатор"><button type="button" id="tr-plus" aria-label="+">+</button></div>
+        <button id="tr-clear" type="button" class="ghost">Очистити</button>
+        <button id="tr-go" type="button" class="primary" disabled>Кинути</button>
       </div>
     </div>
+    <div class="opts">
+      <label id="lbl-vis" class="field span2" hidden>Хто бачить кидок<select id="in-vis"><option value="everyone">Усі</option><option value="dm">Майстер</option><option value="self">Лише я</option></select></label>
+      <label id="lbl-diff" class="field">Складність<input id="in-diff" type="number" min="0"></label>
+      <label id="lbl-bonus" class="field">Бонус до перевірок<input id="in-bonus" type="number"></label>
+    </div>
+    <details class="more d100-only"><summary>Критичні кидки</summary>
+      <div class="opts">
+        <label id="lbl-crit-hi" class="field">Крит. успіх<input id="in-crit-hi" type="number" min="1" max="100"></label>
+        <label id="lbl-crit-lo" class="field">Крит. провал<input id="in-crit-lo" type="number" min="0" max="99"></label>
+      </div>
+    </details>
+    <p id="opts-hint" class="muted small"></p>
     <div id="roll-groups"></div>
     <div class="log-head-row">
       <span class="lbl">Журнал</span>

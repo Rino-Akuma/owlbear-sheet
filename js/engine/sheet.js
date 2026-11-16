@@ -2,7 +2,7 @@
 // Про жодну конкретну систему (D&D, «Континент») тут нічого не відомо.
 
 import { compile } from './formula.js';
-import { d100, rollPool, parseExtra, describeGroup, keptVals } from './dice.js';
+import { d100, rollPool, describeGroup, keptVals } from './dice.js';
 import { pickFromLibrary, showTextModal } from '../library.js';
 import { t } from '../i18n.js';
 
@@ -321,7 +321,7 @@ export function mountSheet(root, template, data, hooks) {
     const adv = o.adv || 0;
     const bonus = o.bonus || 0;
     const pool = await rollPool(
-      [{ sides: 20, count: adv ? 2 : 1, keep: adv > 0 ? 'kh1' : adv < 0 ? 'kl1' : '' }, ...parseExtra(o.extra)],
+      [{ sides: 20, count: adv ? 2 : 1, keep: adv > 0 ? 'kh1' : adv < 0 ? 'kl1' : '' }],
       mod + bonus,
     );
     const g0 = pool.groups[0];
@@ -354,7 +354,7 @@ export function mountSheet(root, template, data, hooks) {
     const mod = def._mod ? Math.floor(def._mod.fn(get)) : 0;
     const bonus = die === 100 ? o.bonus : 0;
     const pool = await rollPool(
-      [{ sides: die, count: 1 }, ...(mode === 'save' ? [] : parseExtra(o.extra))],
+      [{ sides: die, count: 1 }],
       mode === 'save' ? 0 : mod + bonus,
     );
     const nat = pool.groups[0].dice[0].value;

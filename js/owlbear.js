@@ -65,8 +65,8 @@ export const dicePlusReady = () => dicePlus.ready;
 
 /** Створює джерело кубиків для рушія: просить Dice+ кинути кубики й повертає їхні значення. */
 export function makeDiceProvider(getVisibility) {
-  return async (notation, groups) => {
-    if (!OBR || !(await checkDicePlus())) throw new Error('Dice+ не знайдено');
+  const inner = async (notation, groups) => {
+    if (!OBR || !(await checkDicePlus(true))) throw new Error('Dice+ не знайдено (перевірте, що розширення Dice+ увімкнене й GM дозволив джерело)');
     const rollId = uid();
     const target = getVisibility() || 'everyone';
     const result = await new Promise((resolve, reject) => {
@@ -85,7 +85,14 @@ export function makeDiceProvider(getVisibility) {
       }, { destination: 'ALL' }).catch((e) => finish(reject, e));
     });
     lastDicePlusAt = Date.now();
-    return (result.result && result.result.groups || []).flatMap((g) => (g.dice || []).map((d) => ({ value: Number(d.value), kept: d.kept !== false })));
+    return (result.result && result.result.groups || []).flatMap((g) => (g.dice || []).map((d) => ({ sides: Number(String(d.diceType || g.diceType || '').replace(/\D/g, '')) || 0, value: Number(d.value), kept: d.kept !== false })));
+  };
+  return async (notation, groups) => {
+    try { return await inner(notation, groups); }
+    catch (e) {
+      try { OBR && OBR.notification.show(`Dice+: ${e.message}. Кидаю без 3D-кубиків.`, 'WARNING'); } catch (_) { /* ignore */ }
+      throw e;
+    }
   };
 }
 

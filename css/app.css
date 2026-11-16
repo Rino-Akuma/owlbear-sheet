@@ -321,11 +321,27 @@ table.slots td { padding: 3px 6px; }
   .card.plain .grid { --cols: 1 !important; }
 }
 
-.free-roll { margin: 8px 0 10px; }
-.free-row { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 6px; align-items: center; }
-.free-row #fr-go { grid-column: 1 / -1; }
-.free-row select { padding-right: 4px; }
-.free-row input, .free-row select { min-width: 0; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+.seg[hidden] { display: none; }
+.seg button { border: 0; border-radius: 0; background: var(--input); padding: 7px 4px; font-size: 13px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.on { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.tray { display: flex; flex-direction: column; gap: 8px; }
+.tray-dice { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.die-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; font-size: 12px; font-weight: 600; }
+.die-btn svg { width: 26px; height: 26px; fill: color-mix(in srgb, var(--accent) 18%, transparent); stroke: var(--accent); stroke-width: 1.6; stroke-linejoin: round; }
+.die-btn:active svg { fill: var(--accent); }
+.tray-pool { display: flex; flex-wrap: wrap; gap: 6px; min-height: 34px; align-items: center; padding: 6px 8px; border: 1px dashed var(--line); border-radius: 9px; }
+.pool-chip { padding: 3px 9px; font-size: 14px; font-weight: 700; border-radius: 999px; border-color: var(--accent); }
+.rolls > * { flex-shrink: 0; }
+.tray-row { display: grid; grid-template-columns: auto 1fr; gap: 6px; align-items: stretch; }
+.tray-row #tr-go { grid-column: 1 / -1; padding: 9px; }
+.stepper { display: flex; align-items: stretch; }
+.stepper button { padding: 0 10px; border-radius: 8px 0 0 8px; font-size: 16px; }
+.stepper button:last-child { border-radius: 0 8px 8px 0; }
+.stepper input { width: 46px; text-align: center; border-radius: 0; min-width: 0; -moz-appearance: textfield; appearance: textfield; }
+.stepper input::-webkit-inner-spin-button { -webkit-appearance: none; }
+details.more summary { cursor: pointer; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
 .field.span2 { grid-column: 1 / -1; }
 .sheet-bar { display: flex; align-items: center; gap: 10px; }
 .win-ctl { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; }

@@ -1,6 +1,6 @@
 import { t } from './i18n.js';
 import { initOwlbear, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady } from './owlbear.js';
-import { setProvider, rollPool, parseExtra, describeGroup, keptVals } from './engine/dice.js';
+import { setProvider, rollPool, describeGroup } from './engine/dice.js';
 import { TEMPLATES, getTemplate } from './templates/index.js';
 import { mountSheet, fmt } from './engine/sheet.js';
 import {
@@ -140,7 +140,7 @@ function applyRollOptions(tpl) {
   const d20 = tpl.rollOptions === 'd20';
   document.querySelectorAll('.d20-only').forEach((el) => { el.hidden = !d20; });
   document.querySelectorAll('.d100-only').forEach((el) => { el.hidden = d20; });
-  if (!d20) { opts.adv = 0; $('#in-adv').value = '0'; }
+  if (!d20) { opts.adv = 0; setAdv(0); }
   $('#opts-hint').textContent = d20 ? '' : t.optionsHint;
 }
 
@@ -312,9 +312,8 @@ function bindStaticText() {
   $('#btn-first').textContent = t.createFirst;
   $('#rolls-title').textContent = t.rolls;
   $('#lbl-diff').firstChild.textContent = t.difficulty;
-  $('#lbl-adv').firstChild.textContent = t.advLabel;
-  const advOpts = $('#in-adv').options;
-  advOpts[0].text = t.advNormal; advOpts[1].text = t.advAdv; advOpts[2].text = t.advDis;
+  const sb = document.querySelectorAll('#seg-adv button');
+  sb[0].textContent = 'Недолік'; sb[1].textContent = 'Звичайно'; sb[2].textContent = 'Перевага';
   $('#lbl-bonus').firstChild.textContent = t.extraBonus;
   $('#lbl-crit-hi').firstChild.textContent = t.critFrom;
   $('#lbl-crit-lo').firstChild.textContent = t.critTo;
@@ -322,20 +321,66 @@ function bindStaticText() {
   $('#opts-hint').textContent = t.optionsHint;
 }
 
-function bindOpts() {
-  $('#in-adv').addEventListener('change', (e) => { opts.adv = Number(e.target.value) || 0; });
-  $('#in-vis').addEventListener('change', (e) => { opts.vis = e.target.value; });
-  $('#in-extra').addEventListener('input', (e) => { opts.extra = e.target.value; });
-  $('#fr-go').addEventListener('click', async () => {
-    const count = Math.max(1, Math.min(20, Number($('#fr-count').value) || 1));
-    const sides = Number($('#fr-die').value) || 20;
-    const mod = Number($('#fr-mod').value) || 0;
-    const pool = await rollPool([{ sides, count }, ...parseExtra(opts.extra)], mod + opts.bonus);
-    const rolls = keptVals(pool.groups[0]);
-    const total = pool.total;
-    const modTxt = [mod ? fmt(mod, 'signed') : '', opts.bonus ? fmt(opts.bonus, 'signed') : '', ...pool.groups.slice(1).map(describeGroup)].filter(Boolean).join(' ');
-    pushLog({ title: `${count}д${sides}`, lines: [`[${rolls.join(', ')}]${modTxt ? ` ${modTxt}` : ''} = ${total}`], success: null, crit: null, headline: total });
+function setAdv(v) {
+  opts.adv = v;
+  document.querySelectorAll('#seg-adv button').forEach((b) => b.classList.toggle('on', Number(b.dataset.adv) === v));
+}
+
+// Лоток кубиків у стилі Dice+: тап по кубику — додає його в кидок.
+const DIE_SHAPES = {
+  4: '12,3 22,21 2,21', 6: '4,4 20,4 20,20 4,20', 8: '12,2 21,12 12,22 3,12',
+  10: '12,2 21,10 17,22 7,22 3,10', 12: '12,2 21,9 18,21 6,21 3,9', 20: '12,2 21,7 21,17 12,22 3,17 3,7',
+};
+const DICE = [4, 6, 8, 10, 12, 20, 100];
+const tray = {}; // sides → count
+function drawTray() {
+  const pool = $('#tray-pool');
+  const sides = DICE.filter((d) => tray[d] > 0);
+  pool.replaceChildren();
+  if (!sides.length) { pool.append(Object.assign(document.createElement('span'), { className: 'muted small', textContent: 'Натисніть на кубик, щоб додати' })); }
+  for (const d of sides) {
+    const c = document.createElement('button');
+    c.type = 'button'; c.className = 'pool-chip'; c.title = 'Натисніть, щоб прибрати один';
+    c.textContent = `${tray[d]}д${d}  ✕`;
+    c.addEventListener('click', () => { tray[d] -= 1; drawTray(); });
+    pool.append(c);
+  }
+  $('#tr-go').disabled = !sides.length;
+}
+function buildTray() {
+  const box = $('#tray-dice');
+  for (const d of DICE) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'die-btn'; b.title = `д${d}`;
+    const shape = d === 100 ? '<circle cx="12" cy="12" r="10"/>' : `<polygon points="${DIE_SHAPES[d]}"/>`;
+    b.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${shape}</svg><span>д${d}</span>`;
+    b.addEventListener('click', () => { tray[d] = Math.min(20, (tray[d] || 0) + 1); drawTray(); });
+    box.append(b);
+  }
+  const mod = $('#tr-mod');
+  $('#tr-minus').addEventListener('click', () => { mod.value = (Number(mod.value) || 0) - 1; });
+  $('#tr-plus').addEventListener('click', () => { mod.value = (Number(mod.value) || 0) + 1; });
+  $('#tr-clear').addEventListener('click', () => { DICE.forEach((d) => { tray[d] = 0; }); mod.value = 0; drawTray(); });
+  $('#tr-go').addEventListener('click', async () => {
+    const groups = DICE.filter((d) => tray[d] > 0).map((d) => ({ sides: d, count: tray[d] }));
+    if (!groups.length) return;
+    const m = Number(mod.value) || 0;
+    // З перевагою/недоліком: одиночний d20 перетворюється на 2d20 (kh1/kl1), як у Dice+.
+    const g20 = groups.find((g) => g.sides === 20);
+    if (opts.adv && g20 && g20.count === 1) { g20.count = 2; g20.keep = opts.adv > 0 ? 'kh1' : 'kl1'; }
+    const pool = await rollPool(groups, m);
+    const title = pool.notation;
+    const lines = pool.groups.map((g) => describeGroup(g).replace(/^\+/, ''));
+    if (m) lines.push(fmt(m, 'signed'));
+    pushLog({ title, lines: [`${lines.join(' · ')} = ${pool.total}`], success: null, crit: null, headline: pool.total });
   });
+  drawTray();
+}
+
+function bindOpts() {
+  buildTray();
+  document.querySelectorAll('#seg-adv button').forEach((b) => b.addEventListener('click', () => setAdv(Number(b.dataset.adv))));
+  $('#in-vis').addEventListener('change', (e) => { opts.vis = e.target.value; });
   const map = { '#in-diff': 'difficulty', '#in-bonus': 'bonus', '#in-crit-hi': 'critHi', '#in-crit-lo': 'critLo' };
   for (const [sel, key] of Object.entries(map)) {
     const el = $(sel);
