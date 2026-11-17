@@ -51,6 +51,17 @@ let sheet = null;      // керування намальованим листо
 let saveTimer = null;
 const logEntries = [];
 const opts = { difficulty: 0, bonus: 0, critHi: 95, critLo: 5, adv: 0, vis: 'everyone', extra: '' };
+// Кубики з лотка: якщо ввімкнено «Додавати до перевірки», забираємо їх у наступну перевірку з листа.
+opts.takeExtra = () => {
+  const box = document.getElementById('tr-attach');
+  const groups = DICE.filter((d) => tray[d] > 0).map((d) => ({ sides: d, count: tray[d] }));
+  const mod = Number(document.getElementById('tr-mod').value) || 0;
+  if (!box || !box.checked || (!groups.length && !mod)) return { groups: [], mod: 0 };
+  DICE.forEach((d) => { tray[d] = 0; });
+  document.getElementById('tr-mod').value = 0;
+  drawTray();
+  return { groups, mod };
+};
 
 const displayName = (c) => (c.data && c.data.name ? c.data.name : t.noName);
 
@@ -211,6 +222,10 @@ function drawSheet() {
     return;
   }
   $('#sheet-system').textContent = tpl.name;
+  // Додавання кубиків до перевірки працює лише з d20 (D&D); у Континенті d100 — приховуємо галочку.
+  const attLabel = document.querySelector('.tray-attach');
+  if (attLabel) attLabel.hidden = tpl.id === 'kontynent';
+  drawTray();
   try {
     sheet = mountSheet(area, tpl, active.data, { onChange: scheduleSave, getOpts: () => opts, log: pushLog, redraw: drawSheet });
   } catch (e) {
@@ -436,6 +451,8 @@ function drawTray() {
     pool.append(c);
   }
   $('#tr-go').disabled = !sides.length;
+  const att = document.getElementById('tr-attach');
+  if (att && sides.length) pool.append(Object.assign(document.createElement('span'), { className: 'muted small', textContent: att.checked && !att.closest('label').hidden ? '→ додадуться до наступної перевірки' : '' }));
 }
 function buildTray() {
   const box = $('#tray-dice');
@@ -448,6 +465,7 @@ function buildTray() {
     box.append(b);
   }
   const mod = $('#tr-mod');
+  $('#tr-attach').addEventListener('change', drawTray);
   $('#tr-minus').addEventListener('click', () => { mod.value = (Number(mod.value) || 0) - 1; });
   $('#tr-plus').addEventListener('click', () => { mod.value = (Number(mod.value) || 0) + 1; });
   $('#tr-clear').addEventListener('click', () => { DICE.forEach((d) => { tray[d] = 0; }); mod.value = 0; drawTray(); });

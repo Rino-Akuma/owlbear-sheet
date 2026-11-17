@@ -41,6 +41,10 @@ export function gRows(ctx, list, rows, src) {
   rows.forEach((r) => ctx.addRow(list, { ...r, src }));
   return { type: 'row', list, src };
 }
+export function gAdd(ctx, id, delta) {
+  ctx.data[id] = (Number(ctx.data[id] ?? ctx.get(id)) || 0) + delta; // база — значення за замовчуванням, якщо поле ще не чіпали
+  return { type: 'add', id, delta };
+}
 export function gSet(ctx, id, val) {
   const prev = ctx.data[id];
   ctx.data[id] = val;
@@ -55,6 +59,7 @@ function undoOne(ctx, u, src) {
   else if (u.type === 'append') { const ls = String(d[u.field] || '').split('\n'); const i = ls.indexOf(u.line); if (i >= 0) ls.splice(i, 1); d[u.field] = ls.join('\n'); }
   else if (u.type === 'row') d[u.list] = (Array.isArray(d[u.list]) ? d[u.list] : []).filter((r) => r.src !== (u.src || src));
   else if (u.type === 'set') d[u.id] = u.prev;
+  else if (u.type === 'add') d[u.id] = (Number(d[u.id]) || 0) - u.delta;
 }
 
 /** Забирає все, що було надано цим джерелом (src), крім ручних правок. Повертає кількість відкатів. */

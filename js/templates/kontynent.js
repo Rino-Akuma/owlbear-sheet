@@ -1,6 +1,8 @@
 // Шаблон системи «Континент» (d100). Усі формули взяті з «Посібника по Континенту».
 import { parseDice, rollDice } from '../engine/dice.js';
 import { CONDITIONS } from '../conditions.js';
+import { pickMany } from '../library.js';
+import { gAdd, gSet, gRows, runGrants, grantedBy } from '../grants.js';
 
 const STAT_MAX = 200;
 
@@ -83,20 +85,137 @@ const actions = {
     ctx.setData('mv', Math.max(0, cur - cost));
   },
 
+  // Шкода закляття + додаткові куби від Волі (посібник, «Масштабування сили магії»):
+  // за кожні 20 Волі (перші 20 не рахуються) — 1 крок; рівень 1: +1 куб, 2–3: +2, 4: +3, 5–6: +4 за крок.
   async spellDamage(ctx, row) {
     const dice = parseDice(row.dmg);
     if (!dice) {
       return ctx.log({ title: row.name || 'Закляття', lines: ['Вкажіть шкоду кубиками, наприклад 1д8'], success: null, crit: null });
     }
-    const r = await rollDice({ ...dice, label: `Шкода ${row.name || 'закляття'}` });
+    const level = Math.max(1, Math.min(6, Number(row.level) || 1));
+    const wil = ctx.get('wil_eff');
+    const steps = Math.max(0, Math.floor(wil / 20) - 1);
+    const extra = steps * ({ 1: 1, 2: 2, 3: 2, 4: 3 }[level] || 4);
+    const r = await rollDice({ ...dice, count: dice.count + extra, label: `Шкода ${row.name || 'закляття'}` });
+    const fmt = `${dice.count + extra}д${dice.sides}${dice.plus ? (dice.plus > 0 ? '+' : '') + dice.plus : ''}`;
     ctx.log({
       title: `Шкода: ${row.name || 'закляття'}`,
-      lines: [`${dice.count}д${dice.sides}${dice.plus ? (dice.plus > 0 ? '+' : '') + dice.plus : ''}: [${r.rolls.join(', ')}]`,
-        'Додаткові куби від Волі додайте вручну (кількість залежить від рівня закляття).'],
+      lines: [`${fmt}: [${r.rolls.join(', ')}]`,
+        extra ? `Базово ${dice.count}д${dice.sides} + ${extra} куб. від Волі ${wil} (рівень ${level})` : `Волі ${wil} ще не вистачає на додаткові куби (потрібно від 40)`],
       success: null, crit: null, headline: r.total,
     });
   },
+
+  // ---------- бібліотека ----------
+  async pickRace(ctx, e) {
+    ctx.data.race = e.n;
+    const NAMES = { str: 'Сила', dex: 'Спритність', con: 'Статура', wil: 'Воля' };
+    const items = Object.entries(e.st || {}).map(([k, v]) => ({
+      id: `st:${k}`, group: 'Характеристики', label: `${NAMES[k]} ${v > 0 ? '+' : '−'}${Math.abs(v)}`, text: 'до поточного значення',
+      apply: (c) => gAdd(c, k, v),
+    }));
+    if (e.mv) items.push({ id: 'mv', group: 'Характеристики', label: `Магічна витривалість +${e.mv}`, text: 'лише для немагічних класів (додається в «Додаткова МВ»)', apply: (c) => gAdd(c, 'mv_bonus', e.mv) });
+    if (e.armor) items.push({ id: 'armor', group: 'Характеристики', label: `Обладунок +${e.armor}`, text: 'вбудована луска', apply: (c) => gAdd(c, 'armor', e.armor) });
+    (e.fx || []).forEach((f, i) => items.push({ id: `fx:${i}`, group: 'Особливості (додадуться до «Додаткові ефекти»)', label: f.name, text: f.desc, apply: (c) => gRows(c, 'effects', [{ name: f.name, desc: f.desc }], 'race') }));
+    await runGrants(ctx, { src: 'race', title: `Раса «${e.n}»: що вона дає`, intro: `${e.desc}\n\nЗніміть позначки з того, що не потрібно. Надане можна замінити, обравши іншу расу. Підвищені максимуми характеристик (120, 200 тощо) тримайте в голові: поле характеристики не обмежує значення нижче 200.`, items });
+  },
+
+  async pickBackground(ctx, e) {
+    ctx.data.background = e.n;
+    const listOf = (cat) => (cat === 'Соціальність' ? 'social' : 'skills');
+    const items = [];
+    (e.g || []).forEach((g, gi) => {
+      if (g.cat === 'Ремесло') {
+        if (g.any) {
+          items.push({ id: `g:${gi}`, group: 'Ремесло', label: `Ремесло +${g.b} до одного з:`, choose: { count: 1, options: g.subs.map(([n]) => ({ value: n, label: n })) },
+            apply: (c, picks) => gRows(c, 'skills', picks.map((n) => ({ name: n, desc: `+${g.b} (ремесло)` })), 'bg') });
+        } else {
+          const [n, b] = g.subs[0];
+          items.push({ id: `g:${gi}`, group: 'Ремесло', label: `${n} +${b}`, apply: (c) => gRows(c, 'skills', [{ name: n, desc: `+${b} (ремесло)` }], 'bg') });
+        }
+        return;
+      }
+      const rows = [];
+      if (g.b) rows.push({ name: g.cat, desc: `+${g.b} (вся група)` });
+      g.subs.forEach(([n, b]) => rows.push({ name: n, desc: `+${b}` }));
+      items.push({ id: `g:${gi}`, group: g.cat === 'Соціальність' ? 'Соціальні навички' : 'Навички', label: `${g.cat}${g.b ? ` +${g.b}` : ''}`,
+        text: g.subs.map(([n, b]) => `${n} +${b}`).join(', '), apply: (c) => gRows(c, listOf(g.cat), rows, 'bg') });
+    });
+    await runGrants(ctx, { src: 'bg', title: `Передісторія «${e.n}»: що вона дає`, intro: `${e.desc}\n\nБонуси додадуться до списків навичок. Усе надане від передісторії замінюється, якщо обрати іншу.`, items });
+  },
+
+  async pickFeat(ctx, e) {
+    const src = `feat:${e.n}`;
+    let tier = null;
+    if (e.tiers && e.tiers.length) {
+      const had = grantedBy(ctx, src).length ? (Array.isArray(ctx.data.traits) ? ctx.data.traits : []).find((r) => r.src === src) : null;
+      const cur = had ? e.tiers.findIndex((v) => String(had.name).includes(`(${v})`)) : -1;
+      const picked = await pickMany({
+        title: `«${e.n}»: який рівень риси?`,
+        hint: `${e.eff.split('\n')[0]}${had ? ` · зараз: ${e.tiers[cur] ?? '—'}` : ' · при першому виборі — найменший бонус, надалі риса підсилюється повторним вибором'}`,
+        options: e.tiers.map((v, i) => ({ value: i, label: v })), count: 1,
+      });
+      if (!picked) return;
+      tier = picked[0];
+    }
+    const chosen = tier === null ? null : e.tiers[tier];
+    const eff = chosen === null ? e.eff : e.eff.slice(0, e.tspan[0]) + chosen + e.eff.slice(e.tspan[1]);
+    const row = { name: chosen === null ? e.n : `${e.n} (${chosen})`, desc: `${eff.replace(/\n/g, ' ')}${e.req ? ` · Вимоги: ${e.req}` : ''}` };
+    const items = [{ id: 'row', group: 'Риса', label: row.name, text: row.desc.length > 160 ? `${row.desc.slice(0, 160)}…` : row.desc, apply: (c) => gRows(c, 'traits', [row], src) }];
+    const num = (s) => Number(String(s).replace(/[^\d.]/g, ''));
+    if (e.n === 'Стійкий' && chosen) items.push({ id: 'hp', group: 'Автоматично', label: `Множник HP ${chosen}`, text: 'ХП = Статура × множник', apply: (c) => gSet(c, 'hp_mult', num(chosen)) });
+    if (e.n === 'Покращене фехтування' && chosen) items.push({ id: 'react', group: 'Автоматично', label: `Бонус до дій у відповідь ${chosen}`, apply: (c) => gAdd(c, 'react_bonus', num(chosen)) });
+    if (e.n === 'Швидкі ноги' && chosen) items.push({ id: 'spd', group: 'Автоматично', label: `Швидкість ${chosen} м`, apply: (c) => gAdd(c, 'speed', num(chosen)) });
+    await runGrants(ctx, { src, title: `Риса «${e.n}»`, intro: e.req ? `Вимоги: ${e.req}` : '', items });
+  },
+
+  pickSpell(ctx, e) {
+    const tail = [e.ty && `Вид: ${e.ty}`, e.dur && `Тривалість: ${e.dur}`].filter(Boolean).join('. ');
+    ctx.addRow('spells', { name: e.n, school: e.sch, level: e.l, cost: e.cost, dmg: e.dmg, range: e.rng, conc: e.conc, desc: [e.desc, tail].filter(Boolean).join('\n\n') });
+  },
+
+  async pickWeapon(ctx, e) {
+    let g = e.g[0];
+    if (!g) return;
+    if (e.g.length > 1) {
+      const picked = await pickMany({
+        title: `«${e.n}»: як тримаєте?`, hint: 'Одноручний і дворучний хват мають різну шкоду.',
+        options: e.g.map((x, i) => ({ value: i, label: `${x.h === 1 ? 'Одноруч' : 'Двуруч'} ${x.dmg} · ${x.st} · ×${x.k}` })), count: 1,
+      });
+      if (!picked) return;
+      g = e.g[picked[0]];
+    }
+    let stat = g.st;
+    if (stat === 'СИЛ/СПР') stat = ctx.get('dex_eff') > ctx.get('str_eff') ? 'СПР' : 'СИЛ';
+    const note = [e.dt, e.fenc && 'фехтувальна', g.sz, g.kt, e.note, g.st === 'СИЛ/СПР' ? 'може СИЛ або СПР' : '', e.price && `~${String(e.price).replace('~', '')}`].filter(Boolean).join(' · ');
+    ctx.addRow('weapons', { name: e.g.length > 1 ? `${e.n} (${g.h === 1 ? 'одноруч' : 'двуруч'})` : e.n, stat, base: g.dmg, coef: g.k, notes: note });
+  },
+
+  async pickItem(ctx, e) {
+    const parts = [];
+    if (e.cat === 'Алхімія') {
+      parts.push(e.desc, `Вартість (інгредієнти/ринкова): ${e.price}`, `Навичка: ${e.alc.skill}`, `Обладнання: ${e.alc.equip}`);
+      if (e.alc.rare) parts.push(`Рідкісні інгредієнти: ${e.alc.rare}`);
+    } else {
+      if (e.ac) parts.push(`Броня ${e.ac}`);
+      parts.push(e.bonus, e.limit, e.req && `Вимоги: ${e.req}`, e.desc, e.price && `Ціна ${e.price}`);
+    }
+    const row = { name: e.n, qty: 1, desc: parts.filter(Boolean).join(' · ') };
+    const kind = /обладунк/i.test(e.cat) ? 'body' : e.cat === 'Щити' ? 'shield' : null;
+    if (!kind || !e.ac) return ctx.addRow('items', row);
+    await runGrants(ctx, {
+      src: `gear:${kind}`, title: `${e.n}: що дає`,
+      intro: kind === 'body' ? 'Новий обладунок замінює попередній, обраний через бібліотеку. Щит враховується окремо.' : 'Щит збільшує загальну броню. Новий щит замінює попередній, обраний через бібліотеку.',
+      items: [
+        { id: 'ac', group: 'Броня', label: `Обладунок +${e.ac}`, text: 'додається до поля «Обладунок»', apply: (c) => gAdd(c, 'armor', e.ac) },
+        { id: 'row', group: 'Інвентар', label: `Додати «${e.n}» до предметів`, text: row.desc, apply: (c) => gRows(c, 'items', [row], `gear:${kind}`) },
+      ],
+    });
+  },
 };
+
+const ST_UA = { str: 'СИЛ', dex: 'СПР', con: 'СТА', wil: 'ВОЛ' };
+const raceMeta = (e) => Object.entries(e.st || {}).map(([k, v]) => `${ST_UA[k]} ${v > 0 ? '+' : '−'}${Math.abs(v)}`).join(' ') || 'без змін характеристик';
 
 export default {
   id: 'kontynent',
@@ -123,8 +242,9 @@ export default {
       page: 'Персонаж', title: 'Персонаж', cols: 4,
       fields: [
         { id: 'name', type: 'text', label: 'Ім’я', span: 2 },
-        { id: 'race', type: 'text', label: 'Раса' },
+        { id: 'race', type: 'text', label: 'Раса', pick: { title: 'Раса', kind: 'kont-races', action: 'pickRace', meta: raceMeta } },
         { id: 'level', type: 'number', label: 'Рівень', min: 0, default: 0 },
+        { id: 'background', type: 'text', label: 'Передісторія', span: 2, pick: { title: 'Передісторія', kind: 'kont-backgrounds', action: 'pickBackground', meta: (e) => (e.g || []).map((x) => x.cat).join(', ') } },
         { id: 'info', type: 'longtext', label: 'Додаткова інформація', span: 4, rows: 2 },
       ],
     },
@@ -167,6 +287,8 @@ export default {
       page: 'Зброя', title: 'Зброя', cols: 1,
       fields: [{
         id: 'weapons', type: 'list', minWidth: '640px', addLabel: 'Додати зброю', empty: 'Зброї немає',
+        pick: { title: 'Зброя', label: 'Зброя з бібліотеки', kind: 'kont-weapons', action: 'pickWeapon', facets: [{ label: 'Вид шкоди', get: (e) => e.dt }],
+          meta: (e) => e.g.map((x) => `${x.h === 1 ? '1р' : '2р'} ${x.dmg} ${x.st}`).join(' / ') },
         columns: [
           { id: 'name', label: 'Назва', type: 'text' },
           { id: 'stat', label: 'Хар-ка', type: 'select', options: ['СИЛ', 'СПР'], width: '80px' },
@@ -181,6 +303,9 @@ export default {
       page: 'Закляття', title: 'Закляття', cols: 1,
       fields: [{
         id: 'spells', type: 'list', minWidth: '720px', addLabel: 'Додати закляття', empty: 'Заклять немає',
+        pick: { title: 'Закляття', label: 'Закляття з бібліотеки', kind: 'kont-spells', action: 'pickSpell',
+          facets: [{ label: 'Школа', get: (e) => e.sch }, { label: 'Рівень', get: (e) => e.l, fmt: (v) => `${v} рівень` }],
+          meta: (e) => `${e.sch} · ${e.l} рів. · МВ ${e.cost}${e.dmg ? ` · ${e.dmg}` : ''}` },
         columns: [
           { id: 'name', label: 'Назва', type: 'text' },
           { id: 'school', label: 'Школа', type: 'select', options: ['Вогонь', 'Вітер', 'Земля', 'Вода', 'Розум', 'Некромантія'], width: '110px' },
@@ -200,7 +325,9 @@ export default {
     {
       page: 'Риси', title: 'Риси та навички', cols: 1,
       fields: [
-        { id: 'traits', type: 'list', label: 'Риси', addLabel: 'Додати рису', columns: [
+        { id: 'traits', type: 'list', label: 'Риси', addLabel: 'Додати рису',
+          pick: { title: 'Риса', label: 'Риса з бібліотеки', kind: 'kont-feats', action: 'pickFeat', meta: (e) => (e.tiers ? `рівнів: ${e.tiers.length}` : '') + (e.req ? `${e.tiers ? ' · ' : ''}вимоги: ${e.req}` : '') },
+          columns: [
           { id: 'name', label: 'Назва', type: 'text', width: '38%' }, { id: 'desc', label: 'Ефект', type: 'text' }] },
         { id: 'effects', type: 'list', label: 'Додаткові ефекти', addLabel: 'Додати ефект', columns: [
           { id: 'name', label: 'Назва', type: 'text', width: '38%' }, { id: 'desc', label: 'Опис', type: 'text' }] },
@@ -214,7 +341,10 @@ export default {
       page: 'Інвентар', title: 'Інвентар', cols: 4,
       fields: [
         { id: 'gold', type: 'number', label: 'Гроші (зол. монет)', min: 0, default: 0 },
-        { id: 'items', type: 'list', label: 'Предмети', span: 4, addLabel: 'Додати предмет', columns: [
+        { id: 'items', type: 'list', label: 'Предмети', span: 4, addLabel: 'Додати предмет',
+          pick: { title: 'Предмет', label: 'Предмет, обладунок або зілля з бібліотеки', kind: 'kont-items', action: 'pickItem', facets: [{ label: 'Розділ', get: (e) => e.cat }],
+            meta: (e) => [e.cat, e.ac ? `броня ${e.ac}` : '', e.price].filter(Boolean).join(' · ') },
+          columns: [
           { id: 'name', label: 'Назва', type: 'text' }, { id: 'qty', label: 'К-сть', type: 'number', default: 1, width: '70px' },
           { id: 'desc', label: 'Примітка', type: 'text' }] },
         { id: 'other', type: 'longtext', label: 'Інше', span: 4, rows: 3 },

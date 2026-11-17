@@ -320,9 +320,11 @@ export function mountSheet(root, template, data, hooks) {
     const o = hooks.getOpts();
     const adv = o.adv || 0;
     const bonus = o.bonus || 0;
+    // Кубики, набрані в лотку, додаються до цієї перевірки (і лоток очищується).
+    const ex = (o.takeExtra && o.takeExtra()) || { groups: [], mod: 0 };
     const pool = await rollPool(
-      [{ sides: 20, count: adv ? 2 : 1, keep: adv > 0 ? 'kh1' : adv < 0 ? 'kl1' : '' }],
-      mod + bonus,
+      [{ sides: 20, count: adv ? 2 : 1, keep: adv > 0 ? 'kh1' : adv < 0 ? 'kl1' : '' }, ...ex.groups],
+      mod + bonus + ex.mod,
       title,
     );
     const g0 = pool.groups[0];
@@ -332,6 +334,7 @@ export function mountSheet(root, template, data, hooks) {
     parts.push(`${t.modifier}: ${fmt(mod, 'signed')}`);
     if (bonus) parts.push(`${t.bonus}: ${fmt(bonus, 'signed')}`);
     parts.push(...pool.groups.slice(1).map(describeGroup));
+    if (ex.mod) parts.push(`Мод. лотка: ${fmt(ex.mod, 'signed')}`);
     const dc = o.difficulty || 0;
     const entry = {
       title,
