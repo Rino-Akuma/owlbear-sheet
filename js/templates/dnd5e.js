@@ -2,6 +2,9 @@
 import { parseDice, rollDice } from '../engine/dice.js';
 import { CONDITIONS } from '../conditions.js';
 import { loadLib, pickFromLibrary, pickMany } from '../library.js';
+import { runGrants, gSkill, gChips, gLine, gAppend, gRows, gSet } from '../grants.js';
+import { openSpellCard, castSpell, rollEffect } from '../spellcard.js';
+import { spellFx, effectLabel } from '../spellfx.js';
 
 const sign = (n) => (n >= 0 ? `+${n}` : `${n}`);
 
@@ -51,38 +54,113 @@ function spellStats(ctx, row) {
   const mod = ctx.get(`${key}_mod`);
   return { dc: 8 + ctx.get('pb') + mod, atk: ctx.get('pb') + mod };
 }
+const ABIL_NAMES_UA = { str: 'Сила', dex: 'Спритність', con: 'Статура', int: 'Інтелект', wis: 'Мудрість', cha: 'Харизма' };
 const SPELL_ABIL = { int: 1, wis: 2, cha: 3, str: 4, dex: 5, con: 6 };
+
+// ---------- «що дає» (раса, клас, передісторія, риси) ----------
+const host = (ctx) => ({
+  stats: (row) => spellStats(ctx, row),
+  level: () => Number(ctx.get('level')) || 1,
+  mod: (row) => { const st = spellStats(ctx, row); return st.atk - ctx.get('pb'); },
+});
+let spellMap = null;
+async function findSpell(name) {
+  if (!spellMap) {
+    spellMap = new Map();
+    for (const e of await loadLib('spells')) {
+      const k = e.n.toLowerCase();
+      if (!spellMap.has(k) || e.s === 'PHB') spellMap.set(k, e);
+    }
+  }
+  return spellMap.get(String(name).toLowerCase()) || null;
+}
+const TIME_UA = { action: 'дія', bonus: 'бонус. дія', reaction: 'реакція', minute: 'хв', hour: 'год' };
+async function spellRow(e, extra = {}) {
+  let text = '';
+  try { text = (await loadLib('spells-text'))[`${e.n}|${e.s}`] || ''; } catch { /* без опису */ }
+  const [num, unit] = String(e.t || '').split(' ');
+  return {
+    name: e.n, level: e.l, time: `${num} ${TIME_UA[unit] || unit || ''}`.trim(), range: e.r || '', dmg: e.dmg ? dnum(e.dmg) : '',
+    up: e.up ? dnum(e.up) : '', cs: e.cs || null, kd: e.kd || '', dt: e.dt || [], sv: e.sv || [], atk: e.atk ? 1 : 0, pm: e.pm ? 1 : 0, k: e.k ? 1 : 0,
+    school: SCHOOLS[e.sc] || e.sc, comps: e.c || '', dur: `${e.k ? 'концентрація, ' : ''}${e.d || ''}`, text, ...extra,
+  };
+}
+const LANG_UA = { common: 'Загальна', dwarvish: 'Дварфійська', elvish: 'Ельфійська', giant: 'Велетенська', gnomish: 'Гномська', goblin: 'Гоблінська', halfling: 'Напіврослицька', orc: 'Орочача', abyssal: 'Безодня', celestial: 'Небесна', draconic: 'Драконяча', 'deep speech': 'Глибинна мова', infernal: 'Інфернальна', primordial: 'Первісна', sylvan: 'Сильванська', undercommon: 'Підземна', "thieves' cant": 'Злодійський жаргон', druidic: 'Друїдська' };
+const langs = (l) => (l || []).map((x) => LANG_UA[String(x).toLowerCase()] || x);
+const skillItems = (e, group, owned) => {
+  const out = (e.sk || []).map((k) => ({ id: `sk:${k}`, group, label: SKILL_UA[k] || k, text: 'володіння навичкою', apply: (c) => gSkill(c, skillId(k)) }));
+  if (e.skc) {
+    const options = Object.keys(SKILL_UA).map((k) => ({ value: k, label: SKILL_UA[k] }));
+    out.push({ id: 'skc', group, label: `Оберіть навички (${e.skc})`, choose: { count: e.skc, options: options.filter((o) => !(Number(owned.data[skillId(o.value)]) >= 1)) }, apply: (c, picks) => picks.map((k) => gSkill(c, skillId(k))) });
+  }
+  return out;
+};
+async function textItem(src, lib, key, label, group) {
+  let list = [];
+  try { list = (await loadLib(lib))[key] || []; } catch { /* без опису */ }
+  if (!list.length) return [];
+  return [{ id: `tx:${src}`, group, label: `${label} (${list.length})`, text: list.map((x) => x.n).join(', '),
+    apply: (c) => { c.data.features = (Array.isArray(c.data.features) ? c.data.features : []).filter((r) => r.src !== src); return gRows(c, 'features', list.map((x) => ({ name: x.n, text: x.t })), src); } }];
+}
+async function featItems(ctx, featName, src, group) {
+  const lib = await loadLib('feats');
+  const f = lib.find((x) => x.n.toLowerCase() === String(featName).toLowerCase() && x.s !== 'XPHB') || lib.find((x) => x.n.toLowerCase() === String(featName).toLowerCase());
+  if (!f) return [];
+  let text = '';
+  try { text = (await loadLib('feats-text'))[`${f.n}|${f.s}`] || ''; } catch { /* без опису */ }
+  const bonus = f.ab ? `Бонус характеристик: ${Object.entries(f.ab).map(([k, v]) => `${ABIL_UA[k] || k} +${v}`).join(', ')}${f.abc ? ' (на вибір)' : ''}\n` : '';
+  const items = [{ id: `feat:${f.n}`, group, label: `Риса: ${f.n}`, text: 'з описом', apply: (c) => gRows(c, 'featlist', [{ name: f.n, text: `${bonus}${text}` }], src) }];
+  for (const sp of f.sp || []) {
+    const e = await findSpell(sp.n);
+    if (!e) continue;
+    items.push({ id: `fsp:${f.n}:${sp.n}`, group: `Закляття від риси «${f.n}»`, label: e.n, checked: !!sp.a,
+      text: `${e.l === 0 ? 'замовляння' : `${e.l}-й рівень`}${sp.i ? ', раз на відпочинок без ячейки' : ''}${sp.a ? '' : ' (за правилами риси оберіть потрібні)'}`,
+      apply: async (c) => gRows(c, 'spellbook', [await spellRow(e, { free: sp.i ? 1 : 0, from: f.n })], src) });
+  }
+  return items;
+}
 
 const libActions = {
   async pickRace(ctx, e) {
     const b = Object.entries(e.ab || {}).map(([k, v]) => `${ABIL_UA[k] || k} ${v > 0 ? '+' : ''}${v}`).join(', ');
     ctx.data.race = b ? `${e.n} [${b}]` : e.n;
-    ctx.data.speed = e.sp || 30;
-    if (SIZES[e.sz]) ctx.data.size = SIZES[e.sz];
-    giveSkills(ctx, e.sk);
-    if (e.skc) await chooseSkills(ctx, Object.keys(SKILL_UA), e.skc, `Раса «${e.n}»: оберіть навички`);
-    setLine(ctx, 'Раса — мови', e.ln);
-    setLine(ctx, 'Раса — інструменти', e.tl);
-    setLine(ctx, 'Раса — темнобачення', e.dv ? [`${e.dv} фт`] : null);
-    await setFeatures(ctx, 'race', 'races-text', `${e.n}|${e.s}`);
+    const items = [
+      { id: 'base', group: 'Основне', label: `Швидкість ${e.sp || 30} фт${SIZES[e.sz] ? `, розмір ${SIZES[e.sz].toLowerCase()}` : ''}`,
+        apply: (c) => [gSet(c, 'speed', e.sp || 30), SIZES[e.sz] ? gSet(c, 'size', SIZES[e.sz]) : null] },
+      ...skillItems(e, 'Навички', ctx),
+    ];
+    if (e.ln && e.ln.length) items.push({ id: 'ln', group: 'Мови та інше', label: `Мови: ${langs(e.ln).join(', ')}`, apply: (c) => gLine(c, 'Раса — мови', langs(e.ln)) });
+    if (e.tl && e.tl.length) items.push({ id: 'tl', group: 'Мови та інше', label: `Інструменти: ${e.tl.join(', ')}`, apply: (c) => gLine(c, 'Раса — інструменти', e.tl) });
+    if (e.dv) items.push({ id: 'dv', group: 'Мови та інше', label: `Темнобачення ${e.dv} фт`, apply: (c) => gLine(c, 'Раса — темнобачення', [`${e.dv} фт`]) });
+    items.push(...await textItem('race', 'races-text', `${e.n}|${e.s}`, 'Расові особливості', 'Особливості'));
+    await runGrants(ctx, { src: 'race', title: `Раса «${e.n}»: що вона дає`, intro: 'Зніміть позначки з того, що не потрібно. Надане можна замінити, обравши іншу расу.', items });
   },
   async pickClass(ctx, e) {
     const rows = Array.isArray(ctx.data.classes) ? ctx.data.classes : [];
     const first = rows.length === 0;
     ctx.addRow('classes', { name: e.n, sub: '', level: 1, hd: e.hd, sc: e.sc || '' });
-    if (first) {
-      (e.sv || []).forEach((a) => { ctx.data[`${a}_save`] = Math.max(1, Number(ctx.data[`${a}_save`]) || 0); });
-      addChips(ctx, 'armor_prof', (e.arm || []).map((x) => ({ light: 'Легка', medium: 'Середня', heavy: 'Важка', shield: 'Щит' })[x]).filter(Boolean));
-      const wp = e.wp || [];
-      addChips(ctx, 'weapon_prof', [wp.includes('simple') && 'Проста', wp.includes('martial') && 'Військова', wp.some((x) => x !== 'simple' && x !== 'martial') && 'Інша'].filter(Boolean));
-      setLine(ctx, 'Клас — зброя', wp.filter((x) => x !== 'simple' && x !== 'martial').map(cleanTag));
-      setLine(ctx, 'Клас — інструменти', e.tl);
-      if (e.skc && e.skf) await chooseSkills(ctx, e.skf, e.skc, `Клас «${e.n}»: оберіть навички`);
-    }
     if (e.sc && SPELL_ABIL[e.sc] && !Number(ctx.data.spell_abil)) ctx.data.spell_abil = SPELL_ABIL[e.sc];
+    if (!first) return; // мультиклас: володіння не додаються автоматично
+    const wp = e.wp || [];
+    const items = [
+      ...(e.sv || []).map((a) => ({ id: `sv:${a}`, group: 'Рятівні кидки', label: ABIL_NAMES_UA[a] || a, apply: (c) => gSkill(c, `${a}_save`) })),
+    ];
+    const arm = (e.arm || []).map((x) => ({ light: 'Легка', medium: 'Середня', heavy: 'Важка', shield: 'Щит' })[x]).filter(Boolean);
+    if (arm.length) items.push({ id: 'arm', group: 'Володіння', label: `Броня: ${arm.join(', ')}`, apply: (c) => gChips(c, 'armor_prof', arm) });
+    const wch = [wp.includes('simple') && 'Проста', wp.includes('martial') && 'Військова', wp.some((x) => x !== 'simple' && x !== 'martial') && 'Інша'].filter(Boolean);
+    if (wch.length) items.push({ id: 'wp', group: 'Володіння', label: `Зброя: ${wch.join(', ')}`, apply: (c) => gChips(c, 'weapon_prof', wch) });
+    const extraW = wp.filter((x) => x !== 'simple' && x !== 'martial').map(cleanTag);
+    if (extraW.length) items.push({ id: 'wl', group: 'Володіння', label: `Окрема зброя: ${extraW.join(', ')}`, apply: (c) => gLine(c, 'Клас — зброя', extraW) });
+    if (e.tl && e.tl.length) items.push({ id: 'tl', group: 'Володіння', label: `Інструменти: ${e.tl.join(', ')}`, apply: (c) => gLine(c, 'Клас — інструменти', e.tl) });
+    if (e.skc && e.skf) {
+      items.push({ id: 'skc', group: 'Навички', label: `Оберіть навички (${e.skc})`,
+        choose: { count: e.skc, options: e.skf.filter((k) => !(Number(ctx.data[skillId(k)]) >= 1)).map((k) => ({ value: k, label: SKILL_UA[k] || k })) },
+        apply: (c, picks) => picks.map((k) => gSkill(c, skillId(k))) });
+    }
+    await runGrants(ctx, { src: 'cls', title: `Клас «${e.n}»: що він дає на 1-му рівні`, intro: 'Володіння першого класу. При мультикласі нові володіння додавайте вручну.', items });
   },
   async pickSubclass(ctx, row) {
-    const sub = await pickFromLibrary({ title: `Підклас: ${row.name || 'клас'}`, kind: 'subclasses', filter: (x) => !row.name || x.cls.toLowerCase() === String(row.name).toLowerCase(), meta: (x) => (x.sc ? 'має закляття' : '') });
+    const sub = await pickFromLibrary({ title: `Підклас: ${row.name || 'клас'}`, kind: 'subclasses', filter: (x) => !row.name || x.cls.toLowerCase() === String(row.name).toLowerCase(), meta: (x) => (x.sc ? 'магічний' : '') });
     if (!sub) return;
     row.sub = sub.n;
     if (sub.sc && SPELL_ABIL[sub.sc] && !Number(ctx.data.spell_abil)) ctx.data.spell_abil = SPELL_ABIL[sub.sc];
@@ -91,27 +169,24 @@ const libActions = {
   },
   async pickBackground(ctx, e) {
     ctx.data.background = e.n;
-    giveSkills(ctx, e.sk);
-    if (e.skc) await chooseSkills(ctx, Object.keys(SKILL_UA), e.skc, `Передісторія «${e.n}»: оберіть навички`);
-    setLine(ctx, 'Передісторія — мови', e.ln);
-    setLine(ctx, 'Передісторія — інструменти', e.tl);
-    await setFeatures(ctx, 'bg', 'backgrounds-text', `${e.n}|${e.s}`);
+    const items = [...skillItems(e, 'Навички', ctx)];
+    if (e.ln && e.ln.length) items.push({ id: 'ln', group: 'Мови та інструменти', label: `Мови: ${langs(e.ln).join(', ')}`, apply: (c) => gLine(c, 'Передісторія — мови', langs(e.ln)) });
+    if (e.tl && e.tl.length) items.push({ id: 'tl', group: 'Мови та інструменти', label: `Інструменти: ${e.tl.join(', ')}`, apply: (c) => gLine(c, 'Передісторія — інструменти', e.tl) });
+    for (const ft of e.ft || []) items.push(...await featItems(ctx, ft, 'bg', 'Риса передісторії'));
+    items.push(...await textItem('bg', 'backgrounds-text', `${e.n}|${e.s}`, 'Особливість передісторії', 'Особливості'));
+    if (e.eq) items.push({ id: 'eq', group: 'Спорядження', label: 'Стартове спорядження', text: e.eq, apply: (c) => gAppend(c, 'equipment', `${e.n}: ${e.eq}`) });
+    await runGrants(ctx, { src: 'bg', title: `Передісторія «${e.n}»: що вона дає`, intro: 'Зніміть позначки з того, що не потрібно. Усе надане від передісторії замінюється, якщо обрати іншу.', items });
   },
   async pickFeat(ctx, e) {
     let text = '';
     try { text = (await loadLib('feats-text'))[`${e.n}|${e.s}`] || ''; } catch { /* без опису */ }
     const bonus = e.ab ? `Бонус характеристик: ${Object.entries(e.ab).map(([k, v]) => `${ABIL_UA[k] || k} +${v}`).join(', ')}${e.abc ? ' (на вибір)' : ''}\n` : '';
-    ctx.addRow('featlist', { name: e.n, text: `${bonus}${text}` });
+    ctx.addRow('featlist', { name: e.n, text: `${bonus}${text}`, src: `feat:${e.n}` });
+    const items = (await featItems(ctx, e.n, `feat:${e.n}`, 'Риса')).filter((i) => i.id.startsWith('fsp:'));
+    if (items.length) await runGrants(ctx, { src: `feat:${e.n}`, title: `Риса «${e.n}»: закляття`, intro: e.spc ? 'Частину заклять ця риса дає на вибір — додайте їх із бібліотеки заклять самостійно.' : '', items });
   },
   async pickSpell(ctx, e) {
-    let text = '';
-    try { text = (await loadLib('spells-text'))[`${e.n}|${e.s}`] || ''; } catch { /* без опису */ }
-    const tm = { action: 'дія', bonus: 'бонус. дія', reaction: 'реакція', minute: 'хв', hour: 'год' };
-    const [num, unit] = String(e.t || '').split(' ');
-    ctx.addRow('spellbook', {
-      name: e.n, level: e.l, time: `${num} ${tm[unit] || unit || ''}`.trim(), range: e.r || '', dmg: e.dmg ? dnum(e.dmg) : '',
-      school: SCHOOLS[e.sc] || e.sc, comps: e.c || '', dur: `${e.k ? 'концентрація, ' : ''}${e.d || ''}`, text,
-    });
+    ctx.addRow('spellbook', await spellRow(e));
   },
   pickWeapon(ctx, e) {
     const str = ctx.get('str_mod'), dex = ctx.get('dex_mod');
@@ -136,30 +211,16 @@ const actions = {
   featInfo(ctx, row) {
     ctx.showText({ title: row.name || 'Риса', text: row.text || '', onSave: (v) => { row.text = v; ctx.touch(); } });
   },
-  spellInfo(ctx, row) {
-    const meta = [row.level === 0 ? 'замовляння' : `${row.level}-й рівень`, row.school, row.time, row.range, row.comps, row.dur, `СЛ ${spellStats(ctx, row).dc}`].filter(Boolean).join(' · ');
-    ctx.showText({ title: row.name || 'Закляття', meta, text: row.text || '', onSave: (v) => { row.text = v; ctx.touch(); },
-      buttons: row.dmg ? [{ label: 'Кинути шкоду', primary: true, onclick: () => actions.spellDamage(ctx, row) }] : [] });
-  },
+  spellInfo(ctx, row) { openSpellCard(ctx, row, host(ctx)); },
+  spellCard(ctx, row) { openSpellCard(ctx, row, host(ctx)); },
   spellAttack(ctx, row) {
     const st = spellStats(ctx, row);
     ctx.rollD20(`Атака закляттям: ${row.name || ''}`, st.atk);
   },
-  spellCast(ctx, row) {
-    const n = Number(row.level) || 0;
-    if (n === 0) return ctx.log({ title: `Вимовлено: ${row.name}`, lines: ['Замовляння не витрачає ячейку'], success: null, crit: null });
-    const total = Number(ctx.data[`slots${n}`]) || 0;
-    const left = ctx.data[`slotsleft${n}`] == null ? total : Number(ctx.data[`slotsleft${n}`]) || 0;
-    if (left <= 0) return ctx.log({ title: `Вимовлено: ${row.name}`, lines: [`Немає ячейок ${n}-го рівня`], success: false, crit: null });
-    ctx.setData(`slotsleft${n}`, left - 1);
-    ctx.log({ title: `Вимовлено: ${row.name}`, lines: [`Ячейка ${n}-го рівня: лишилось ${left - 1} з ${total}`], success: null, crit: null });
-  },
-  async spellDamage(ctx, row) {
-    const dice = parseDice(row.dmg);
-    if (!dice) return ctx.log({ title: row.name || 'Шкода', lines: ['Вкажіть шкоду кубиками, наприклад 8д6'], success: null, crit: null });
-    const r = await rollDice({ ...dice, label: `Шкода ${row.name || ''}` });
-    ctx.log({ title: `Шкода: ${row.name}`, lines: [`${diceText(dice)}: [${r.rolls.join(', ')}]${dice.plus ? ` ${sign(dice.plus)}` : ''}`], success: null, crit: null, headline: r.total });
-  },
+  async spellQuick(ctx, row) { await castSpell(ctx, row, host(ctx), { attack: true, effect: true }); ctx.redraw(); },
+  spellCast(ctx, row) { return actions.spellQuick(ctx, row); },
+  async spellEffect(ctx, row) { await rollEffect(ctx, row, host(ctx), row.level); },
+  spellDamage(ctx, row) { return actions.spellEffect(ctx, row); },
   attackRoll(ctx, row) {
     ctx.rollD20(`Атака: ${row.name || 'зброя'}`, Number(row.bonus) || 0);
   },
@@ -357,10 +418,10 @@ const template = {
           { id: 'abil', label: 'Хар-ка', type: 'select', options: ['Осн.', 'ІНТ', 'МДР', 'ХАР', 'СИЛ', 'СПР', 'СТАТ'], width: '84px' },
         ],
         rowActions: [
-          { label: 'Опис', action: 'spellInfo', hint: 'Як діє закляття' },
-          { label: 'Вимовити', action: 'spellCast', hint: 'Витрачає ячейку цього рівня' },
-          { label: 'Атака', action: 'spellAttack', hint: 'Бонус атаки закляттям' },
-          { label: 'Шкода', action: 'spellDamage' },
+          { label: 'Картка', action: 'spellCard', hint: 'Опис, що робить закляття, вибір ячейки та кидки' },
+          { label: 'Вимовити', action: 'spellQuick', hint: 'Витрачає ячейку цього рівня й кидає атаку та ефект' },
+          { label: 'Атака', action: 'spellAttack', hint: 'Бонус атаки закляттям', when: (r) => r.atk !== 0 && r.atk !== false },
+          { label: 'Шкода', labelOf: (r) => effectLabel(r), action: 'spellEffect', hint: 'Кидок ефекту (для вищої ячейки відкрийте картку)', when: (r) => !!String(r.dmg || '').trim() },
         ],
       }],
     },

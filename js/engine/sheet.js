@@ -442,8 +442,8 @@ export function mountSheet(root, template, data, hooks) {
     function renderRows() {
       tbody.replaceChildren();
       rows.forEach((row, idx) => {
-        const acts = (f.rowActions || []).map((a) => h('button', {
-          type: 'button', class: 'mini act', text: a.label, title: a.hint || '',
+        const acts = (f.rowActions || []).filter((a) => !a.when || a.when(row)).map((a) => h('button', {
+          type: 'button', class: 'mini act', text: a.labelOf ? a.labelOf(row) : a.label, title: a.hint || '',
           onclick: () => {
             const fn = actions[a.action];
             if (!fn) return hooks.log({ title: a.label, lines: [t.noAction], success: null, crit: null });

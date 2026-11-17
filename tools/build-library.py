@@ -135,7 +135,17 @@ for f in sorted(os.listdir(os.path.join(D,'spells'))):
            't':f"{tm['number']} {tm['unit']}",'r':rng(s['range']),'c':cs,'d':dstr,'cl':sorted(cmap.get(s['name'],[]))}
         if conc: e['k']=1
         if any(x.get('ritual') for x in [s.get('meta',{})]): e['rt']=1
-        if dm: e['dmg']=dm[0].strip()
+        hltxt=json.dumps(s.get('entriesHigherLevel',[]),ensure_ascii=False)
+        sc=re.search(r'\{@scale(?:damage|dice) ([0-9d+ ]+)\|[^|}]*\|([0-9d+ ]+)\}',hltxt)
+        base=re.search(r'\{@(?:damage|dice) ([0-9d+ ]+)',txt)
+        if sc: e['dmg']=sc.group(1).strip(); e['up']=sc.group(2).strip()   # шкода/лікування росте з ячейкою
+        elif dm: e['dmg']=dm[0].strip()
+        if s.get('scalingLevelDice'):
+            sl=s['scalingLevelDice']; sl=sl[0] if isinstance(sl,list) else sl
+            if isinstance(sl,dict) and isinstance(sl.get('scaling'),dict): e['cs']=sl['scaling']   # замовляння: ріст з рівнем персонажа
+        tags=s.get('miscTags') or []
+        e['kd']='d' if s.get('damageInflict') else ('h' if 'HL' in tags else 'u')
+        if e['kd']=='h' and 'spellcasting ability modifier' in txt: e['pm']=1
         if s.get('savingThrow'): e['sv']=s['savingThrow']
         if s.get('spellAttack'): e['atk']=1
         if s.get('damageInflict'): e['dt']=s['damageInflict']
@@ -220,6 +230,24 @@ for f in L('feats.json')['feat']:
     if skc_: e['skc']=skc_
     pre=f.get('prerequisite')
     if pre: e['pre']=json.dumps(pre,ensure_ascii=False)
+    sp_=[]; spc=0
+    for blk in f.get('additionalSpells',[]) or []:
+        if blk.get('name'): spc=1; continue   # вибір списку (Magic Initiate тощо)
+        def walk(o, auto, out, inn=False):
+            if isinstance(o,str): out.append((o.split('|')[0].replace('#c','').strip(), auto, o.endswith('#c'), inn))
+            elif isinstance(o,list):
+                strs=[x for x in o if isinstance(x,str)]
+                for x in o:
+                    if isinstance(x,dict) and 'choose' in x: nonlocal_flag.append(1)
+                for x in strs: out.append((x.split('|')[0].replace('#c','').strip(), auto and len(strs)<=3, x.endswith('#c'), inn))
+            elif isinstance(o,dict):
+                for v in o.values(): walk(v, auto, out, inn)
+        nonlocal_flag=[]
+        for kind in ('known','innate','prepared','expanded'):
+            if kind in blk: walk(blk[kind], kind!='expanded', sp_, kind=='innate')
+        if nonlocal_flag: spc=1
+    if sp_: e['sp']=[{'n':n,'a':int(a),'c':int(c),'i':int(i)} for n,a,c,i in sp_]
+    if spc: e['spc']=1
     fe.append(e)
     ftx[f"{f['name']}|{f['source']}"]='\n'.join(flat(f.get('entries',[])))
 dump('feats.json',fe)
@@ -230,6 +258,12 @@ for b in L('backgrounds.json')['background']:
     s2,sc2=skills(b.get('skillProficiencies')); e={'n':b['name'],'s':b['source']}
     if s2: e['sk']=s2
     if sc2: e['skc']=sc2
+    ft=[k.split('|')[0] for d in b.get('feats',[]) for k in d if d[k] is True]
+    if ft: e['ft']=ft
+    for x in b.get('entries',[]):
+        if isinstance(x,dict) and x.get('type')=='list':
+            for it in x.get('items',[]):
+                if isinstance(it,dict) and str(it.get('name','')).lower().startswith('equipment'): e['eq']=clean(re.sub(r'\{@filter ([^|}]*)[^}]*\}', r'\1', it.get('entry','')))
     bg.append(e)
     tr=[x for x in traits(b.get('entries',[])) if x['n'].lower().startswith('feature')]
     if tr: btx[f"{b['name']}|{b['source']}"]=tr

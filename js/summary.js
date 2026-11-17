@@ -1,9 +1,10 @@
+import { spellFx } from './spellfx.js';
 // Коротке зведення персонажа для ГМа (публікується в метадані гравця Owlbear; ліміт ≈16 КБ).
 const cut = (s, n = 70) => (String(s ?? '').length > n ? `${String(s).slice(0, n - 1)}…` : String(s ?? ''));
 const arr = (v) => (Array.isArray(v) ? v : []);
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const sgn = (v) => (num(v) >= 0 ? `+${num(v)}` : String(num(v)));
-const list = (items, max = 40) => items.filter(Boolean).slice(0, max).map((s) => cut(s));
+const list = (items, max = 40) => items.filter(Boolean).slice(0, max).map((s) => cut(s, 110));
 const names = (rows) => arr(rows).map((r) => r && r.name).filter(Boolean);
 
 export function buildSummary(rec, get) {
@@ -17,7 +18,7 @@ export function buildSummary(rec, get) {
       hp: num(get('hp')), max: num(get('hp_max')), tmp: num(d.hp_temp), ac: num(d.ac), acLabel: 'КБ',
       det: {
         'Зброя': list(arr(d.attacks).filter((a) => a && a.name).map((a) => `${a.name} ${sgn(a.bonus)}${a.dmg ? ` · ${a.dmg}` : ''}`)),
-        'Закляття': list(arr(d.spellbook).filter((s) => s && s.name).sort((a, b) => num(a.level) - num(b.level)).map((s) => `${s.name} (${num(s.level) === 0 ? 'замовл.' : `${num(s.level)} рів.`})`), 60),
+        'Закляття': list(arr(d.spellbook).filter((s) => s && s.name).sort((a, b) => num(a.level) - num(b.level)).map((s) => `${s.name} (${num(s.level) === 0 ? 'замовл.' : `${num(s.level)} рів.`}) — ${spellFx(s)}`), 60).map((x) => x.slice(0, 110)),
         'Риси': list([...names(d.featlist), ...names(d.features)], 60),
         'Володіння': list([...arr(d.armor_prof), ...arr(d.weapon_prof), ...String(d.other_prof || '').split('\n').map((x) => x.trim())], 30),
       },
