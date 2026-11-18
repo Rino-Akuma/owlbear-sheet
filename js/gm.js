@@ -1,6 +1,6 @@
 // Панель ГМа: зведення персонажів гравців (HP, КБ, ініціатива, стани, зброя/закляття/риси/володіння).
-import { CONDITIONS, COND_ICONS } from './conditions.js';
-const ico = (c) => `${COND_ICONS[String(c).replace(/'/g, '’')] || ''} ${c}`.trim();
+import { CONDITIONS } from './conditions.js';
+const ico = (c) => c;
 
 function h(tag, attrs = {}, ...kids) {
   const el = document.createElement(tag);

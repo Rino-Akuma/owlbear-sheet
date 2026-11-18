@@ -275,30 +275,26 @@ export function setRoomChar(id) {
   try { if (id) localStorage.setItem(roomKey(), id); else localStorage.removeItem(roomKey()); } catch { /* ігноруємо */ }
 }
 
-import { COND_ICONS } from './conditions.js';
-// ---------- стани на токені ----------
-// Компактно: один «бейдж» над токеном зі значками (до 5), решта — «+N». Розшифровка значків — у листі й панелі ГМа.
-export { COND_ICONS };
-const MAX_BADGES = 5;
-export function condBadgeText(conds) {
-  const list = (Array.isArray(conds) ? conds : []).filter(Boolean);
-  if (!list.length) return '';
-  const icons = list.map((c) => COND_ICONS[String(c).replace(/'/g, '’')] || '❓');
-  const shown = icons.slice(0, MAX_BADGES).join(' ');
-  return list.length > MAX_BADGES ? `${shown} +${list.length - MAX_BADGES}` : shown;
-}
+import { condColor, condKey } from './conditions.js';
+import { loadIconPack, iconSvg, iconDataUrl, getCondMode } from './icons.js';
 
-/** Показує стани над токеном (або прибирає, якщо їх немає). Повертає 'ok' або 'missing'. */
-export async function syncStatusBadge(tokenId, conds) {
+// ---------- стани на токені ----------
+// Над токеном — темна плашка. Режим «both»: до двох станів «іконка + слово», решта «+N ще».
+// Режим «icons»: до чотирьох іконок, решта «+N». Без завантажених іконок — кольорова крапка з літерою.
+const MAX_BOTH = 2, MAX_ICONS = 4;
+
+/** Створює/оновлює плашку станів над токеном (або прибирає). Повертає 'ok' або 'missing'. */
+export async function syncStatusBadge(tokenId, conds, modeOverride) {
   if (!tokenId || !(await whenReady())) return 'ok';
-  const text = condBadgeText(conds);
+  const list = (Array.isArray(conds) ? conds : []).filter(Boolean);
   const existing = await OBR.scene.items.getItems((i) => i.metadata[STATUS_KEY] && i.metadata[STATUS_KEY].token === tokenId);
-  if (!text) {
+  if (!list.length) {
     if (existing.length) await OBR.scene.items.deleteItems(existing.map((e) => e.id));
     return 'ok';
   }
   const [token] = await OBR.scene.items.getItems([tokenId]);
   if (!token) return 'missing';
+  const mode = modeOverride || getCondMode();
   const dpi = await OBR.scene.grid.getDpi();
   const img = token.image || { width: dpi, height: dpi };
   const k = dpi / ((token.grid && token.grid.dpi) || dpi);
@@ -306,23 +302,64 @@ export async function syncStatusBadge(tokenId, conds) {
   const off = (token.grid && token.grid.offset) || { x: img.width / 2, y: img.height / 2 };
   const left = token.position.x - off.x * token.scale.x * k;
   const top = token.position.y - off.y * token.scale.y * k;
-  const pos = { x: left + w / 2, y: top };
-  if (existing.length) {
-    await OBR.scene.items.updateItems(existing, (drafts) => {
-      for (const d of drafts) { d.position = pos; if (d.text) d.text.plainText = text; }
-    });
-    return 'ok';
-  }
-  const { buildLabel, buildText } = sdkMod;
-  let it;
-  if (typeof buildLabel === 'function') {
-    it = buildLabel().plainText(text).backgroundColor('#111111').backgroundOpacity(0.85).cornerRadius(12)
-      .pointerDirection('DOWN').pointerWidth(10).pointerHeight(8).fillColor('#ffffff');
+  const S = Math.round(Math.max(26, Math.min(w * 0.28, 60)));
+  const sig = `${mode}|${S}|${list.join(',')}`;
+  if (existing.length && existing[0].metadata[STATUS_KEY].sig === sig) return 'ok';
+
+  const pack = await loadIconPack();
+  const font = Math.round(S * 0.55), gap = Math.round(S * 0.2), pad = Math.round(S * 0.22);
+  const charW = font * 0.6;
+  const maxShown = mode === 'icons' ? MAX_ICONS : MAX_BOTH;
+  const shown = list.slice(0, maxShown), rest = list.length - shown.length;
+  const restText = mode === 'icons' ? `+${rest}` : `+${rest} ще`;
+  const restW = rest ? restText.length * charW : 0;
+
+  // розкладка (локальні координати від лівого верхнього кута плашки)
+  const parts = []; // { kind:'icon'|'text', state?, text?, x, y, w, h }
+  let bw, bh;
+  if (mode === 'icons') {
+    shown.forEach((st, n) => parts.push({ kind: 'icon', state: st, x: pad + n * (S + gap), y: pad, w: S, h: S }));
+    const rowW = shown.length * S + (shown.length - 1) * gap;
+    if (rest) parts.push({ kind: 'text', text: restText, x: pad + rowW + gap, y: pad + (S - font * 1.3) / 2, w: restW, h: font * 1.3 });
+    bw = pad * 2 + rowW + (rest ? gap + restW : 0); bh = pad * 2 + S;
   } else {
-    it = buildText().plainText(text).fontSize(Math.max(18, w * 0.2)).textAlign('CENTER').width(w).height(Math.max(24, w * 0.25));
+    const widths = shown.map((st) => S + gap + String(st).length * charW);
+    shown.forEach((st, n) => {
+      const y = pad + n * (S + gap);
+      parts.push({ kind: 'icon', state: st, x: pad, y, w: S, h: S });
+      parts.push({ kind: 'text', text: st, x: pad + S + gap, y: y + (S - font * 1.3) / 2, w: String(st).length * charW + 2, h: font * 1.3 });
+    });
+    bw = pad * 2 + Math.max(...widths, rest ? restW : 0);
+    bh = pad * 2 + shown.length * S + (shown.length - 1) * gap;
+    if (rest) { parts.push({ kind: 'text', text: restText, x: pad, y: bh - pad + gap * 0.4, w: restW, h: font * 1.3, dim: true }); bh += font * 1.3 + gap * 0.4; }
   }
-  it = it.position(pos).attachedTo(tokenId).layer('ATTACHMENT').locked(true).disableHit(true).name('Стани')
-    .metadata({ [STATUS_KEY]: { token: tokenId } }).build();
-  await OBR.scene.items.addItems([it]);
+  const bx = left + w / 2 - bw / 2, by = top - bh - Math.round(S * 0.18);
+
+  const { buildShape, buildText, buildImage } = sdkMod;
+  const meta = { [STATUS_KEY]: { token: tokenId, sig } };
+  const common = (b) => b.attachedTo(tokenId).layer('ATTACHMENT').locked(true).disableHit(true).metadata(meta);
+  const items = [common(buildShape().shapeType('RECTANGLE').width(bw).height(bh).position({ x: bx, y: by })
+    .fillColor('#111111').fillOpacity(0.88).strokeColor('#000000').strokeOpacity(0.9).strokeWidth(2).name('Стани (фон)')).build()];
+  for (const pt of parts) {
+    const x = bx + pt.x, y = by + pt.y;
+    if (pt.kind === 'text') {
+      items.push(common(buildText().plainText(pt.text).position({ x, y }).width(Math.ceil(pt.w)).height(Math.ceil(pt.h))
+        .fontSize(font).fontWeight(500).fillColor(pt.dim ? '#9a978f' : '#f1efe9').strokeWidth(0).textAlign('START').textAlignVertical('MIDDLE')
+        .name('Стан (текст)')).build());
+    } else {
+      const col = condColor(pt.state);
+      const svg = iconSvg(pack, pt.state, col);
+      if (svg) {
+        items.push(common(buildImage({ url: iconDataUrl(svg), mime: 'image/svg+xml', width: 512, height: 512 }, { dpi: (512 * dpi) / pt.w, offset: { x: 0, y: 0 } })
+          .position({ x, y }).name(`Стан: ${pt.state}`)).build());
+      } else { // без іконки: кольорова плашка з літерою
+        items.push(common(buildShape().shapeType('RECTANGLE').width(pt.w).height(pt.h).position({ x, y }).fillColor(col).fillOpacity(1).strokeWidth(0).name(`Стан: ${pt.state}`)).build());
+        items.push(common(buildText().plainText(String(pt.state)[0]).position({ x, y }).width(pt.w).height(pt.h).fontSize(font).fontWeight(500)
+          .fillColor('#111111').strokeWidth(0).textAlign('CENTER').textAlignVertical('MIDDLE').name('Літера')).build());
+      }
+    }
+  }
+  if (existing.length) await OBR.scene.items.deleteItems(existing.map((e) => e.id));
+  await OBR.scene.items.addItems(items);
   return 'ok';
 }

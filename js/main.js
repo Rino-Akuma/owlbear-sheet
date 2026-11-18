@@ -1,10 +1,12 @@
 import { t } from './i18n.js';
-import { initOwlbear, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, inOwlbear, obrActive, pickSelectedToken, syncHpBar, syncStatusBadge, COND_ICONS, removeHpBar, publishSummary, isGM, watchTable, sendCmd, myId, getRoomChar, setRoomChar } from './owlbear.js';
+import { initOwlbear, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, inOwlbear, obrActive, pickSelectedToken, syncHpBar, syncStatusBadge, removeHpBar, publishSummary, isGM, watchTable, sendCmd, myId, getRoomChar, setRoomChar } from './owlbear.js';
 import { setProvider, rollPool, describeGroup } from './engine/dice.js';
 import { TEMPLATES, getTemplate } from './templates/index.js';
 import { mountSheet, fmt } from './engine/sheet.js';
 import { buildSummary } from './summary.js';
 import { mountGm } from './gm.js';
+import { COND_META, condColor } from './conditions.js';
+import { loadIconPack, iconSvg, getCondMode, setCondMode } from './icons.js';
 import {
   listCharacters, saveCharacter, deleteCharacter, newId, requestPersistence,
   makeBackup, readBackup, SCHEMA_VERSION,
@@ -128,17 +130,40 @@ async function syncToken() {
     await syncStatusBadge(active.tokenId, active.data.conditions);
   } catch (e) { console.warn('Смужка HP:', e.message); }
 }
-function drawLegend() {
+async function drawLegend() {
   const d = $('#cond-legend');
   if (!d) return;
   d.hidden = !(obrActive() && active && active.tokenId);
   const body = $('#cond-legend-body');
-  if (!body.childElementCount) body.textContent = Object.entries(COND_ICONS).map(([n, i]) => `${i} ${n}`).join('  ·  ');
+  if (d.hidden || body.dataset.ready) return;
+  body.dataset.ready = '1';
+  const pack = await loadIconPack();
+  body.replaceChildren(...Object.keys(COND_META).map((n) => {
+    const svg = iconSvg(pack, n);
+    const row = document.createElement('span');
+    row.className = 'legend-item';
+    row.innerHTML = svg ? svg : `<i class="legend-dot" style="background:${condColor(n)}"></i>`;
+    row.append(document.createTextNode(n));
+    return row;
+  }), Object.assign(document.createElement('div'), { className: 'legend-credit', textContent: 'Іконки: game-icons.net та їхні автори, ліцензія CC BY 3.0.' }));
+}
+function drawCondMode() {
+  const b = $('#btn-condmode');
+  if (!b) return;
+  b.hidden = !(obrActive() && active && active.tokenId);
+  b.textContent = getCondMode() === 'icons' ? 'Стани: лише іконки' : 'Стани: іконка + слово';
+  b.title = 'Як показувати стани над токеном. Натисніть, щоб перемкнути';
+}
+function onCondMode() {
+  setCondMode(getCondMode() === 'icons' ? 'both' : 'icons');
+  drawCondMode();
+  syncToken();
 }
 function drawTokenBtn() {
   const b = $('#btn-token');
   b.hidden = !obrActive() || !active;
   drawLegend();
+  drawCondMode();
   if (b.hidden) { $('#bar-color-wrap').hidden = true; return; }
   $('#bar-color-wrap').hidden = !active.tokenId;
   $('#bar-color').value = active.barColor || '#3fae5a';
@@ -511,6 +536,7 @@ async function init() {
   bindOpts();
   $('#btn-new').addEventListener('click', onNew);
   $('#btn-token').addEventListener('click', onToken);
+  $('#btn-condmode').addEventListener('click', onCondMode);
   $('#btn-room').addEventListener('click', onRoomBtn);
   $('#btn-gm').addEventListener('click', openGm);
   // Фонова сторінка змінила лист (стани/ініціатива від ГМа) — підтягуємо зміни у відкритий лист.
