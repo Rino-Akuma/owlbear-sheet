@@ -127,7 +127,10 @@ async function syncToken() {
   const max = [sheet.get('max_hp'), sheet.get('hp_max')].map(Number).find((v) => v > 0) || 0;
   try {
     if ((await syncHpBar(active.tokenId, hp, max, active.barColor || null)) === 'missing') { active.tokenId = null; await saveCharacter(active); drawTokenBtn(); return; }
-    await syncStatusBadge(active.tokenId, active.data.conditions);
+    try {
+      await syncStatusBadge(active.tokenId, active.data.conditions);
+      showCondErr('');
+    } catch (e) { console.warn('Стани на токені:', e); showCondErr(`Стани на токені не намалювались: ${e && e.message ? e.message : e}`); }
   } catch (e) { console.warn('Смужка HP:', e.message); }
 }
 async function drawLegend() {
@@ -146,6 +149,12 @@ async function drawLegend() {
     row.append(document.createTextNode(n));
     return row;
   }), Object.assign(document.createElement('div'), { className: 'legend-credit', textContent: 'Іконки: game-icons.net та їхні автори, ліцензія CC BY 3.0.' }));
+}
+function showCondErr(text) {
+  const el = $('#cond-err');
+  if (!el) return;
+  el.textContent = text;
+  el.hidden = !text;
 }
 function drawCondMode() {
   const b = $('#btn-condmode');

@@ -276,12 +276,19 @@ export function setRoomChar(id) {
 }
 
 import { condColor, condKey } from './conditions.js';
-import { loadIconPack, iconSvg, iconDataUrl, getCondMode } from './icons.js';
+import { loadIconPack, iconCommands, getCondMode } from './icons.js';
 
 // ---------- стани на токені ----------
 // Над токеном — темна плашка. Режим «both»: до двох станів «іконка + слово», решта «+N ще».
 // Режим «icons»: до чотирьох іконок, решта «+N». Без завантажених іконок — кольорова крапка з літерою.
 const MAX_BOTH = 2, MAX_ICONS = 4;
+
+// Стиль тексту виставляємо напряму на елементі, щоб не залежати від набору методів будівника.
+function styledText(it, pt, font, color, align) {
+  it.text.width = Math.ceil(pt.w); it.text.height = Math.ceil(pt.h);
+  Object.assign(it.text.style, { fontSize: font, fontWeight: 500, fillColor: color, fillOpacity: 1, strokeWidth: 0, textAlign: align, textAlignVertical: 'MIDDLE' });
+  return it;
+}
 
 /** Створює/оновлює плашку станів над токеном (або прибирає). Повертає 'ok' або 'missing'. */
 export async function syncStatusBadge(tokenId, conds, modeOverride) {
@@ -335,31 +342,36 @@ export async function syncStatusBadge(tokenId, conds, modeOverride) {
   }
   const bx = left + w / 2 - bw / 2, by = top - bh - Math.round(S * 0.18);
 
-  const { buildShape, buildText, buildImage } = sdkMod;
+  const { buildShape, buildText, buildPath } = sdkMod;
   const meta = { [STATUS_KEY]: { token: tokenId, sig } };
   const common = (b) => b.attachedTo(tokenId).layer('ATTACHMENT').locked(true).disableHit(true).metadata(meta);
-  const items = [common(buildShape().shapeType('RECTANGLE').width(bw).height(bh).position({ x: bx, y: by })
+  // кожен елемент — окремою функцією: якщо один не створиться, решта все одно з'явиться
+  const makers = [() => common(buildShape().shapeType('RECTANGLE').width(bw).height(bh).position({ x: bx, y: by })
     .fillColor('#111111').fillOpacity(0.88).strokeColor('#000000').strokeOpacity(0.9).strokeWidth(2).name('Стани (фон)')).build()];
   for (const pt of parts) {
     const x = bx + pt.x, y = by + pt.y;
     if (pt.kind === 'text') {
-      items.push(common(buildText().plainText(pt.text).position({ x, y }).width(Math.ceil(pt.w)).height(Math.ceil(pt.h))
-        .fontSize(font).fontWeight(500).fillColor(pt.dim ? '#9a978f' : '#f1efe9').strokeWidth(0).textAlign('START').textAlignVertical('MIDDLE')
-        .name('Стан (текст)')).build());
+      makers.push(() => styledText(common(buildText().plainText(pt.text).position({ x, y }).name('Стан (текст)')).build(), pt, font, pt.dim ? '#9a978f' : '#f1efe9', 'START'));
     } else {
       const col = condColor(pt.state);
-      const svg = iconSvg(pack, pt.state, col);
-      if (svg) {
-        items.push(common(buildImage({ url: iconDataUrl(svg), mime: 'image/svg+xml', width: 512, height: 512 }, { dpi: (512 * dpi) / pt.w, offset: { x: 0, y: 0 } })
-          .position({ x, y }).name(`Стан: ${pt.state}`)).build());
+      const cmds = iconCommands(pack, pt.state);
+      if (cmds) {
+        const sc = pt.w / 512;
+        makers.push(() => common(buildPath().commands(cmds).fillColor(col).fillOpacity(1).strokeColor(col).strokeOpacity(0).strokeWidth(0)
+          .position({ x, y }).scale({ x: sc, y: sc }).name(`Стан: ${pt.state}`)).build());
       } else { // без іконки: кольорова плашка з літерою
-        items.push(common(buildShape().shapeType('RECTANGLE').width(pt.w).height(pt.h).position({ x, y }).fillColor(col).fillOpacity(1).strokeWidth(0).name(`Стан: ${pt.state}`)).build());
-        items.push(common(buildText().plainText(String(pt.state)[0]).position({ x, y }).width(pt.w).height(pt.h).fontSize(font).fontWeight(500)
-          .fillColor('#111111').strokeWidth(0).textAlign('CENTER').textAlignVertical('MIDDLE').name('Літера')).build());
+        makers.push(() => common(buildShape().shapeType('RECTANGLE').width(pt.w).height(pt.h).position({ x, y }).fillColor(col).fillOpacity(1).strokeWidth(0).name(`Стан: ${pt.state}`)).build());
+        makers.push(() => styledText(common(buildText().plainText(String(pt.state)[0]).position({ x, y }).name('Літера')).build(), pt, font, '#111111', 'CENTER'));
       }
     }
   }
-  if (existing.length) await OBR.scene.items.deleteItems(existing.map((e) => e.id));
+  const items = [];
+  let firstErr = null;
+  for (const mk of makers) { try { items.push(mk()); } catch (e) { firstErr = firstErr || e; } }
+  if (firstErr) console.warn('Стани на токені:', firstErr.message);
+  // спочатку малюємо нове, лише потім прибираємо старе: якщо щось піде не так, старе не зникне
   await OBR.scene.items.addItems(items);
+  if (existing.length) await OBR.scene.items.deleteItems(existing.map((e) => e.id));
+  if (firstErr) throw new Error(`частину елементів не вдалося створити (${firstErr.message})`);
   return 'ok';
 }
