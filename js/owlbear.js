@@ -146,6 +146,7 @@ export function rollToastText(m) {
 
 // ---------- смужка HP на токені ----------
 const BAR_KEY = `${SOURCE}/hpbar`;
+const STATUS_KEY = `${SOURCE}/status`;
 export const obrActive = () => inOwlbear();
 
 /** Прив'язує персонажа до виділеного на карті токена. Повертає { ok, id?, reason? }. */
@@ -161,7 +162,7 @@ export async function pickSelectedToken() {
 export async function removeHpBar(tokenId) {
   if (!OBR || !tokenId) return;
   try {
-    const bars = await OBR.scene.items.getItems((i) => i.metadata[BAR_KEY] && i.metadata[BAR_KEY].token === tokenId);
+    const bars = await OBR.scene.items.getItems((i) => (i.metadata[BAR_KEY] && i.metadata[BAR_KEY].token === tokenId) || (i.metadata[STATUS_KEY] && i.metadata[STATUS_KEY].token === tokenId));
     if (bars.length) await OBR.scene.items.deleteItems(bars.map((b) => b.id));
   } catch (e) { console.warn(e); }
 }
@@ -272,4 +273,56 @@ export function getRoomChar() {
 }
 export function setRoomChar(id) {
   try { if (id) localStorage.setItem(roomKey(), id); else localStorage.removeItem(roomKey()); } catch { /* ігноруємо */ }
+}
+
+import { COND_ICONS } from './conditions.js';
+// ---------- стани на токені ----------
+// Компактно: один «бейдж» над токеном зі значками (до 5), решта — «+N». Розшифровка значків — у листі й панелі ГМа.
+export { COND_ICONS };
+const MAX_BADGES = 5;
+export function condBadgeText(conds) {
+  const list = (Array.isArray(conds) ? conds : []).filter(Boolean);
+  if (!list.length) return '';
+  const icons = list.map((c) => COND_ICONS[String(c).replace(/'/g, '’')] || '❓');
+  const shown = icons.slice(0, MAX_BADGES).join(' ');
+  return list.length > MAX_BADGES ? `${shown} +${list.length - MAX_BADGES}` : shown;
+}
+
+/** Показує стани над токеном (або прибирає, якщо їх немає). Повертає 'ok' або 'missing'. */
+export async function syncStatusBadge(tokenId, conds) {
+  if (!tokenId || !(await whenReady())) return 'ok';
+  const text = condBadgeText(conds);
+  const existing = await OBR.scene.items.getItems((i) => i.metadata[STATUS_KEY] && i.metadata[STATUS_KEY].token === tokenId);
+  if (!text) {
+    if (existing.length) await OBR.scene.items.deleteItems(existing.map((e) => e.id));
+    return 'ok';
+  }
+  const [token] = await OBR.scene.items.getItems([tokenId]);
+  if (!token) return 'missing';
+  const dpi = await OBR.scene.grid.getDpi();
+  const img = token.image || { width: dpi, height: dpi };
+  const k = dpi / ((token.grid && token.grid.dpi) || dpi);
+  const w = img.width * token.scale.x * k;
+  const off = (token.grid && token.grid.offset) || { x: img.width / 2, y: img.height / 2 };
+  const left = token.position.x - off.x * token.scale.x * k;
+  const top = token.position.y - off.y * token.scale.y * k;
+  const pos = { x: left + w / 2, y: top };
+  if (existing.length) {
+    await OBR.scene.items.updateItems(existing, (drafts) => {
+      for (const d of drafts) { d.position = pos; if (d.text) d.text.plainText = text; }
+    });
+    return 'ok';
+  }
+  const { buildLabel, buildText } = sdkMod;
+  let it;
+  if (typeof buildLabel === 'function') {
+    it = buildLabel().plainText(text).backgroundColor('#111111').backgroundOpacity(0.85).cornerRadius(12)
+      .pointerDirection('DOWN').pointerWidth(10).pointerHeight(8).fillColor('#ffffff');
+  } else {
+    it = buildText().plainText(text).fontSize(Math.max(18, w * 0.2)).textAlign('CENTER').width(w).height(Math.max(24, w * 0.25));
+  }
+  it = it.position(pos).attachedTo(tokenId).layer('ATTACHMENT').locked(true).disableHit(true).name('Стани')
+    .metadata({ [STATUS_KEY]: { token: tokenId } }).build();
+  await OBR.scene.items.addItems([it]);
+  return 'ok';
 }

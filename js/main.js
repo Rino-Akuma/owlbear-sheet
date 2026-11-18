@@ -1,5 +1,5 @@
 import { t } from './i18n.js';
-import { initOwlbear, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, inOwlbear, obrActive, pickSelectedToken, syncHpBar, removeHpBar, publishSummary, isGM, watchTable, sendCmd, myId, getRoomChar, setRoomChar } from './owlbear.js';
+import { initOwlbear, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, inOwlbear, obrActive, pickSelectedToken, syncHpBar, syncStatusBadge, COND_ICONS, removeHpBar, publishSummary, isGM, watchTable, sendCmd, myId, getRoomChar, setRoomChar } from './owlbear.js';
 import { setProvider, rollPool, describeGroup } from './engine/dice.js';
 import { TEMPLATES, getTemplate } from './templates/index.js';
 import { mountSheet, fmt } from './engine/sheet.js';
@@ -124,12 +124,21 @@ async function syncToken() {
   const hp = Number(sheet.get('hp')) || 0;
   const max = [sheet.get('max_hp'), sheet.get('hp_max')].map(Number).find((v) => v > 0) || 0;
   try {
-    if ((await syncHpBar(active.tokenId, hp, max, active.barColor || null)) === 'missing') { active.tokenId = null; await saveCharacter(active); drawTokenBtn(); }
+    if ((await syncHpBar(active.tokenId, hp, max, active.barColor || null)) === 'missing') { active.tokenId = null; await saveCharacter(active); drawTokenBtn(); return; }
+    await syncStatusBadge(active.tokenId, active.data.conditions);
   } catch (e) { console.warn('Смужка HP:', e.message); }
+}
+function drawLegend() {
+  const d = $('#cond-legend');
+  if (!d) return;
+  d.hidden = !(obrActive() && active && active.tokenId);
+  const body = $('#cond-legend-body');
+  if (!body.childElementCount) body.textContent = Object.entries(COND_ICONS).map(([n, i]) => `${i} ${n}`).join('  ·  ');
 }
 function drawTokenBtn() {
   const b = $('#btn-token');
   b.hidden = !obrActive() || !active;
+  drawLegend();
   if (b.hidden) { $('#bar-color-wrap').hidden = true; return; }
   $('#bar-color-wrap').hidden = !active.tokenId;
   $('#bar-color').value = active.barColor || '#3fae5a';

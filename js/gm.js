@@ -1,5 +1,6 @@
 // Панель ГМа: зведення персонажів гравців (HP, КБ, ініціатива, стани, зброя/закляття/риси/володіння).
-import { CONDITIONS } from './conditions.js';
+import { CONDITIONS, COND_ICONS } from './conditions.js';
+const ico = (c) => `${COND_ICONS[String(c).replace(/'/g, '’')] || ''} ${c}`.trim();
 
 function h(tag, attrs = {}, ...kids) {
   const el = document.createElement(tag);
@@ -55,9 +56,9 @@ export function mountGm(root, api) {
         h('span', { class: 'gm-hp-txt', text: `${s.hp} / ${s.max}${s.tmp ? ` (+${s.tmp})` : ''}` })),
       s.note ? h('div', { class: 'muted small', text: s.note }) : null,
       h('div', { class: 'gm-conds' },
-        ...conds.map((c) => h('button', { type: 'button', class: 'chip-btn on', title: 'Прибрати стан', text: `${c} ✕`, onclick: () => toggle(c) })),
+        ...conds.map((c) => h('button', { type: 'button', class: 'chip-btn on', title: 'Прибрати стан', text: `${ico(c)} ✕`, onclick: () => toggle(c) })),
         h('button', { type: 'button', class: 'chip-btn add', text: palette.has(key) ? 'Сховати' : '＋ Стан', onclick: () => { palette.has(key) ? palette.delete(key) : palette.add(key); draw(); } })),
-      palette.has(key) ? h('div', { class: 'gm-pal' }, allConds.map((c) => h('button', { type: 'button', class: `chip-btn ${conds.includes(c) ? 'on' : ''}`, text: c, onclick: () => toggle(c) }))) : null,
+      palette.has(key) ? h('div', { class: 'gm-pal' }, allConds.map((c) => h('button', { type: 'button', class: `chip-btn ${conds.includes(c) ? 'on' : ''}`, text: ico(c), onclick: () => toggle(c) }))) : null,
       h('button', { type: 'button', class: 'gm-more', text: open.has(key) ? '▲ Сховати подробиці' : '▼ Зброя, закляття, риси, володіння', onclick: () => { open.has(key) ? open.delete(key) : open.add(key); draw(); } }),
       open.has(key) ? h('div', { class: 'gm-det' }, Object.entries(det).map(([title, items]) => h('div', { class: 'gm-det-col' },
         h('h4', { text: `${title} (${items.length})` }),

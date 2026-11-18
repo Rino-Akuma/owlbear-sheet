@@ -3,7 +3,7 @@
 <body>
 <script type="module">
   // Працює завжди, поки аддон увімкнено в кімнаті: показує сповіщення про кидки інших гравців.
-  import { CH_ROLL, rollToastText, whenReady, getObr, onCmd, patchSummary, myId, getRoomChar } from './js/owlbear.js';
+  import { CH_ROLL, rollToastText, whenReady, getObr, onCmd, patchSummary, myId, getRoomChar, syncStatusBadge } from './js/owlbear.js';
   import { listCharacters, saveCharacter } from './js/storage.js';
   await whenReady(60000);
   const OBR = getObr();
@@ -31,6 +31,7 @@
         rec.data.conditions = Array.isArray(m.conds) ? m.conds.slice(0, 30) : [];
         await saveCharacter(rec);
         patchSummary({ conds: rec.data.conditions });
+        if (rec.tokenId) await syncStatusBadge(rec.tokenId, rec.data.conditions).catch((e) => console.warn(e));
         bc && bc.postMessage({ type: 'reload', id: rec.id });
       } else if (m.type === 'clear-init') {
         for (const rec of all.filter((c) => c.id === getRoomChar())) if (rec.data.init_roll !== undefined && rec.data.init_roll !== null) { rec.data.init_roll = null; await saveCharacter(rec); }
