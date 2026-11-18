@@ -230,6 +230,8 @@ input[type=number].ab-score::-webkit-inner-spin-button { -webkit-appearance: non
 .stat-input { padding: 4px 2px; }
 table.list th[style*="%"] { min-width: 140px; }
 table.list input[type=text] { min-width: 90px; }
+table.list textarea.autogrow { min-width: 160px; min-height: 34px; resize: none; overflow: hidden; line-height: 1.35; display: block; }
+table.list td { vertical-align: top; }
 table.list input[type=number] { min-width: 52px; }
 table.list select { min-width: 80px; }
 

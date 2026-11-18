@@ -1,7 +1,7 @@
 // Шаблон системи «Континент» (d100). Усі формули взяті з «Посібника по Континенту».
 import { parseDice, rollDice } from '../engine/dice.js';
 import { CONDITIONS } from '../conditions.js';
-import { pickMany } from '../library.js';
+import { pickMany, loadLib } from '../library.js';
 import { gAdd, gSet, gRows, runGrants, grantedBy } from '../grants.js';
 
 const STAT_MAX = 200;
@@ -107,7 +107,34 @@ const actions = {
   },
 
   // ---------- бібліотека ----------
+  // Напівкровка: обираємо двох батьківських рас, а успадковане (за кидками майстра) відмічається вручну.
+  async pickHalfBlood(ctx, e) {
+    const all = await loadLib('kont-races');
+    const ok = new Set(['Людина', 'Ельф', 'Гноми', 'Орки', 'Велетні']); // невмерлі й інферніти не розмножуються, драконіди — лише між собою
+    const picked = await pickMany({
+      title: 'Напівкровка: які раси батьків?',
+      hint: 'Оберіть дві раси. Невмерлі й інферніти не розмножуються, драконіди — лише між собою, тому їх немає в списку.',
+      options: all.filter((r) => ok.has(r.n)).map((r) => ({ value: r.n, label: r.n })), count: 2,
+    });
+    if (!picked) return;
+    const parents = all.filter((r) => picked.includes(r.n));
+    ctx.data.race = `Напівкровка (${picked.join(' / ')})`;
+    const NAMES = { str: 'Сила', dex: 'Спритність', con: 'Статура', wil: 'Воля' };
+    const items = [{ id: 'base', group: 'Напівкровка', label: 'Нотатка про походження', text: `Батьки: ${picked.join(' і ')}. Успадкування визначається кидками.`,
+      apply: (c) => gRows(c, 'effects', [{ name: 'Напівкровка', desc: `Батьки: ${picked.join(' і ')}. Успадкування визначається кидками кубиків; домінантна ознака — нездатність до магії у гномів (завжди передається).` }], 'race') }];
+    parents.forEach((p) => {
+      const g = `Від раси «${p.n}» — відмітьте те, що успадковано`;
+      Object.entries(p.st || {}).forEach(([k, v]) => items.push({ id: `${p.n}:st:${k}`, group: g, checked: false, label: `${NAMES[k]} ${v > 0 ? '+' : '−'}${Math.abs(v)}`, text: 'до поточного значення', apply: (c) => gAdd(c, k, v) }));
+      (p.fx || []).forEach((f, i) => items.push({ id: `${p.n}:fx:${i}`, group: g, checked: /магі/i.test(f.name) && /Нездатн/i.test(f.name), label: f.name, text: f.desc,
+        apply: (c) => gRows(c, 'effects', [{ name: `${f.name} (${p.n})`, desc: f.desc }], 'race') }));
+    });
+    items.push({ id: 'own', group: 'Своє', label: 'Додати порожній рядок для власної особливості', text: 'впишіть у «Додаткові ефекти» вручну: поле розтягується під довгий текст',
+      apply: (c) => gRows(c, 'effects', [{ name: 'Особливість напівкровки', desc: '' }], 'race') });
+    await runGrants(ctx, { src: 'race', title: 'Напівкровка: що успадковано', intro: 'За правилами успадкування визначається кидками, тому нічого не відмічено наперед, окрім домінантної нездатності до магії від гномів. Відмічайте те, що випало, а зайве, чого немає в посібнику, дописуйте руками.', items });
+  },
+
   async pickRace(ctx, e) {
+    if (e.n === 'Напівкровки') return actions.pickHalfBlood(ctx, e);
     ctx.data.race = e.n;
     const NAMES = { str: 'Сила', dex: 'Спритність', con: 'Статура', wil: 'Воля' };
     const items = Object.entries(e.st || {}).map(([k, v]) => ({
@@ -160,7 +187,8 @@ const actions = {
     }
     const chosen = tier === null ? null : e.tiers[tier];
     const eff = chosen === null ? e.eff : e.eff.slice(0, e.tspan[0]) + chosen + e.eff.slice(e.tspan[1]);
-    const row = { name: chosen === null ? e.n : `${e.n} (${chosen})`, desc: `${eff.replace(/\n/g, ' ')}${e.req ? ` · Вимоги: ${e.req}` : ''}` };
+    // ефект і вимоги — окремими рядками, щоб не змішувались
+    const row = { name: chosen === null ? e.n : `${e.n} (${chosen})`, desc: `${eff}${e.req ? `\nВимоги: ${e.req}` : ''}` };
     const items = [{ id: 'row', group: 'Риса', label: row.name, text: row.desc.length > 160 ? `${row.desc.slice(0, 160)}…` : row.desc, apply: (c) => gRows(c, 'traits', [row], src) }];
     const num = (s) => Number(String(s).replace(/[^\d.]/g, ''));
     if (e.n === 'Стійкий' && chosen) items.push({ id: 'hp', group: 'Автоматично', label: `Множник HP ${chosen}`, text: 'ХП = Статура × множник', apply: (c) => gSet(c, 'hp_mult', num(chosen)) });
@@ -328,13 +356,13 @@ export default {
         { id: 'traits', type: 'list', label: 'Риси', addLabel: 'Додати рису',
           pick: { title: 'Риса', label: 'Риса з бібліотеки', kind: 'kont-feats', action: 'pickFeat', meta: (e) => (e.tiers ? `рівнів: ${e.tiers.length}` : '') + (e.req ? `${e.tiers ? ' · ' : ''}вимоги: ${e.req}` : '') },
           columns: [
-          { id: 'name', label: 'Назва', type: 'text', width: '38%' }, { id: 'desc', label: 'Ефект', type: 'text' }] },
+          { id: 'name', label: 'Назва', type: 'text', width: '30%' }, { id: 'desc', label: 'Ефект і вимоги', type: 'textarea' }] },
         { id: 'effects', type: 'list', label: 'Додаткові ефекти', addLabel: 'Додати ефект', columns: [
-          { id: 'name', label: 'Назва', type: 'text', width: '38%' }, { id: 'desc', label: 'Опис', type: 'text' }] },
+          { id: 'name', label: 'Назва', type: 'text', width: '30%' }, { id: 'desc', label: 'Опис', type: 'textarea' }] },
         { id: 'skills', type: 'list', label: 'Володіння навичками та інструментами', addLabel: 'Додати', columns: [
-          { id: 'name', label: 'Назва', type: 'text', width: '38%' }, { id: 'desc', label: 'Бонус / примітка', type: 'text' }] },
+          { id: 'name', label: 'Назва', type: 'text', width: '38%' }, { id: 'desc', label: 'Бонус / примітка', type: 'textarea' }] },
         { id: 'social', type: 'list', label: 'Соціальні навички', addLabel: 'Додати', columns: [
-          { id: 'name', label: 'Назва', type: 'text', width: '38%' }, { id: 'desc', label: 'Бонус / примітка', type: 'text' }] },
+          { id: 'name', label: 'Назва', type: 'text', width: '38%' }, { id: 'desc', label: 'Бонус / примітка', type: 'textarea' }] },
       ],
     },
     {
@@ -346,7 +374,7 @@ export default {
             meta: (e) => [e.cat, e.ac ? `броня ${e.ac}` : '', e.price].filter(Boolean).join(' · ') },
           columns: [
           { id: 'name', label: 'Назва', type: 'text' }, { id: 'qty', label: 'К-сть', type: 'number', default: 1, width: '70px' },
-          { id: 'desc', label: 'Примітка', type: 'text' }] },
+          { id: 'desc', label: 'Примітка', type: 'textarea' }] },
         { id: 'other', type: 'longtext', label: 'Інше', span: 4, rows: 3 },
       ],
     },

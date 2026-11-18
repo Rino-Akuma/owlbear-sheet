@@ -435,6 +435,19 @@ export function mountSheet(root, template, data, hooks) {
       } else if (c.type === 'number') {
         ctl = h('input', { type: 'number', step: c.step || 1, min: c.min, max: c.max, value: row[c.id] ?? c.default ?? 0 });
         ctl.addEventListener('input', () => { row[c.id] = ctl.value === '' ? 0 : Number(ctl.value); changed(); });
+      } else if (c.type === 'textarea') {
+        // багаторядкове поле, що росте разом з текстом (довгі ефекти з умовами)
+        ctl = h('textarea', { rows: 1, class: 'autogrow', placeholder: c.placeholder || '', value: row[c.id] ?? '' });
+        let lastW = -1;
+        const fit = () => {
+          ctl.style.height = 'auto';
+          if (ctl.scrollHeight > 0) ctl.style.height = `${ctl.scrollHeight + 2}px`;
+        };
+        ctl.addEventListener('input', () => { row[c.id] = ctl.value; fit(); changed(); });
+        if (typeof ResizeObserver === 'function') {
+          new ResizeObserver(() => { if (ctl.clientWidth !== lastW) { lastW = ctl.clientWidth; fit(); } }).observe(ctl);
+        }
+        requestAnimationFrame(fit);
       } else {
         ctl = h('input', { type: 'text', value: row[c.id] ?? '', placeholder: c.placeholder || '' });
         ctl.addEventListener('input', () => { row[c.id] = ctl.value; changed(); });
