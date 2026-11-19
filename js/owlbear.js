@@ -275,6 +275,7 @@ export function setRoomChar(id) {
   try { if (id) localStorage.setItem(roomKey(), id); else localStorage.removeItem(roomKey()); } catch { /* ігноруємо */ }
 }
 
+import { textCommands } from './glyphs.js';
 import { condColor, condKey } from './conditions.js';
 import { loadIconPack, iconCommands, getCondMode } from './icons.js';
 
@@ -325,11 +326,11 @@ export async function syncStatusBadge(tokenId, conds, modeOverride) {
 
   const pack = await loadIconPack();
   const font = Math.round(S * 0.55), gap = Math.round(S * 0.2), pad = Math.round(S * 0.22);
-  const charW = font * 0.6;
+  const tw = (s) => textCommands(s).width * font / 1000;
   const maxShown = mode === 'icons' ? MAX_ICONS : MAX_BOTH;
   const shown = list.slice(0, maxShown), rest = list.length - shown.length;
   const restText = mode === 'icons' ? `+${rest}` : `+${rest} ще`;
-  const restW = rest ? restText.length * charW : 0;
+  const restW = rest ? tw(restText) : 0;
 
   // розкладка (локальні координати від лівого верхнього кута плашки)
   const parts = []; // { kind:'icon'|'text', state?, text?, x, y, w, h }
@@ -340,11 +341,11 @@ export async function syncStatusBadge(tokenId, conds, modeOverride) {
     if (rest) parts.push({ kind: 'text', text: restText, x: pad + rowW + gap, y: pad + (S - font * 1.3) / 2, w: restW, h: font * 1.3 });
     bw = pad * 2 + rowW + (rest ? gap + restW : 0); bh = pad * 2 + S;
   } else {
-    const widths = shown.map((st) => S + gap + String(st).length * charW);
+    const widths = shown.map((st) => S + gap + tw(st));
     shown.forEach((st, n) => {
       const y = pad + n * (S + gap);
       parts.push({ kind: 'icon', state: st, x: pad, y, w: S, h: S });
-      parts.push({ kind: 'text', text: st, x: pad + S + gap, y: y + (S - font * 1.3) / 2, w: String(st).length * charW + 2, h: font * 1.3 });
+      parts.push({ kind: 'text', text: st, x: pad + S + gap, y: y + (S - font * 1.3) / 2, w: tw(st), h: font * 1.3 });
     });
     bw = pad * 2 + Math.max(...widths, rest ? restW : 0);
     bh = pad * 2 + shown.length * S + (shown.length - 1) * gap;
@@ -357,12 +358,15 @@ export async function syncStatusBadge(tokenId, conds, modeOverride) {
   const common = (b) => b.attachedTo(tokenId).layer('ATTACHMENT').locked(true).disableHit(true).metadata(meta);
   const makers = [() => { const it = common(buildShape().shapeType('RECTANGLE').width(bw).height(bh).position({ x: bx, y: by })
     .fillColor('#111111').fillOpacity(0.88).strokeColor('#000000').strokeOpacity(0.9).strokeWidth(2).name('Стани (фон)')).build(); it.zIndex = 1; return it; }];
-  const texts = [];
-  const txt = (pt, x, y, color, align, name) => texts.push({ text: pt.text, x, y, w: pt.w, h: pt.h, font, color, align, name });
+  const glyph = (str, x, y, h, color, name) => { // рядок як векторний контур: x — ліво, y — верх рядка висотою h
+    const { cmds } = textCommands(str), sc = font / 1000;
+    makers.push(() => { const it = common(buildPath().commands(cmds).fillColor(color).fillOpacity(1).strokeColor(color).strokeOpacity(0).strokeWidth(0)
+      .position({ x, y: y + h / 2 + font * 0.365 }).scale({ x: sc, y: sc }).name(name)).build(); it.zIndex = 3; return it; });
+  };
   for (const pt of parts) {
     const x = bx + pt.x, y = by + pt.y;
     if (pt.kind === 'text') {
-      txt(pt, x, y, pt.dim ? '#9a978f' : '#f1efe9', 'LEFT', 'Стан (текст)');
+      glyph(pt.text, x, y, pt.h, pt.dim ? '#9a978f' : '#f1efe9', 'Стан (текст)');
     } else {
       const col = condColor(pt.state);
       const cmds = iconCommands(pack, pt.state);
@@ -372,7 +376,7 @@ export async function syncStatusBadge(tokenId, conds, modeOverride) {
           .position({ x, y }).scale({ x: sc, y: sc }).name(`Стан: ${pt.state}`)).build(); it.zIndex = 2; return it; });
       } else { // без іконки: кольорова плашка з літерою
         makers.push(() => { const it = common(buildShape().shapeType('RECTANGLE').width(pt.w).height(pt.h).position({ x, y }).fillColor(col).fillOpacity(1).strokeWidth(0).name(`Стан: ${pt.state}`)).build(); it.zIndex = 2; return it; });
-        txt({ text: String(pt.state)[0], w: pt.w, h: pt.h }, x, y, '#111111', 'CENTER', 'Літера');
+        glyph(String(pt.state)[0], x + (pt.w - tw(String(pt.state)[0])) / 2, y, pt.h, '#111111', 'Літера');
       }
     }
   }
@@ -382,19 +386,6 @@ export async function syncStatusBadge(tokenId, conds, modeOverride) {
   // спочатку малюємо нове, лише потім прибираємо старе: якщо щось піде не так, старе не зникне
   await OBR.scene.items.addItems(items);
   if (existing.length) await OBR.scene.items.deleteItems(existing.map((e) => e.id));
-  if (texts.length) {
-    let start = 0;
-    try { start = Math.max(0, Math.min(TEXT_VARIANTS.length - 1, Number(localStorage.getItem(TV_KEY)) || 0)); } catch { /* типово з першого */ }
-    let done = false, lastErr = null;
-    for (let v = start; v < TEXT_VARIANTS.length && !done; v++) {
-      try {
-        await OBR.scene.items.addItems(texts.map((sp) => buildTextItem(common, buildText, sp, TEXT_VARIANTS[v])));
-        done = true;
-        try { localStorage.setItem(TV_KEY, String(v)); } catch { /* не критично */ }
-      } catch (e) { lastErr = e; }
-    }
-    if (!done) throw new Error(`текст не додався (${errText(lastErr)})`);
-  }
   if (firstErr) throw new Error(`частину елементів не вдалося створити (${errText(firstErr)})`);
   return 'ok';
 }
