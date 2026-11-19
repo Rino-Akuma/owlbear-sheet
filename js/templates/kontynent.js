@@ -270,9 +270,9 @@ export default {
       page: 'Персонаж', title: 'Персонаж', cols: 4,
       fields: [
         { id: 'name', type: 'text', label: 'Ім’я', span: 2 },
-        { id: 'race', type: 'text', label: 'Раса', pick: { title: 'Раса', kind: 'kont-races', action: 'pickRace', meta: raceMeta } },
+        { id: 'race', type: 'text', label: 'Раса', revert: 'race', pick: { title: 'Раса', kind: 'kont-races', action: 'pickRace', meta: raceMeta } },
         { id: 'level', type: 'number', label: 'Рівень', min: 0, default: 0 },
-        { id: 'background', type: 'text', label: 'Передісторія', span: 2, pick: { title: 'Передісторія', kind: 'kont-backgrounds', action: 'pickBackground', meta: (e) => (e.g || []).map((x) => x.cat).join(', ') } },
+        { id: 'background', type: 'text', label: 'Передісторія', span: 2, revert: 'bg', pick: { title: 'Передісторія', kind: 'kont-backgrounds', action: 'pickBackground', meta: (e) => (e.g || []).map((x) => x.cat).join(', ') } },
         { id: 'info', type: 'longtext', label: 'Додаткова інформація', span: 4, rows: 2 },
       ],
     },

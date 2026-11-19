@@ -1,5 +1,8 @@
 // Зв'язок з Owlbear Rodeo (SDK). Працює лише коли сторінка відкрита всередині Owlbear;
 // якщо SDK недоступний — аддон просто працює як звичайна сторінка.
+import { textCommands } from './glyphs.js';
+import { condColor, condKey } from './conditions.js';
+import { loadIconPack, iconCommands, getCondMode } from './icons.js';
 export const SDK_URL = 'https://esm.sh/@owlbear-rodeo/sdk@3.1.0';
 export const SIZES = { narrow: [580, 780], mid: [900, 800], wide: [1280, 880] };
 export const SOURCE = 'rino-akuma.owlbear-sheet';       // ідентифікатор для каналів Dice+
@@ -147,6 +150,20 @@ export function rollToastText(m) {
 // ---------- смужка HP на токені ----------
 const BAR_KEY = `${SOURCE}/hpbar`;
 const STATUS_KEY = `${SOURCE}/status`;
+
+// Усі зміни токена йдуть по черзі: два одночасні оновлення не мають створити дублі.
+let chain = Promise.resolve();
+const serial = (fn) => { const r = chain.then(fn, fn); chain = r.catch(() => {}); return r; };
+const newRun = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+/** Якщо вікно листа й фонова сторінка встигли додати елементи одночасно — лишаємо найновіший запуск. */
+async function dedupeRuns(key, tokenId) {
+  const all = await OBR.scene.items.getItems((i) => i.metadata[key] && i.metadata[key].token === tokenId);
+  const runs = [...new Set(all.map((i) => i.metadata[key].run || ''))].sort();
+  if (runs.length < 2) return;
+  const keep = runs[runs.length - 1];
+  const extra = all.filter((i) => (i.metadata[key].run || '') !== keep).map((i) => i.id);
+  if (extra.length) await OBR.scene.items.deleteItems(extra);
+}
 export const obrActive = () => inOwlbear();
 
 /** Прив'язує персонажа до виділеного на карті токена. Повертає { ok, id?, reason? }. */
@@ -159,7 +176,8 @@ export async function pickSelectedToken() {
   return it ? { ok: true, id: it.id, name: it.name || it.text?.plainText || '' } : { ok: false, reason: 'no-selection' };
 }
 
-export async function removeHpBar(tokenId) {
+export const removeHpBar = (tokenId) => serial(() => _removeHpBar(tokenId));
+async function _removeHpBar(tokenId) {
   if (!OBR || !tokenId) return;
   try {
     const bars = await OBR.scene.items.getItems((i) => (i.metadata[BAR_KEY] && i.metadata[BAR_KEY].token === tokenId) || (i.metadata[STATUS_KEY] && i.metadata[STATUS_KEY].token === tokenId));
@@ -168,7 +186,8 @@ export async function removeHpBar(tokenId) {
 }
 
 /** Створює/оновлює смужку HP під токеном. Повертає 'ok' або 'missing' (токен видалено). */
-export async function syncHpBar(tokenId, hp, max, fixedColor = null) {
+export const syncHpBar = (...a) => serial(() => _syncHpBar(...a));
+async function _syncHpBar(tokenId, hp, max, fixedColor = null) {
   if (!tokenId || !(await whenReady())) return 'ok';
   const [token] = await OBR.scene.items.getItems([tokenId]);
   if (!token) return 'missing';
@@ -188,6 +207,9 @@ export async function syncHpBar(tokenId, hp, max, fixedColor = null) {
 
   const existing = await OBR.scene.items.getItems((i) => i.metadata[BAR_KEY] && i.metadata[BAR_KEY].token === tokenId);
   if (existing.length >= 2) {
+    const seen = new Set(), dup = [];
+    for (const e of existing) { const kd = e.metadata[BAR_KEY].kind; if (seen.has(kd)) dup.push(e.id); else seen.add(kd); }
+    if (dup.length) { await OBR.scene.items.deleteItems(dup); existing.splice(0, existing.length, ...existing.filter((e) => !dup.includes(e.id))); }
     await OBR.scene.items.updateItems(existing, (drafts) => {
       for (const d of drafts) {
         const g = geo[d.metadata[BAR_KEY].kind]; if (!g) continue;
@@ -204,8 +226,10 @@ export async function syncHpBar(tokenId, hp, max, fixedColor = null) {
     .fillColor(fill).fillOpacity(opacity).strokeColor('#000000').strokeOpacity(kind === 'bg' ? 0.9 : 0).strokeWidth(kind === 'bg' ? 2 : 0)
     .attachedTo(tokenId).layer('ATTACHMENT').locked(true).disableHit(true)
     .name(kind === 'bg' ? 'HP (фон)' : 'HP')
-    .metadata({ [BAR_KEY]: { token: tokenId, kind } }).build();
+    .metadata({ [BAR_KEY]: { token: tokenId, kind, run } }).build();
+  const run = newRun();
   await OBR.scene.items.addItems([mk('bg', '#1a1a1a', 0.8), mk('fill', color, 1)]);
+  await dedupeRuns(BAR_KEY, tokenId);
   return 'ok';
 }
 
@@ -275,34 +299,17 @@ export function setRoomChar(id) {
   try { if (id) localStorage.setItem(roomKey(), id); else localStorage.removeItem(roomKey()); } catch { /* ігноруємо */ }
 }
 
-import { textCommands } from './glyphs.js';
-import { condColor, condKey } from './conditions.js';
-import { loadIconPack, iconCommands, getCondMode } from './icons.js';
 
 // ---------- стани на токені ----------
 // Над токеном — темна плашка. Режим «both»: до двох станів «іконка + слово», решта «+N ще».
 // Режим «icons»: до чотирьох іконок, решта «+N». Без завантажених іконок — кольорова крапка з літерою.
 const MAX_BOTH = 2, MAX_ICONS = 4;
 
-// Текст в Owlbear валідується суворо, а допустимі значення стилю відрізняються між версіями,
-// тому пробуємо кілька варіантів від повного до мінімального й запам'ятовуємо перший, що спрацював.
-const TEXT_VARIANTS = ['left', 'start', 'min', 'bare'];
-const TV_KEY = 'owlbear-sheet:text-variant';
-function buildTextItem(common, buildText, sp, variant) {
-  const it = common(buildText().plainText(sp.text).position({ x: sp.x, y: sp.y }).name(sp.name)).build();
-  it.zIndex = 3;
-  it.text.width = Math.ceil(sp.w); it.text.height = Math.ceil(sp.h);
-  const base = { fontSize: sp.font, fillColor: sp.color, fillOpacity: 1, strokeWidth: 0 };
-  const align = variant === 'start' ? (sp.align === 'LEFT' ? 'START' : sp.align) : sp.align;
-  if (variant === 'left' || variant === 'start') Object.assign(it.text.style, base, { fontWeight: 500, textAlign: align, textAlignVertical: 'MIDDLE' });
-  else if (variant === 'min') Object.assign(it.text.style, base);
-  else Object.assign(it.text.style, { fontSize: sp.font, fillColor: sp.color });
-  return it;
-}
 const errText = (e) => (e && (e.message || (e.error && e.error.message))) || (typeof e === 'string' ? e : JSON.stringify(e));
 
 /** Створює/оновлює плашку станів над токеном (або прибирає). Повертає 'ok' або 'missing'. */
-export async function syncStatusBadge(tokenId, conds, modeOverride) {
+export const syncStatusBadge = (...a) => serial(() => _syncStatusBadge(...a));
+async function _syncStatusBadge(tokenId, conds, modeOverride) {
   if (!tokenId || !(await whenReady())) return 'ok';
   const list = (Array.isArray(conds) ? conds : []).filter(Boolean);
   const existing = await OBR.scene.items.getItems((i) => i.metadata[STATUS_KEY] && i.metadata[STATUS_KEY].token === tokenId);
@@ -353,8 +360,8 @@ export async function syncStatusBadge(tokenId, conds, modeOverride) {
   }
   const bx = left + w / 2 - bw / 2, by = top - bh - Math.round(S * 0.18);
 
-  const { buildShape, buildText, buildPath } = sdkMod;
-  const meta = { [STATUS_KEY]: { token: tokenId, sig } };
+  const { buildShape, buildPath } = sdkMod;
+  const meta = { [STATUS_KEY]: { token: tokenId, sig, run: newRun() } };
   const common = (b) => b.attachedTo(tokenId).layer('ATTACHMENT').locked(true).disableHit(true).metadata(meta);
   const makers = [() => { const it = common(buildShape().shapeType('RECTANGLE').width(bw).height(bh).position({ x: bx, y: by })
     .fillColor('#111111').fillOpacity(0.88).strokeColor('#000000').strokeOpacity(0.9).strokeWidth(2).name('Стани (фон)')).build(); it.zIndex = 1; return it; }];
@@ -386,6 +393,7 @@ export async function syncStatusBadge(tokenId, conds, modeOverride) {
   // спочатку малюємо нове, лише потім прибираємо старе: якщо щось піде не так, старе не зникне
   await OBR.scene.items.addItems(items);
   if (existing.length) await OBR.scene.items.deleteItems(existing.map((e) => e.id));
+  await dedupeRuns(STATUS_KEY, tokenId);
   if (firstErr) throw new Error(`частину елементів не вдалося створити (${errText(firstErr)})`);
   return 'ok';
 }

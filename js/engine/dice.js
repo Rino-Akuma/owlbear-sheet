@@ -75,7 +75,6 @@ export async function rollPool(groups, mod = 0, label = '') {
 
 /** Значення кубиків групи; kept-значення окремо. */
 export const keptVals = (g) => g.dice.filter((d) => d.kept).map((d) => d.value);
-export const allVals = (g) => g.dice.map((d) => d.value);
 
 /** Короткий опис групи: «+1д4: [3]» або «2д20 (кращий): [5, 17→17]». */
 export function describeGroup(g) {
@@ -97,16 +96,4 @@ export function parseDice(text) {
 export async function rollDice({ count, sides, plus, label }) {
   const r = await rollPool([{ sides, count }], plus, label);
   return { rolls: keptVals(r.groups[0]), total: r.total, notation: r.notation };
-}
-
-/** Додаткові кубики з рядка «1д4, -1д6, 2к8» → групи для rollPool. */
-export function parseExtra(text) {
-  const re = /([+-]?)\s*(\d*)\s*[дкdk]\s*(\d+)/gi;
-  const out = []; let m;
-  while ((m = re.exec(String(text ?? ''))) !== null) {
-    const count = Math.min(20, Number(m[2] || 1)); const sides = Number(m[3]);
-    if (sides < 2 || sides > 1000) continue;
-    out.push({ sides, count, sign: m[1] === '-' ? -1 : 1 });
-  }
-  return out;
 }

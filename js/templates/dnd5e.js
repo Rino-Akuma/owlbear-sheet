@@ -159,6 +159,73 @@ const libActions = {
     }
     await runGrants(ctx, { src: 'cls', title: `Клас «${e.n}»: що він дає на 1-му рівні`, intro: 'Володіння першого класу. При мультикласі нові володіння додавайте вручну.', items });
   },
+  async autoSlots(ctx) {
+    const T = await loadLib('slots');
+    const rows = (Array.isArray(ctx.data.classes) ? ctx.data.classes : []).filter((r) => r && r.name);
+    const NON = new Set(['Barbarian', 'Fighter', 'Monk', 'Rogue', 'Mystic']);
+    const casters = [], unknown = []; let pact = null;
+    for (const r of rows) {
+      const lvl = Math.min(20, Math.max(0, Number(r.level) || 0));
+      if (!lvl) continue;
+      const k = T.classes[r.name], sub = T.subclasses[r.sub];
+      if (k && k.prog === 'pact') pact = k.pact[lvl - 1];
+      else if (k) casters.push({ prog: k.prog, tbl: k.tbl, lvl, name: r.name });
+      else if (sub) casters.push({ prog: '1/3', tbl: sub.tbl, lvl, name: `${r.name} (${r.sub})` });
+      else if (!NON.has(r.name)) unknown.push(r.name);
+    }
+    if (!casters.length && !pact) {
+      ctx.log({ title: 'Ячейки заклять', lines: [rows.length ? `Для ${[...new Set(rows.map((r) => r.name))].join(', ')} ячейок за таблицею немає.` : 'Спочатку додайте клас у розділі «Клас і підклас».'] });
+      return;
+    }
+    const slots = Array(9).fill(0); const lines = [];
+    if (casters.length === 1) {
+      const c = casters[0], row = c.tbl[c.lvl - 1] || [];
+      row.forEach((v, i) => { slots[i] = v; });
+      lines.push(`${c.name} ${c.lvl} рів.: за таблицею класу.`);
+    } else if (casters.length > 1) {
+      const cl = casters.reduce((a, c) => a + (c.prog === 'full' ? c.lvl : c.prog === '1/2' ? Math.floor(c.lvl / 2) : c.prog === 'artificer' ? Math.ceil(c.lvl / 2) : Math.floor(c.lvl / 3)), 0);
+      (T.multi[Math.min(20, cl) - 1] || []).forEach((v, i) => { slots[i] = v; });
+      lines.push(`Мультиклас: рівень заклинача ${cl} (${casters.map((c) => `${c.name} ${c.lvl}`).join(', ')}).`);
+    }
+    if (pact) { slots[pact[1] - 1] += pact[0]; lines.push(`Пакт чорнокнижника: ${pact[0]} × ${pact[1]}-го рівня додано до ячейок (на практиці відновлюються після короткого відпочинку).`); }
+    for (let n = 1; n <= 9; n++) {
+      const prevLeft = ctx.data[`slotsleft${n}`];
+      ctx.data[`slots${n}`] = slots[n - 1];
+      if (prevLeft !== undefined) ctx.data[`slotsleft${n}`] = Math.min(Number(prevLeft) || 0, slots[n - 1]);
+    }
+    lines.push(`Ячейки: ${slots.map((v, i) => (v ? `${i + 1}-й ×${v}` : '')).filter(Boolean).join(', ') || 'немає'}.`);
+    if (unknown.length) lines.push(`Без таблиці: ${[...new Set(unknown)].join(', ')} — додайте ячейки вручну.`);
+    ctx.log({ title: 'Ячейки заклять за рівнем', lines });
+  },
+  async calcHp(ctx) {
+    const rows = (Array.isArray(ctx.data.classes) ? ctx.data.classes : []).filter((r) => r && r.name && Number(r.level) > 0);
+    if (!rows.length) { ctx.log({ title: 'HP за рівнями', lines: ['Спочатку додайте клас і його рівень у розділі «Клас і підклас».'] }); return; }
+    let lib = [];
+    try { lib = await loadLib('classes'); } catch { /* лише з рядків */ }
+    const hdOf = (r) => Number(r.hd) || (lib.find((c) => c.n === r.name) || {}).hd || 0;
+    const bad = rows.filter((r) => !hdOf(r)).map((r) => r.name);
+    if (bad.length) { ctx.log({ title: 'HP за рівнями', lines: [`Невідома кістка хітів для: ${bad.join(', ')}. Оберіть клас із бібліотеки.`] }); return; }
+    const pick = await pickMany({ title: 'HP за рівнями', hint: 'Перший рівень першого класу — максимум кістки + Статура. Решта рівнів — за вибраним способом; на кожному рівні мінімум 1. Риси на HP (Витривалий, дварф) не враховуються.',
+      options: [{ value: 'avg', label: 'Середнє значення кістки' }, { value: 'roll', label: 'Кинути кістки' }], count: 1 });
+    if (!pick) return;
+    const con = Number(ctx.get('con_mod')) || 0;
+    let total = 0, left = 20; const lines = []; let first = true;
+    for (const r of rows) {
+      const hd = hdOf(r); let lv = Math.min(Number(r.level), left); left -= lv; if (lv <= 0) break;
+      let sub = 0;
+      if (first) { sub += Math.max(1, hd + con); lv -= 1; first = false; }
+      if (lv > 0) {
+        if (pick[0] === 'avg') sub += lv * Math.max(1, Math.floor(hd / 2) + 1 + con);
+        else { const res = await rollDice({ count: lv, sides: hd, plus: 0, label: `HP: ${r.name}` }); sub += res.rolls.reduce((a, v) => a + Math.max(1, v + con), 0); }
+      }
+      total += sub; lines.push(`${r.name} ${r.level} рів. (к${hd}): ${sub}`);
+    }
+    const oldMax = Number(ctx.data.hp_max) || 0;
+    ctx.data.hp_max = total;
+    if (ctx.data.hp === undefined || ctx.data.hp === null || Number(ctx.data.hp) >= oldMax) ctx.data.hp = total;
+    lines.push(`Статура ${con >= 0 ? '+' : ''}${con} на кожен рівень. Разом: ${total} HP (${pick[0] === 'avg' ? 'середнє' : 'кидки'}).`);
+    ctx.log({ title: 'HP за рівнями', lines });
+  },
   async pickSubclass(ctx, row) {
     const sub = await pickFromLibrary({ title: `Підклас: ${row.name || 'клас'}`, kind: 'subclasses', filter: (x) => !row.name || x.cls.toLowerCase() === String(row.name).toLowerCase(), meta: (x) => (x.sc ? 'магічний' : '') });
     if (!sub) return;
@@ -295,7 +362,7 @@ const template = {
       page: 'Персонаж', cols: 6, class: 'hdr',
       fields: [
         { id: 'name', type: 'text', label: 'Ім’я персонажа', span: 2, placeholder: 'Безіменний персонаж' },
-        { id: 'race', type: 'text', label: 'Раса', span: 2, pick: { title: 'Раса', kind: 'races', action: 'pickRace', meta: (e) => `${e.sp} фт${Object.keys(e.ab || {}).length ? ' · ' + Object.entries(e.ab).map(([k, v]) => `${ABIL_UA[k] || k} +${v}`).join(' ') : ''}` } },
+        { id: 'race', type: 'text', label: 'Раса', span: 2, revert: 'race', pick: { title: 'Раса', kind: 'races', action: 'pickRace', meta: (e) => `${e.sp} фт${Object.keys(e.ab || {}).length ? ' · ' + Object.entries(e.ab).map(([k, v]) => `${ABIL_UA[k] || k} +${v}`).join(' ') : ''}` } },
         { id: 'level', type: 'number', label: 'Загальний рівень', min: 1, max: 20, default: 1 },
         { id: 'xp', type: 'number', label: 'Досвід', min: 0, default: 0 },
         { id: 'ac', type: 'number', label: 'Клас броні', min: 0, default: 10 },
@@ -305,6 +372,7 @@ const template = {
         { id: 'hp_max', type: 'number', label: 'Макс. HP', min: 0, default: 0 },
         { id: 'hp', type: 'counter', label: 'Здоров’я', max: 'hp_max', class: 'big', span: 2 },
         { id: 'hp_temp', type: 'number', label: 'Тимчасові HP', min: 0, default: 0 },
+        { id: 'calc_hp', type: 'button', label: 'Порахувати HP за рівнями', action: 'calcHp', span: 6, hint: 'За кісткою хітів класів і Статурою: середнє значення або кидок.' },
       ],
     },
 
@@ -401,7 +469,10 @@ const template = {
     },
     {
       page: 'Закляття', title: 'Ячейки заклять', cols: 1,
-      fields: [{ id: 'slots_view', type: 'slots', levels: 9 }],
+      fields: [
+        { id: 'auto_slots', type: 'button', label: 'Заповнити за таблицею класу', action: 'autoSlots', hint: 'Бере рівні класів зі списку «Клас і підклас»; мультиклас — за правилами PHB.' },
+        { id: 'slots_view', type: 'slots', levels: 9 },
+      ],
     },
     {
       page: 'Закляття', title: 'Книга заклять', cols: 1,
@@ -464,7 +535,7 @@ const template = {
     {
       page: 'Особистість', title: 'Особистість', cols: 2,
       fields: [
-            { id: 'background', type: 'text', label: 'Передісторія', pick: { title: 'Передісторія', kind: 'backgrounds', action: 'pickBackground', meta: (e) => (e.sk || []).join(', ') } },
+            { id: 'background', type: 'text', label: 'Передісторія', revert: 'bg', pick: { title: 'Передісторія', kind: 'backgrounds', action: 'pickBackground', meta: (e) => (e.sk || []).join(', ') } },
             { id: 'alignment', type: 'text', label: 'Світогляд' },
             text('appearance', 'Зовнішність', { span: 2, rows: 2 }),
             { id: 'height', type: 'text', label: 'Зріст' },

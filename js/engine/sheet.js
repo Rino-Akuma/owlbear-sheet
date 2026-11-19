@@ -5,6 +5,7 @@ import { compile } from './formula.js';
 import { d100, rollPool, describeGroup, keptVals } from './dice.js';
 import { pickFromLibrary, showTextModal } from '../library.js';
 import { t } from '../i18n.js';
+import { revertGrants, grantedBy } from '../grants.js';
 
 function h(tag, attrs = {}, ...kids) {
   const el = document.createElement(tag);
@@ -177,9 +178,30 @@ export function mountSheet(root, template, data, hooks) {
   }
 
   // ---------- рендер полів ----------
+  /** Кнопка «Забрати надане»: відкочує все, що дало обране з бібліотеки (джерело f.revert), крім ручних правок. */
+  function revertButton(f) {
+    const src = f.revert;
+    let armed = false, timer = null;
+    const btn = h('button', { type: 'button', class: 'link lib-btn revert-btn', text: 'Забрати надане' });
+    btn.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      if (!armed) {
+        armed = true; btn.textContent = 'Точно забрати?';
+        timer = setTimeout(() => { armed = false; btn.textContent = 'Забрати надане'; }, 4000);
+        return;
+      }
+      clearTimeout(timer); armed = false; btn.textContent = 'Забрати надане';
+      revertGrants(ctx, src);
+      hooks.onChange();
+      (hooks.redraw || refresh)();
+    });
+    updaters.push(() => { btn.hidden = !grantedBy(ctx, src).length; });
+    return btn;
+  }
+
   function labelWrap(f, control, extraClass = '') {
     return h('label', { class: `field ${extraClass}`, style: f.span ? `grid-column: span ${f.span}` : null },
-      h('span', { class: 'lbl' }, f.label || '', f.pick ? pickButton(f) : null), control);
+      h('span', { class: 'lbl' }, f.label || '', f.pick ? pickButton(f) : null, f.revert ? revertButton(f) : null), control);
   }
 
   function renderText(f) {
@@ -557,11 +579,18 @@ export function mountSheet(root, template, data, hooks) {
     return wrap;
   }
 
+  function renderButton(f) {
+    return h('div', { class: 'field btn-field', style: f.span ? `grid-column: span ${f.span}` : null },
+      h('button', { type: 'button', class: 'link lib-btn', text: f.label, title: f.hint || null,
+        onclick: async (ev) => { ev.preventDefault(); const fn = actions[f.action]; if (!fn) return; await fn(ctx, f); hooks.onChange(); (hooks.redraw || refresh)(); } }),
+      f.hint ? h('span', { class: 'muted small', text: f.hint }) : null);
+  }
+
   const RENDER = {
     ability: renderAbility, chips: renderChips,
     text: renderText, longtext: renderLongText, number: renderNumber, checkbox: renderCheckbox,
     select: renderSelect, computed: renderComputed, stat: renderStat, counter: renderCounter,
-    track: renderTrack, note: renderNote, roll: renderRoll, list: renderList, slots: renderSlots,
+    track: renderTrack, note: renderNote, roll: renderRoll, list: renderList, slots: renderSlots, button: renderButton,
   };
 
   const frag = document.createDocumentFragment();
