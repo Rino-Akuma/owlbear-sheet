@@ -3,7 +3,7 @@
 import { COND_META, condKey, condColor } from './conditions.js';
 
 const PACK_URL = 'https://cdn.jsdelivr.net/npm/@iconify-json/game-icons@1/icons.json';
-const KEY = 'owlbear-sheet:icons:v1';
+const KEY = 'owlbear-sheet:icons:v2';
 const MODE_KEY = 'owlbear-sheet:cond-mode';
 let packP = null;
 
