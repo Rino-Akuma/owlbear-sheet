@@ -283,12 +283,22 @@ import { loadIconPack, iconCommands, getCondMode } from './icons.js';
 // Режим «icons»: до чотирьох іконок, решта «+N». Без завантажених іконок — кольорова крапка з літерою.
 const MAX_BOTH = 2, MAX_ICONS = 4;
 
-// Стиль тексту виставляємо напряму на елементі, щоб не залежати від набору методів будівника.
-function styledText(it, pt, font, color, align) {
-  it.text.width = Math.ceil(pt.w); it.text.height = Math.ceil(pt.h);
-  Object.assign(it.text.style, { fontSize: font, fontWeight: 500, fillColor: color, fillOpacity: 1, strokeWidth: 0, textAlign: align, textAlignVertical: 'MIDDLE' });
+// Текст в Owlbear валідується суворо, а допустимі значення стилю відрізняються між версіями,
+// тому пробуємо кілька варіантів від повного до мінімального й запам'ятовуємо перший, що спрацював.
+const TEXT_VARIANTS = ['left', 'start', 'min', 'bare'];
+const TV_KEY = 'owlbear-sheet:text-variant';
+function buildTextItem(common, buildText, sp, variant) {
+  const it = common(buildText().plainText(sp.text).position({ x: sp.x, y: sp.y }).name(sp.name)).build();
+  it.zIndex = 3;
+  it.text.width = Math.ceil(sp.w); it.text.height = Math.ceil(sp.h);
+  const base = { fontSize: sp.font, fillColor: sp.color, fillOpacity: 1, strokeWidth: 0 };
+  const align = variant === 'start' ? (sp.align === 'LEFT' ? 'START' : sp.align) : sp.align;
+  if (variant === 'left' || variant === 'start') Object.assign(it.text.style, base, { fontWeight: 500, textAlign: align, textAlignVertical: 'MIDDLE' });
+  else if (variant === 'min') Object.assign(it.text.style, base);
+  else Object.assign(it.text.style, { fontSize: sp.font, fillColor: sp.color });
   return it;
 }
+const errText = (e) => (e && (e.message || (e.error && e.error.message))) || (typeof e === 'string' ? e : JSON.stringify(e));
 
 /** Створює/оновлює плашку станів над токеном (або прибирає). Повертає 'ok' або 'missing'. */
 export async function syncStatusBadge(tokenId, conds, modeOverride) {
@@ -345,33 +355,46 @@ export async function syncStatusBadge(tokenId, conds, modeOverride) {
   const { buildShape, buildText, buildPath } = sdkMod;
   const meta = { [STATUS_KEY]: { token: tokenId, sig } };
   const common = (b) => b.attachedTo(tokenId).layer('ATTACHMENT').locked(true).disableHit(true).metadata(meta);
-  // кожен елемент — окремою функцією: якщо один не створиться, решта все одно з'явиться
-  const makers = [() => common(buildShape().shapeType('RECTANGLE').width(bw).height(bh).position({ x: bx, y: by })
-    .fillColor('#111111').fillOpacity(0.88).strokeColor('#000000').strokeOpacity(0.9).strokeWidth(2).name('Стани (фон)')).build()];
+  const makers = [() => { const it = common(buildShape().shapeType('RECTANGLE').width(bw).height(bh).position({ x: bx, y: by })
+    .fillColor('#111111').fillOpacity(0.88).strokeColor('#000000').strokeOpacity(0.9).strokeWidth(2).name('Стани (фон)')).build(); it.zIndex = 1; return it; }];
+  const texts = [];
+  const txt = (pt, x, y, color, align, name) => texts.push({ text: pt.text, x, y, w: pt.w, h: pt.h, font, color, align, name });
   for (const pt of parts) {
     const x = bx + pt.x, y = by + pt.y;
     if (pt.kind === 'text') {
-      makers.push(() => styledText(common(buildText().plainText(pt.text).position({ x, y }).name('Стан (текст)')).build(), pt, font, pt.dim ? '#9a978f' : '#f1efe9', 'START'));
+      txt(pt, x, y, pt.dim ? '#9a978f' : '#f1efe9', 'LEFT', 'Стан (текст)');
     } else {
       const col = condColor(pt.state);
       const cmds = iconCommands(pack, pt.state);
       if (cmds) {
         const sc = pt.w / 512;
-        makers.push(() => common(buildPath().commands(cmds).fillColor(col).fillOpacity(1).strokeColor(col).strokeOpacity(0).strokeWidth(0)
-          .position({ x, y }).scale({ x: sc, y: sc }).name(`Стан: ${pt.state}`)).build());
+        makers.push(() => { const it = common(buildPath().commands(cmds).fillColor(col).fillOpacity(1).strokeColor(col).strokeOpacity(0).strokeWidth(0)
+          .position({ x, y }).scale({ x: sc, y: sc }).name(`Стан: ${pt.state}`)).build(); it.zIndex = 2; return it; });
       } else { // без іконки: кольорова плашка з літерою
-        makers.push(() => common(buildShape().shapeType('RECTANGLE').width(pt.w).height(pt.h).position({ x, y }).fillColor(col).fillOpacity(1).strokeWidth(0).name(`Стан: ${pt.state}`)).build());
-        makers.push(() => styledText(common(buildText().plainText(String(pt.state)[0]).position({ x, y }).name('Літера')).build(), pt, font, '#111111', 'CENTER'));
+        makers.push(() => { const it = common(buildShape().shapeType('RECTANGLE').width(pt.w).height(pt.h).position({ x, y }).fillColor(col).fillOpacity(1).strokeWidth(0).name(`Стан: ${pt.state}`)).build(); it.zIndex = 2; return it; });
+        txt({ text: String(pt.state)[0], w: pt.w, h: pt.h }, x, y, '#111111', 'CENTER', 'Літера');
       }
     }
   }
   const items = [];
   let firstErr = null;
   for (const mk of makers) { try { items.push(mk()); } catch (e) { firstErr = firstErr || e; } }
-  if (firstErr) console.warn('Стани на токені:', firstErr.message);
   // спочатку малюємо нове, лише потім прибираємо старе: якщо щось піде не так, старе не зникне
   await OBR.scene.items.addItems(items);
   if (existing.length) await OBR.scene.items.deleteItems(existing.map((e) => e.id));
-  if (firstErr) throw new Error(`частину елементів не вдалося створити (${firstErr.message})`);
+  if (texts.length) {
+    let start = 0;
+    try { start = Math.max(0, Math.min(TEXT_VARIANTS.length - 1, Number(localStorage.getItem(TV_KEY)) || 0)); } catch { /* типово з першого */ }
+    let done = false, lastErr = null;
+    for (let v = start; v < TEXT_VARIANTS.length && !done; v++) {
+      try {
+        await OBR.scene.items.addItems(texts.map((sp) => buildTextItem(common, buildText, sp, TEXT_VARIANTS[v])));
+        done = true;
+        try { localStorage.setItem(TV_KEY, String(v)); } catch { /* не критично */ }
+      } catch (e) { lastErr = e; }
+    }
+    if (!done) throw new Error(`текст не додався (${errText(lastErr)})`);
+  }
+  if (firstErr) throw new Error(`частину елементів не вдалося створити (${errText(firstErr)})`);
   return 'ok';
 }

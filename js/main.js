@@ -130,7 +130,7 @@ async function syncToken() {
     try {
       await syncStatusBadge(active.tokenId, active.data.conditions);
       showCondErr('');
-    } catch (e) { console.warn('Стани на токені:', e); showCondErr(`Стани на токені не намалювались: ${e && e.message ? e.message : e}`); }
+    } catch (e) { console.warn('Стани на токені:', e); showCondErr(`Стани на токені: ${(e && (e.message || (e.error && e.error.message))) || JSON.stringify(e)}`); }
   } catch (e) { console.warn('Смужка HP:', e.message); }
 }
 async function drawLegend() {
