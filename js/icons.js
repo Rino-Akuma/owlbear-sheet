@@ -1,5 +1,6 @@
 // Іконки станів: game-icons.net (CC BY 3.0). Файли не лежать у репозиторії: лист завантажує набір
 // з jsdelivr один раз, вибирає 21 іконку й запам'ятовує в localStorage.
+import { CUSTOM_ICONS } from './icons-custom.js';
 import { COND_META, condKey, condColor } from './conditions.js';
 
 const PACK_URL = 'https://cdn.jsdelivr.net/npm/@iconify-json/game-icons@1/icons.json';
@@ -15,13 +16,15 @@ export function setCondMode(m) {
   try { localStorage.setItem(MODE_KEY, m === 'icons' ? 'icons' : 'both'); } catch { /* без сховища — лишається типовий */ }
 }
 
+const withCustom = (p) => { Object.assign(p.bodies, CUSTOM_ICONS); return p; };
+
 /** Повертає { bodies: {стан: svg-вміст 512×512}, names: {стан: назва} } або null, якщо завантажити не вдалося. */
 export function loadIconPack() {
   if (packP) return packP;
   packP = (async () => {
     try {
       const c = JSON.parse(localStorage.getItem(KEY) || 'null');
-      if (c && c.bodies && Object.keys(c.bodies).length >= 15) return c;
+      if (c && c.bodies && Object.keys(c.bodies).length >= 15) return withCustom(c);
     } catch { /* кеш пошкоджено — завантажуємо знову */ }
     const r = await fetch(PACK_URL);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -35,7 +38,7 @@ export function loadIconPack() {
     }
     const pack = { bodies, names };
     try { localStorage.setItem(KEY, JSON.stringify(pack)); } catch { /* кеш недоступний — не страшно */ }
-    return pack;
+    return withCustom(pack);
   })().catch((e) => { console.warn('Іконки станів:', e.message); packP = null; return null; });
   return packP;
 }
