@@ -6,6 +6,7 @@ import { mountSheet, fmt } from './engine/sheet.js';
 import { buildSummary } from './summary.js';
 import { mountGm } from './gm.js';
 import { openBestiary } from './bestiary.js';
+import { mountNpc, npcSum } from './npc.js';
 import { COND_META, condColor } from './conditions.js';
 import { loadIconPack, iconSvg, getCondMode, setCondMode } from './icons.js';
 import {
@@ -90,7 +91,7 @@ function publishNow() {
 }
 function drawRoomBtn() {
   const b = $('#btn-room');
-  b.hidden = !inOwlbear() || !active;
+  b.hidden = !inOwlbear() || !active || !!active.npc;
   if (b.hidden) return;
   const on = getRoomChar() === active.id;
   b.textContent = on ? '✓ Грає в цій кімнаті' : 'Грати цим персонажем у кімнаті';
@@ -129,9 +130,9 @@ async function syncToken() {
   const hp = Number(sheet.get('hp')) || 0;
   const max = [sheet.get('max_hp'), sheet.get('hp_max')].map(Number).find((v) => v > 0) || 0;
   try {
-    if ((await syncHpBar(active.tokenId, hp, max, active.barColor || null, Number(active.data.hp_temp) || 0)) === 'missing') { active.tokenId = null; await saveCharacter(active); drawTokenBtn(); return; }
+    if ((await syncHpBar(active.tokenId, hp, max, active.barColor || null, Number(active.data.hp_temp) || 0, !!active.npc)) === 'missing') { active.tokenId = null; await saveCharacter(active); drawTokenBtn(); return; }
     try {
-      await syncStatusBadge(active.tokenId, active.data.conditions);
+      await syncStatusBadge(active.tokenId, active.data.conditions, undefined, !!active.npc && !!active.hideStatus);
       showCondErr('');
     } catch (e) { console.warn('Стани на токені:', e); showCondErr(`Стани на токені: ${(e && (e.message || (e.error && e.error.message))) || JSON.stringify(e)}`); }
   } catch (e) { console.warn('Смужка HP:', e.message); }
@@ -171,9 +172,15 @@ function onCondMode() {
   drawCondMode();
   syncToken();
 }
+/** Для НПС тримаємо в записі кеш HP/КБ, щоб меню НПС працювало без відкритого листа. */
+function updateNpcSum() {
+  if (!active || !active.npc || !sheet) return;
+  try { const s = buildSummary(active, sheet.get); active.sum = { hp: s.hp, max: s.max, tmp: s.tmp, init: s.init, ac: s.ac }; } catch { /* лишаємо попередній кеш */ }
+}
 function drawTokenBtn() {
   const b = $('#btn-token');
   b.hidden = !obrActive() || !active;
+  const nh = $('#npc-opts'); nh.hidden = !(active && active.npc); if (active && active.npc) $('#npc-hide').checked = !!active.hideStatus;
   drawLegend();
   drawCondMode();
   if (b.hidden) { $('#bar-color-wrap').hidden = true; return; }
@@ -211,10 +218,12 @@ async function flushSave() {
   saveTimer = null;
   if (!active) return;
   try {
+    updateNpcSum();
     await saveCharacter(active);
     setStatus(`✓ ${t.saved}`, 'ok');
     syncToken();
     publishNow();
+    if (active.npc && npcCtl) npcCtl.refresh();
   } catch {
     setStatus(t.saveError, 'err');
   }
@@ -224,7 +233,8 @@ async function flushSave() {
 function renderList() {
   const ul = $('#char-list');
   ul.replaceChildren();
-  for (const c of characters) {
+  const mine = characters.filter((c) => !c.npc);
+  for (const c of mine) {
     const tpl = getTemplate(c.templateId);
     const sub = [tpl ? tpl.name : c.templateId, c.data?.race, c.data?.level !== undefined ? `рів. ${c.data.level}` : null]
       .filter(Boolean).join(' · ');
@@ -234,9 +244,10 @@ function renderList() {
         onclick: () => openCharacter(c.id),
       }, h('b', { text: `${inOwlbear() && getRoomChar() === c.id ? '★ ' : ''}${displayName(c)}` }), h('small', { text: sub }))));
   }
-  $('#empty').hidden = characters.length > 0;
+  $('#empty').hidden = mine.length > 0;
   $('#btn-dup').disabled = $('#btn-del').disabled = $('#btn-export').disabled = !active;
   $('#btn-export-all').disabled = characters.length === 0;
+  $('#btn-dup').disabled = $('#btn-del').disabled = $('#btn-export').disabled = !active;
 }
 
 async function openCharacter(id) {
@@ -282,6 +293,7 @@ function drawSheet() {
   drawRollGroups(tpl);
   drawTokenBtn();
   drawRoomBtn();
+  updateNpcSum();
   syncToken();
   publishNow();
 }
@@ -344,13 +356,97 @@ async function createCharacter(templateId) {
   await openCharacter(c.id);
 }
 
-/** Створює персонажа «Континенту» з запису бестіарію (для ГМа). */
-async function createNpc(data) {
-  const tpl = getTemplate('kontynent');
-  const c = { id: newId(), templateId: 'kontynent', templateVersion: tpl.version, schemaVersion: SCHEMA_VERSION, data };
+/** Створює НПС (з бестіарію або порожнього) і відкриває його лист. */
+async function createNpc(templateId, data) {
+  const tpl = getTemplate(templateId);
+  const c = { id: newId(), templateId, templateVersion: tpl.version, schemaVersion: SCHEMA_VERSION, data: data || { name: 'НПС' }, npc: true };
   await saveCharacter(c);
   characters.unshift(c);
+  closeGm(); closeNpc();
   await openCharacter(c.id);
+  if (npcCtl) npcCtl.refresh();
+}
+async function createManualNpc() {
+  let tid = TEMPLATES[0].id;
+  if (TEMPLATES.length > 1) {
+    const sel = h('select', {}, TEMPLATES.map((x) => h('option', { value: x.id, text: x.name })));
+    const val = await modal({ title: 'Нова НПС: система', body: sel, buttons: [{ label: t.cancel, value: null }, { label: t.create, value: 'ok', primary: true }] });
+    if (!val) return;
+    tid = sel.value;
+  }
+  await createNpc(tid);
+}
+
+// ---------- меню НПС (ГМ) ----------
+let npcCtl = null;
+const npcRecs = () => characters.filter((c) => c.npc);
+const refreshNpc = () => { if (npcCtl) npcCtl.refresh(); };
+async function syncRec(rec) {
+  if (!rec.tokenId) return;
+  const s = npcSum(rec);
+  try {
+    if ((await syncHpBar(rec.tokenId, s.hp, s.max, rec.barColor || null, s.tmp, true)) === 'missing') { rec.tokenId = null; await saveCharacter(rec); return; }
+    await syncStatusBadge(rec.tokenId, rec.data.conditions, undefined, !!rec.hideStatus);
+  } catch (e) { console.warn('Токен НПС:', e); }
+}
+async function npcSaved(rec) {
+  await saveCharacter(rec);
+  if (active && active.id === rec.id) drawSheet(); // лист оновиться з нових даних
+  await syncRec(rec);
+  refreshNpc();
+}
+function openNpc() {
+  const panel = $('#npc-panel');
+  panel.hidden = false;
+  npcCtl = mountNpc(panel, {
+    list: npcRecs,
+    sysName: (rec) => { const tp = getTemplate(rec.templateId); return tp ? tp.name : rec.templateId; },
+    createManual: createManualNpc,
+    openBestiary: () => openBestiary(createNpc),
+    close: closeNpc,
+    openSheet: async (rec) => { closeNpc(); closeGm(); await openCharacter(rec.id); },
+    setHp: async (rec, hp, tmp) => { rec.data.hp = hp; if (rec.templateId === 'dnd5e') rec.data.hp_temp = tmp; rec.sum = { ...(rec.sum || {}), ...npcSum({ ...rec, data: rec.data, sum: rec.sum }), hp, tmp }; await npcSaved(rec); },
+    setConds: async (rec, conds) => { rec.data.conditions = conds; await npcSaved(rec); },
+    setHideStatus: async (rec, v) => { rec.hideStatus = !!v; await npcSaved(rec); },
+    toggleToken: async (rec) => {
+      if (rec.tokenId) { await removeHpBar(rec.tokenId); rec.tokenId = null; await saveCharacter(rec); refreshNpc(); return; }
+      const r = await pickSelectedToken();
+      if (!r.ok) { setStatus('Спершу виділіть токен на карті', 'err'); return; }
+      const other = characters.find((c) => c.tokenId === r.id && c.id !== rec.id);
+      if (other) { setStatus(`Цей токен уже прив’язаний до «${displayName(other)}»`, 'err'); return; }
+      rec.tokenId = r.id; await npcSaved(rec);
+    },
+    duplicate: async (rec) => {
+      const n = await askCount('Скільки копій створити?');
+      if (!n) return;
+      const base = displayName(rec).replace(/\s+\d+$/, '');
+      for (let i = 0; i < n; i++) {
+        const copy = JSON.parse(JSON.stringify(rec));
+        copy.id = newId(); copy.tokenId = null;
+        copy.data.name = `${base} ${i + 2}`;
+        await saveCharacter(copy); characters.unshift(copy);
+      }
+      renderList(); refreshNpc();
+    },
+    remove: async (rec) => {
+      const ok = await modal({ title: t.remove, body: t.removeQuestion(displayName(rec)), buttons: [{ label: t.cancel, value: false }, { label: t.remove, value: true, danger: true }] });
+      if (!ok) return;
+      if (rec.tokenId) { try { await removeHpBar(rec.tokenId); } catch { /* токен міг зникнути */ } }
+      await deleteCharacter(rec.id);
+      characters = characters.filter((c) => c.id !== rec.id);
+      if (active && active.id === rec.id) { active = null; drawSheet(); }
+      renderList(); refreshNpc();
+    },
+  });
+}
+function closeNpc() {
+  $('#npc-panel').hidden = true;
+  if (npcCtl) { npcCtl.destroy(); npcCtl = null; }
+}
+async function askCount(title) {
+  const inp = h('input', { type: 'number', min: '1', max: '20', value: '1' });
+  const val = await modal({ title, body: inp, buttons: [{ label: t.cancel, value: null }, { label: 'Створити', value: 'ok', primary: true }] });
+  return val ? Math.max(1, Math.min(20, Math.floor(Number(inp.value) || 1))) : 0;
 }
 
 async function onNew() {
@@ -368,6 +464,7 @@ async function onDuplicate() {
   await flushSave();
   const copy = JSON.parse(JSON.stringify(active));
   copy.id = newId();
+  copy.tokenId = null; // копія не має ділити токен з оригіналом
   copy.data.name = `${displayName(active)} ${t.copySuffix}`;
   await saveCharacter(copy);
   characters.unshift(copy);
@@ -383,11 +480,13 @@ async function onDelete() {
   if (!ok) return;
   clearTimeout(saveTimer);
   const id = active.id;
+  if (active.tokenId) { try { await removeHpBar(active.tokenId); } catch { /* токен міг зникнути */ } }
   if (getRoomChar() === id) setRoomChar(null);
   await deleteCharacter(id);
   characters = characters.filter((c) => c.id !== id);
   active = null;
-  if (characters[0]) await openCharacter(characters[0].id);
+  const nextC = characters.find((c) => !c.npc);
+  if (nextC) await openCharacter(nextC.id);
   else { drawSheet(); renderList(); }
 }
 
@@ -560,6 +659,8 @@ async function init() {
   $('#btn-condmode').addEventListener('click', onCondMode);
   $('#btn-room').addEventListener('click', onRoomBtn);
   $('#btn-gm').addEventListener('click', openGm);
+  $('#btn-npc').addEventListener('click', openNpc);
+  $('#npc-hide').addEventListener('change', async (e) => { if (!active || !active.npc) return; active.hideStatus = e.target.checked; await saveCharacter(active); syncToken(); refreshNpc(); });
   // Фонова сторінка змінила лист (стани/ініціатива від ГМа) — підтягуємо зміни у відкритий лист.
   if ('BroadcastChannel' in window) {
     new BroadcastChannel('owlbear-sheet').onmessage = async (ev) => {
@@ -598,7 +699,7 @@ async function init() {
   });
   // Інтерфейс Owlbear вмикаємо одразу, не чекаючи SDK: виклики самі дочекаються готовності.
   const hideObr = () => { $('#lbl-vis').hidden = true; $('#win-wrap').hidden = true; document.querySelectorAll('.win-ctl').forEach((e) => { e.hidden = true; }); };
-  initOwlbear().then((ok) => { if (!ok && inOwlbear()) hideObr(); else if (ok) { syncToken(); drawRoomBtn(); publishNow(); isGM().then((gm) => { $('#btn-gm').hidden = !gm; }); } });
+  initOwlbear().then((ok) => { if (!ok && inOwlbear()) hideObr(); else if (ok) { syncToken(); drawRoomBtn(); publishNow(); isGM().then((gm) => { $('#btn-gm').hidden = !gm; $('#btn-npc').hidden = !gm; }); } });
   if (inOwlbear()) {
     $('#lbl-vis').hidden = false;
     drawTokenBtn(); syncToken();

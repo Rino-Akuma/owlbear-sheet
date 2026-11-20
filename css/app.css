@@ -149,7 +149,7 @@ button.act { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
 .error { color: var(--bad); }
 
 /* модальне вікно */
-.backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, .55); display: grid; place-items: center; padding: 16px; z-index: 10; }
+.backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, .55); display: grid; place-items: center; padding: 16px; z-index: 60; }
 .modal { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; max-width: 420px; width: 100%; display: flex; flex-direction: column; gap: 12px; }
 .modal p { margin: 0; }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
@@ -419,3 +419,9 @@ details.more summary { cursor: pointer; font-size: 12px; color: var(--muted); ma
 
 .gm-hp-edit { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
 .gm-hp-edit .gm-hp-in { width: 80px; flex: none; padding: 4px 6px; }
+
+.npc-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.npc-actions .grow { flex: 1; }
+.npc-hide { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 4px; }
+.npc-opts { display: inline-flex; align-items: center; gap: 4px; }
+#npc-panel[hidden] { display: none; }

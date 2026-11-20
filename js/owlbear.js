@@ -187,7 +187,7 @@ async function _removeHpBar(tokenId) {
 
 /** Створює/оновлює смужку HP під токеном. Повертає 'ok' або 'missing' (токен видалено). */
 export const syncHpBar = (...a) => serial(() => _syncHpBar(...a));
-async function _syncHpBar(tokenId, hp, max, fixedColor = null, tmp = 0) {
+async function _syncHpBar(tokenId, hp, max, fixedColor = null, tmp = 0, hidden = false) {
   if (!tokenId || !(await whenReady())) return 'ok';
   const [token] = await OBR.scene.items.getItems([tokenId]);
   if (!token) return 'missing';
@@ -211,7 +211,7 @@ async function _syncHpBar(tokenId, hp, max, fixedColor = null, tmp = 0) {
   const tmpGeo = { x: bx, y: by - th - 1, w: Math.max(0.01, bw * (max > 0 ? Math.min(1, tmpN / max) : 1)) };
   const mkTemp = (run) => buildShape().shapeType('RECTANGLE').width(tmpGeo.w).height(th).position({ x: tmpGeo.x, y: tmpGeo.y })
     .fillColor('#4aa3e8').fillOpacity(1).strokeColor('#000000').strokeOpacity(0.9).strokeWidth(1)
-    .attachedTo(tokenId).layer('ATTACHMENT').locked(true).disableHit(true).name('Тимчасові HP')
+    .attachedTo(tokenId).layer('ATTACHMENT').locked(true).disableHit(true).visible(!hidden).name('Тимчасові HP')
     .metadata({ [BAR_KEY]: { token: tokenId, kind: 'temp', run } }).build();
 
   const existing = await OBR.scene.items.getItems((i) => i.metadata[BAR_KEY] && i.metadata[BAR_KEY].token === tokenId);
@@ -221,6 +221,7 @@ async function _syncHpBar(tokenId, hp, max, fixedColor = null, tmp = 0) {
     if (dup.length) { await OBR.scene.items.deleteItems(dup); existing.splice(0, existing.length, ...existing.filter((e) => !dup.includes(e.id))); }
     await OBR.scene.items.updateItems(existing, (drafts) => {
       for (const d of drafts) {
+        d.visible = !hidden;
         const kd = d.metadata[BAR_KEY].kind;
         if (kd === 'temp') { d.position = { x: tmpGeo.x, y: tmpGeo.y }; d.width = tmpGeo.w; d.height = th; continue; }
         const g = geo[kd]; if (!g) continue;
@@ -237,7 +238,7 @@ async function _syncHpBar(tokenId, hp, max, fixedColor = null, tmp = 0) {
   const mk = (kind, fill, opacity) => buildShape()
     .shapeType('RECTANGLE').width(geo[kind].w).height(bh).position({ x: geo[kind].x, y: geo[kind].y })
     .fillColor(fill).fillOpacity(opacity).strokeColor('#000000').strokeOpacity(kind === 'bg' ? 0.9 : 0).strokeWidth(kind === 'bg' ? 2 : 0)
-    .attachedTo(tokenId).layer('ATTACHMENT').locked(true).disableHit(true)
+    .attachedTo(tokenId).layer('ATTACHMENT').locked(true).disableHit(true).visible(!hidden)
     .name(kind === 'bg' ? 'HP (фон)' : 'HP')
     .metadata({ [BAR_KEY]: { token: tokenId, kind, run } }).build();
   const run = newRun();
@@ -322,7 +323,7 @@ const errText = (e) => (e && (e.message || (e.error && e.error.message))) || (ty
 
 /** Створює/оновлює плашку станів над токеном (або прибирає). Повертає 'ok' або 'missing'. */
 export const syncStatusBadge = (...a) => serial(() => _syncStatusBadge(...a));
-async function _syncStatusBadge(tokenId, conds, modeOverride) {
+async function _syncStatusBadge(tokenId, conds, modeOverride, hidden = false) {
   if (!tokenId || !(await whenReady())) return 'ok';
   const list = (Array.isArray(conds) ? conds : []).filter(Boolean);
   const existing = await OBR.scene.items.getItems((i) => i.metadata[STATUS_KEY] && i.metadata[STATUS_KEY].token === tokenId);
@@ -341,7 +342,7 @@ async function _syncStatusBadge(tokenId, conds, modeOverride) {
   const left = token.position.x - off.x * token.scale.x * k;
   const top = token.position.y - off.y * token.scale.y * k;
   const S = Math.round(Math.max(26, Math.min(w * 0.28, 60)));
-  const sig = `${mode}|${S}|${list.join(',')}`;
+  const sig = `${hidden ? 'h' : 'v'}|${mode}|${S}|${list.join(',')}`;
   if (existing.length && existing[0].metadata[STATUS_KEY].sig === sig) return 'ok';
 
   const pack = await loadIconPack();
@@ -375,7 +376,7 @@ async function _syncStatusBadge(tokenId, conds, modeOverride) {
 
   const { buildShape, buildPath } = sdkMod;
   const meta = { [STATUS_KEY]: { token: tokenId, sig, run: newRun() } };
-  const common = (b) => b.attachedTo(tokenId).layer('ATTACHMENT').locked(true).disableHit(true).metadata(meta);
+  const common = (b) => b.attachedTo(tokenId).layer('ATTACHMENT').locked(true).disableHit(true).visible(!hidden).metadata(meta);
   const makers = [() => { const it = common(buildShape().shapeType('RECTANGLE').width(bw).height(bh).position({ x: bx, y: by })
     .fillColor('#111111').fillOpacity(0.88).strokeColor('#000000').strokeOpacity(0.9).strokeWidth(2).name('Стани (фон)')).build(); it.zIndex = 1; return it; }];
   const glyph = (str, x, y, h, color, name) => { // рядок як векторний контур: x — ліво, y — верх рядка висотою h
