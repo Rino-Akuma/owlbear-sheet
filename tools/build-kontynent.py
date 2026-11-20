@@ -224,7 +224,14 @@ for p in merged:
         continue
     races.append({'n': name, 's': SRC, 'desc': p, 'st': d['st'], 'mv': d.get('mv', 0), 'armor': d.get('armor', 0),
                   'fx': [{'name': a, 'desc': b} for a, b in d['fx']]})
+# Інферніти й невмерлі — не раси, а риси: ними можна стати з будь-якою расою чи напівкровкою
+MOVED = {'Інферніти': 'Інферніт', 'Невмерлі': 'Невмерлий'}
+for r in [r for r in races if r['n'] in MOVED]:
+    out.append({'n': MOVED[r['n']], 's': SRC, 'eff': r['desc'], 'req': 'доступна будь-якій расі та напівкровці; бонуси додаються поверх базової раси',
+                'st': r['st'], 'mv': r['mv'], 'armor': r['armor'], 'fx': r['fx']})
+races = [r for r in races if r['n'] not in MOVED]
 dump('races', races)
+dump('feats', out)
 
 # ---------------- передісторії ----------------
 bt = page_text(51, 54)

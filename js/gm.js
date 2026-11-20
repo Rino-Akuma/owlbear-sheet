@@ -21,6 +21,7 @@ function h(tag, attrs = {}, ...kids) {
 
 const hpColor = (r) => (r > 0.5 ? '#3fae5a' : r > 0.25 ? '#e0b030' : '#d04a3a');
 const open = new Set();      // розгорнуті картки (за id гравця)
+const hpAmt = new Map();     // введене число для кожної картки
 const palette = new Set();   // картки з відкритою палітрою станів
 
 /**
@@ -44,6 +45,17 @@ export function mountGm(root, api) {
       draw();
     };
     const det = s.det || {};
+    const hasTemp = s.sys === 'dnd5e';
+    const applyHp = (op) => {
+      const n = Math.floor(Number(hpAmt.get(key)) || 0);
+      if (n <= 0) return;
+      if (op === 'dmg') { const ab = hasTemp ? Math.min(s.tmp || 0, n) : 0; s.tmp = (s.tmp || 0) - ab; s.hp = Math.max(0, s.hp - (n - ab)); }
+      else if (op === 'heal') s.hp = s.max > 0 ? Math.min(s.max, s.hp + n) : s.hp + n;
+      else if (op === 'temp') s.tmp = Math.max(s.tmp || 0, n);
+      hpAmt.delete(key);
+      api.setHp(r.id, s.charId, op, n, s.max);
+      draw();
+    };
     return h('section', { class: 'gm-card' },
       h('div', { class: 'gm-head' },
         h('div', { class: 'gm-init', title: 'Ініціатива', text: s.init === null || s.init === undefined ? '—' : String(s.init) }),
@@ -54,6 +66,11 @@ export function mountGm(root, api) {
       h('div', { class: 'gm-hp' },
         h('div', { class: 'gm-hp-bar' }, h('div', { class: 'gm-hp-fill', style: `width:${Math.round(ratio * 100)}%;background:${hpColor(ratio)}` })),
         h('span', { class: 'gm-hp-txt', text: `${s.hp} / ${s.max}${s.tmp ? ` (+${s.tmp})` : ''}` })),
+      h('div', { class: 'gm-hp-edit' },
+        h('input', { type: 'number', min: '0', class: 'gm-hp-in', 'data-k': key, placeholder: '0', value: hpAmt.get(key) ?? '', oninput: (e) => hpAmt.set(key, e.target.value), onkeydown: (e) => { if (e.key === 'Enter') applyHp('dmg'); } }),
+        h('button', { type: 'button', class: 'chip-btn', text: 'Шкода', onclick: () => applyHp('dmg') }),
+        h('button', { type: 'button', class: 'chip-btn', text: 'Лікування', onclick: () => applyHp('heal') }),
+        hasTemp ? h('button', { type: 'button', class: 'chip-btn', text: 'Тимч. HP', onclick: () => applyHp('temp') }) : null),
       s.note ? h('div', { class: 'muted small', text: s.note }) : null,
       h('div', { class: 'gm-conds' },
         ...conds.map((c) => h('button', { type: 'button', class: 'chip-btn on', title: 'Прибрати стан', text: `${ico(c)} ✕`, onclick: () => toggle(c) })),
@@ -66,6 +83,8 @@ export function mountGm(root, api) {
   }
 
   function draw() {
+    const ae = document.activeElement;
+    const focusKey = ae && root.contains(ae) && ae.classList && ae.classList.contains('gm-hp-in') ? ae.dataset.k : null; // не губимо фокус поля HP при оновленні таблиці
     const sorted = [...rows].sort((a, b) => {
       const ai = a.sum.init, bi = b.sum.init;
       if (ai === null || ai === undefined) return (bi === null || bi === undefined) ? a.sum.name.localeCompare(b.sum.name) : 1;
@@ -85,6 +104,7 @@ export function mountGm(root, api) {
         h('button', { type: 'button', text: 'Закрити', onclick: () => api.close() })),
       sorted.length ? h('div', { class: 'gm-list' }, sorted.map(card))
         : h('p', { class: 'muted', text: 'Поки що немає персонажів. Гравці з’являться тут, щойно відкриють свій лист у цій кімнаті.' }));
+    if (focusKey) { const n = [...root.querySelectorAll('.gm-hp-in')].find((x) => x.dataset.k === focusKey); if (n) n.focus(); }
   }
 
   const unsubP = api.onTable((list) => { rows = list; draw(); });

@@ -187,7 +187,7 @@ async function _removeHpBar(tokenId) {
 
 /** Створює/оновлює смужку HP під токеном. Повертає 'ok' або 'missing' (токен видалено). */
 export const syncHpBar = (...a) => serial(() => _syncHpBar(...a));
-async function _syncHpBar(tokenId, hp, max, fixedColor = null) {
+async function _syncHpBar(tokenId, hp, max, fixedColor = null, tmp = 0) {
   if (!tokenId || !(await whenReady())) return 'ok';
   const [token] = await OBR.scene.items.getItems([tokenId]);
   if (!token) return 'missing';
@@ -204,6 +204,15 @@ async function _syncHpBar(tokenId, hp, max, fixedColor = null) {
   const bx = left + w * 0.05, by = top + h - bh - Math.max(2, h * 0.03);
   const color = fixedColor || (ratio > 0.5 ? '#3fae5a' : ratio > 0.25 ? '#e0b030' : '#d04a3a');
   const geo = { bg: { x: bx, y: by, w: bw }, fill: { x: bx, y: by, w: Math.max(0.01, bw * ratio) } };
+  // тимчасові HP: тонка синя смужка над основною
+  const { buildShape } = sdkMod;
+  const th = Math.max(3, bh * 0.45);
+  const tmpN = Math.max(0, Number(tmp) || 0);
+  const tmpGeo = { x: bx, y: by - th - 1, w: Math.max(0.01, bw * (max > 0 ? Math.min(1, tmpN / max) : 1)) };
+  const mkTemp = (run) => buildShape().shapeType('RECTANGLE').width(tmpGeo.w).height(th).position({ x: tmpGeo.x, y: tmpGeo.y })
+    .fillColor('#4aa3e8').fillOpacity(1).strokeColor('#000000').strokeOpacity(0.9).strokeWidth(1)
+    .attachedTo(tokenId).layer('ATTACHMENT').locked(true).disableHit(true).name('Тимчасові HP')
+    .metadata({ [BAR_KEY]: { token: tokenId, kind: 'temp', run } }).build();
 
   const existing = await OBR.scene.items.getItems((i) => i.metadata[BAR_KEY] && i.metadata[BAR_KEY].token === tokenId);
   if (existing.length >= 2) {
@@ -212,15 +221,19 @@ async function _syncHpBar(tokenId, hp, max, fixedColor = null) {
     if (dup.length) { await OBR.scene.items.deleteItems(dup); existing.splice(0, existing.length, ...existing.filter((e) => !dup.includes(e.id))); }
     await OBR.scene.items.updateItems(existing, (drafts) => {
       for (const d of drafts) {
-        const g = geo[d.metadata[BAR_KEY].kind]; if (!g) continue;
+        const kd = d.metadata[BAR_KEY].kind;
+        if (kd === 'temp') { d.position = { x: tmpGeo.x, y: tmpGeo.y }; d.width = tmpGeo.w; d.height = th; continue; }
+        const g = geo[kd]; if (!g) continue;
         d.position = { x: g.x, y: g.y }; d.width = g.w; d.height = bh;
-        if (d.metadata[BAR_KEY].kind === 'fill') d.style.fillColor = color;
+        if (kd === 'fill') d.style.fillColor = color;
       }
     });
+    const tItem = existing.find((e) => e.metadata[BAR_KEY].kind === 'temp');
+    if (tmpN > 0 && !tItem) await OBR.scene.items.addItems([mkTemp(existing[0].metadata[BAR_KEY].run)]);
+    else if (tmpN <= 0 && tItem) await OBR.scene.items.deleteItems([tItem.id]);
     return 'ok';
   }
   if (existing.length) await OBR.scene.items.deleteItems(existing.map((e) => e.id));
-  const { buildShape } = sdkMod;
   const mk = (kind, fill, opacity) => buildShape()
     .shapeType('RECTANGLE').width(geo[kind].w).height(bh).position({ x: geo[kind].x, y: geo[kind].y })
     .fillColor(fill).fillOpacity(opacity).strokeColor('#000000').strokeOpacity(kind === 'bg' ? 0.9 : 0).strokeWidth(kind === 'bg' ? 2 : 0)
@@ -228,7 +241,7 @@ async function _syncHpBar(tokenId, hp, max, fixedColor = null) {
     .name(kind === 'bg' ? 'HP (фон)' : 'HP')
     .metadata({ [BAR_KEY]: { token: tokenId, kind, run } }).build();
   const run = newRun();
-  await OBR.scene.items.addItems([mk('bg', '#1a1a1a', 0.8), mk('fill', color, 1)]);
+  await OBR.scene.items.addItems([mk('bg', '#1a1a1a', 0.8), mk('fill', color, 1), ...(tmpN > 0 ? [mkTemp(run)] : [])]);
   await dedupeRuns(BAR_KEY, tokenId);
   return 'ok';
 }

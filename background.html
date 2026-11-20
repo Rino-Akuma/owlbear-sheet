@@ -3,7 +3,7 @@
 <body>
 <script type="module">
   // Працює завжди, поки аддон увімкнено в кімнаті: показує сповіщення про кидки інших гравців.
-  import { CH_ROLL, rollToastText, whenReady, getObr, onCmd, patchSummary, myId, getRoomChar, syncStatusBadge } from './js/owlbear.js';
+  import { CH_ROLL, rollToastText, whenReady, getObr, onCmd, patchSummary, myId, getRoomChar, syncStatusBadge, syncHpBar } from './js/owlbear.js';
   import { listCharacters, saveCharacter } from './js/storage.js';
   await whenReady(60000);
   const OBR = getObr();
@@ -32,6 +32,23 @@
         await saveCharacter(rec);
         patchSummary({ conds: rec.data.conditions });
         if (rec.tokenId) await syncStatusBadge(rec.tokenId, rec.data.conditions).catch((e) => console.warn(e));
+        bc && bc.postMessage({ type: 'reload', id: rec.id });
+      } else if (m.type === 'hp' && m.to === myId()) {
+        const rec = all.find((c) => c.id === m.charId && c.id === getRoomChar());
+        if (!rec) return;
+        const d = rec.data, int = (v, cap) => Math.max(0, Math.min(cap, Math.floor(Number(v) || 0)));
+        const max = int(m.max, 99999) || int(d.hp_max, 99999), n = int(m.n, 9999);
+        const cur = d.hp === undefined || d.hp === null ? max : int(d.hp, 99999);
+        const hasTemp = rec.templateId === 'dnd5e';
+        let hp = cur, tmp = hasTemp ? int(d.hp_temp, 9999) : 0;
+        if (m.op === 'dmg') { const ab = Math.min(tmp, n); tmp -= ab; hp = Math.max(0, cur - (n - ab)); }
+        else if (m.op === 'heal') hp = max > 0 ? Math.min(max, cur + n) : cur + n;
+        else if (m.op === 'temp' && hasTemp) tmp = Math.max(tmp, n);
+        else return;
+        d.hp = hp; if (hasTemp) d.hp_temp = tmp;
+        await saveCharacter(rec);
+        patchSummary({ hp, tmp });
+        if (rec.tokenId) await syncHpBar(rec.tokenId, hp, max, rec.barColor || null, tmp).catch((e) => console.warn(e));
         bc && bc.postMessage({ type: 'reload', id: rec.id });
       } else if (m.type === 'clear-init') {
         for (const rec of all.filter((c) => c.id === getRoomChar())) if (rec.data.init_roll !== undefined && rec.data.init_roll !== null) { rec.data.init_roll = null; await saveCharacter(rec); }

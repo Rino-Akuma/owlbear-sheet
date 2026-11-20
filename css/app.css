@@ -416,3 +416,6 @@ details.more summary { cursor: pointer; font-size: 12px; color: var(--muted); ma
 .legend-dot { width: 12px; height: 12px; border-radius: 3px; margin: 5px; display: inline-block; }
 .legend-credit { flex-basis: 100%; font-size: 11px; opacity: .8; }
 .cond-err { color: #e0746a; font-size: 12px; margin: 6px 0; }
+
+.gm-hp-edit { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.gm-hp-edit .gm-hp-in { width: 80px; flex: none; padding: 4px 6px; }

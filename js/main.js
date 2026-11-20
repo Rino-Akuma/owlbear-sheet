@@ -111,6 +111,7 @@ function openGm() {
   gmCtl = mountGm(panel, {
     onTable: (cb) => watchTable(cb),
     setConds: (playerId, charId, conds) => sendCmd({ type: 'conds', to: playerId, charId, conds }),
+    setHp: (playerId, charId, op, n, max) => sendCmd({ type: 'hp', to: playerId, charId, op, n, max }),
     clearInit: () => sendCmd({ type: 'clear-init' }),
     close: closeGm,
   });
@@ -126,7 +127,7 @@ async function syncToken() {
   const hp = Number(sheet.get('hp')) || 0;
   const max = [sheet.get('max_hp'), sheet.get('hp_max')].map(Number).find((v) => v > 0) || 0;
   try {
-    if ((await syncHpBar(active.tokenId, hp, max, active.barColor || null)) === 'missing') { active.tokenId = null; await saveCharacter(active); drawTokenBtn(); return; }
+    if ((await syncHpBar(active.tokenId, hp, max, active.barColor || null, Number(active.data.hp_temp) || 0)) === 'missing') { active.tokenId = null; await saveCharacter(active); drawTokenBtn(); return; }
     try {
       await syncStatusBadge(active.tokenId, active.data.conditions);
       showCondErr('');

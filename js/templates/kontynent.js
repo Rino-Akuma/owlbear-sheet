@@ -110,10 +110,10 @@ const actions = {
   // Напівкровка: обираємо двох батьківських рас, а успадковане (за кидками майстра) відмічається вручну.
   async pickHalfBlood(ctx, e) {
     const all = await loadLib('kont-races');
-    const ok = new Set(['Людина', 'Ельф', 'Гноми', 'Орки', 'Велетні']); // невмерлі й інферніти не розмножуються, драконіди — лише між собою
+    const ok = new Set(['Людина', 'Ельф', 'Гноми', 'Орки', 'Велетні']); // драконіди розмножуються лише між собою; інферніт і невмерлий — риси, а не раси
     const picked = await pickMany({
       title: 'Напівкровка: які раси батьків?',
-      hint: 'Оберіть дві раси. Невмерлі й інферніти не розмножуються, драконіди — лише між собою, тому їх немає в списку.',
+      hint: 'Оберіть дві раси. Драконіди розмножуються лише між собою, тому їх немає в списку. Інферніт і невмерлий — це риси: їх додають окремо, вони працюють поверх будь-якої раси.',
       options: all.filter((r) => ok.has(r.n)).map((r) => ({ value: r.n, label: r.n })), count: 2,
     });
     if (!picked) return;
@@ -194,12 +194,23 @@ const actions = {
     if (e.n === 'Стійкий' && chosen) items.push({ id: 'hp', group: 'Автоматично', label: `Множник HP ${chosen}`, text: 'ХП = Статура × множник', apply: (c) => gSet(c, 'hp_mult', num(chosen)) });
     if (e.n === 'Покращене фехтування' && chosen) items.push({ id: 'react', group: 'Автоматично', label: `Бонус до дій у відповідь ${chosen}`, apply: (c) => gAdd(c, 'react_bonus', num(chosen)) });
     if (e.n === 'Швидкі ноги' && chosen) items.push({ id: 'spd', group: 'Автоматично', label: `Швидкість ${chosen} м`, apply: (c) => gAdd(c, 'speed', num(chosen)) });
+    if (e.st || e.mv || e.armor || (e.fx && e.fx.length)) { // риса змінює характеристики й додає ефекти (Інферніт, Невмерлий)
+      const NAMES = { str: 'Сила', dex: 'Спритність', con: 'Статура', wil: 'Воля' };
+      Object.entries(e.st || {}).forEach(([key, v]) => items.push({ id: `st:${key}`, group: 'Характеристики', label: `${NAMES[key]} ${v > 0 ? '+' : '−'}${Math.abs(v)}`, text: 'до поточного значення', apply: (c) => gAdd(c, key, v) }));
+      if (e.mv) items.push({ id: 'mv', group: 'Характеристики', label: `Магічна витривалість +${e.mv}`, text: 'лише для немагічних класів', apply: (c) => gAdd(c, 'mv_bonus', e.mv) });
+      if (e.armor) items.push({ id: 'armor', group: 'Характеристики', label: `Обладунок +${e.armor}`, apply: (c) => gAdd(c, 'armor', e.armor) });
+      (e.fx || []).forEach((fx, i) => items.push({ id: `fx:${i}`, group: 'Особливості (додадуться до «Додаткові ефекти»)', label: fx.name, text: fx.desc, apply: (c) => gRows(c, 'effects', [{ name: fx.name, desc: fx.desc }], src) }));
+    }
     await runGrants(ctx, { src, title: `Риса «${e.n}»`, intro: e.req ? `Вимоги: ${e.req}` : '', items });
   },
 
   pickSpell(ctx, e) {
     const tail = [e.ty && `Вид: ${e.ty}`, e.dur && `Тривалість: ${e.dur}`].filter(Boolean).join('. ');
     ctx.addRow('spells', { name: e.n, school: e.sch, level: e.l, cost: e.cost, dmg: e.dmg, range: e.rng, conc: e.conc, desc: [e.desc, tail].filter(Boolean).join('\n\n') });
+  },
+
+  pickManeuver(ctx, e) {
+    ctx.addRow('maneuvers', { name: e.n, desc: `${e.req ? `Потрібно: ${e.req}.\n` : ''}${e.desc}` });
   },
 
   async pickWeapon(ctx, e) {
@@ -325,7 +336,11 @@ export default {
           { id: 'notes', label: 'Нотатки', type: 'text' },
         ],
         rowActions: [{ label: 'Шкода', action: 'weaponDamage', hint: '(база + d100, не більше характеристики) × коефіцієнт' }],
-      }],
+      },
+      { id: 'maneuvers', type: 'list', label: 'Бойові прийоми', addLabel: 'Додати прийом', empty: 'Прийомів немає',
+        pick: { title: 'Бойовий прийом', label: 'Прийом з бібліотеки', kind: 'kont-maneuvers', action: 'pickManeuver', meta: (e) => e.req },
+        columns: [{ id: 'name', label: 'Назва', type: 'text', width: '30%' }, { id: 'desc', label: 'Опис', type: 'textarea' }] },
+      { type: 'note', text: 'Прийоми можна використовувати необмежену кількість разів, але лише один за раунд, і його треба заявити перед ударом.' }],
     },
     {
       page: 'Закляття', title: 'Закляття', cols: 1,
