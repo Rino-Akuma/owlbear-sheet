@@ -5,6 +5,7 @@ import { TEMPLATES, getTemplate } from './templates/index.js';
 import { mountSheet, fmt } from './engine/sheet.js';
 import { buildSummary } from './summary.js';
 import { mountGm } from './gm.js';
+import { openBestiary } from './bestiary.js';
 import { COND_META, condColor } from './conditions.js';
 import { loadIconPack, iconSvg, getCondMode, setCondMode } from './icons.js';
 import {
@@ -113,6 +114,7 @@ function openGm() {
     setConds: (playerId, charId, conds) => sendCmd({ type: 'conds', to: playerId, charId, conds }),
     setHp: (playerId, charId, op, n, max) => sendCmd({ type: 'hp', to: playerId, charId, op, n, max }),
     clearInit: () => sendCmd({ type: 'clear-init' }),
+    openBestiary: () => openBestiary(createNpc),
     close: closeGm,
   });
 }
@@ -337,6 +339,15 @@ function renderLog() {
 async function createCharacter(templateId) {
   const tpl = getTemplate(templateId);
   const c = { id: newId(), templateId, templateVersion: tpl.version, schemaVersion: SCHEMA_VERSION, data: {} };
+  await saveCharacter(c);
+  characters.unshift(c);
+  await openCharacter(c.id);
+}
+
+/** Створює персонажа «Континенту» з запису бестіарію (для ГМа). */
+async function createNpc(data) {
+  const tpl = getTemplate('kontynent');
+  const c = { id: newId(), templateId: 'kontynent', templateVersion: tpl.version, schemaVersion: SCHEMA_VERSION, data };
   await saveCharacter(c);
   characters.unshift(c);
   await openCharacter(c.id);

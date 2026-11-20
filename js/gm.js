@@ -100,7 +100,8 @@ export function mountGm(root, api) {
       },
     });
     root.replaceChildren(
-      h('div', { class: 'gm-bar' }, h('h2', { text: 'Меню ГМа' }), h('div', { class: 'grow' }), clearBtn,
+      h('div', { class: 'gm-bar' }, h('h2', { text: 'Меню ГМа' }), h('div', { class: 'grow' }),
+        api.openBestiary ? h('button', { type: 'button', text: 'Бестіарій', onclick: () => api.openBestiary() }) : null, clearBtn,
         h('button', { type: 'button', text: 'Закрити', onclick: () => api.close() })),
       sorted.length ? h('div', { class: 'gm-list' }, sorted.map(card))
         : h('p', { class: 'muted', text: 'Поки що немає персонажів. Гравці з’являться тут, щойно відкриють свій лист у цій кімнаті.' }));
