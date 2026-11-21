@@ -14,19 +14,18 @@
 </script>
 </head>
 <body>
-<div class="app">
+<div class="app" data-view="home">
+
+  <div id="turnbar" class="turnbar" hidden></div>
+
+  <div class="body">
 
   <aside class="side">
     <h1 id="app-title"></h1>
     <div class="side-actions">
+      <button id="btn-gm" type="button" class="gm-open" hidden>Меню ГМа</button>
       <button id="btn-new" class="primary" type="button"></button>
-      <button id="btn-gm" type="button" class="gm-open" hidden>ГМ</button>
-      <button id="btn-npc" type="button" class="gm-open" hidden>НПС</button>
-      <button id="btn-menu" class="menu-btn" type="button" aria-label="Меню">⋯</button>
-      <div class="row2">
-        <button id="btn-dup" type="button"></button>
-        <button id="btn-del" type="button" class="danger-text"></button>
-      </div>
+      <button id="btn-dice-home" type="button" class="dice-toggle">Кубики</button>
     </div>
     <h2 id="chars-title" class="lbl"></h2>
     <ul id="char-list" class="char-list"></ul>
@@ -34,7 +33,6 @@
       <p id="empty-text"></p>
     </div>
     <div class="side-foot">
-      <button id="btn-export" type="button"></button>
       <button id="btn-export-all" type="button"></button>
       <button id="btn-import" type="button"></button>
       <input id="file" type="file" accept=".json,application/json" hidden>
@@ -42,19 +40,40 @@
     </div>
   </aside>
 
+  <aside class="histcol" id="histcol">
+    <div id="log-block" class="log-block">
+      <div class="log-head-row">
+        <span class="lbl">Історія кидків</span>
+        <button id="btn-clear-log" type="button" class="link"></button>
+      </div>
+      <div id="log" class="log"></div>
+    </div>
+  </aside>
+
   <main class="main">
     <div id="sheet-bar" class="sheet-bar" hidden>
+      <button id="btn-back" type="button" class="mini back-btn">← Меню</button>
       <span id="sheet-system" class="chip"></span>
       <span id="save-status" class="save-status"></span>
-      <button id="btn-room" type="button" class="mini room-btn" hidden></button>
       <button id="btn-token" type="button" class="mini token-btn" hidden></button>
-      <label id="npc-opts" class="mini npc-opts" hidden><input id="npc-hide" type="checkbox"> Стани лише для ГМа</label>
       <button id="btn-condmode" type="button" class="mini" hidden></button>
+      <button id="btn-dice" type="button" class="mini dice-toggle">Кубики</button>
+      <span class="more-wrap">
+        <button id="btn-more" type="button" class="mini" aria-label="Ще">⋯</button>
+        <div id="more-menu" class="more-menu" hidden>
+          <span id="bar-color-wrap" class="bar-color" hidden><span class="muted small">Колір смужки HP</span><input id="bar-color" type="color" value="#3fae5a" title="Колір смужки HP"><button id="bar-auto" type="button" class="mini" title="Колір за залишком HP: зелений → жовтий → червоний">Авто</button></span>
+          <button id="btn-room" type="button" class="mini room-btn" hidden></button>
+          <label id="npc-opts" class="mini npc-opts" hidden><input id="npc-hide" type="checkbox"> Стани лише для ГМа</label>
+          <label id="npc-fight-wrap" class="mini npc-opts" hidden><input id="npc-fight" type="checkbox"> Бере участь у бою</label>
+          <span class="win-ctl" hidden><span class="muted small">Вікно</span><button type="button" class="mini win-shrink" title="Зменшити вікно">−</button><button type="button" class="mini win-grow" title="Збільшити вікно">+</button></span>
+          <details id="cond-legend" class="cond-legend" hidden><summary>Значки станів на токені</summary><div id="cond-legend-body" class="muted small"></div></details>
+          <button id="btn-export" type="button"></button>
+          <button id="btn-dup" type="button"></button>
+          <button id="btn-del" type="button" class="danger-text"></button>
+        </div>
+      </span>
       <div id="cond-err" class="cond-err" hidden></div>
-      <span id="bar-color-wrap" class="bar-color" hidden><input id="bar-color" type="color" value="#3fae5a" title="Колір смужки HP"><button id="bar-auto" type="button" class="mini" title="Колір за залишком HP: зелений → жовтий → червоний">Авто</button></span>
-      <span class="win-ctl" hidden><span class="muted small">Вікно</span><button type="button" class="mini win-shrink" title="Зменшити вікно">−</button><button type="button" class="mini win-grow" title="Збільшити вікно">+</button></span>
     </div>
-    <details id="cond-legend" class="cond-legend" hidden><summary>Значки станів на токені</summary><div id="cond-legend-body" class="muted small"></div></details>
     <div id="welcome" class="welcome" hidden>
       <p>Створіть персонажа, щоб почати.</p>
       <button id="btn-first" type="button" class="primary"></button>
@@ -62,9 +81,23 @@
     <div id="sheet" class="sheet"></div>
   </main>
 
+  <section id="gm-view" class="gm-view">
+    <div class="gm-tabs">
+      <button id="btn-gm-back" type="button" class="mini back-btn">← Меню</button>
+      <button type="button" class="gm-tab on" data-tab="players">Гравці</button>
+      <button type="button" class="gm-tab" data-tab="npcs">НПС</button>
+      <button type="button" class="gm-tab" data-tab="combat">Бій</button>
+      <span class="grow"></span>
+      <button id="btn-dice-gm" type="button" class="mini dice-toggle">Кубики</button>
+    </div>
+    <div id="gm-players" class="gm-pane"></div>
+    <div id="gm-npcs" class="gm-pane" hidden></div>
+    <div id="gm-combat" class="gm-pane" hidden></div>
+  </section>
+
   <aside class="rolls" id="rolls">
     <button id="rolls-strip" class="rolls-strip" type="button"><span id="strip-last">Кидки</span><b id="strip-arrow">▲</b></button>
-    <h2 id="rolls-title"></h2>
+    <div class="rolls-head"><h2 id="rolls-title"></h2><button id="btn-dice-close" type="button" class="mini dice-close" title="Закрити панель кубиків" aria-label="Закрити">✕</button></div>
     <div id="seg-adv" class="seg d20-only" role="group" hidden>
       <button type="button" data-adv="-1">Недолік</button>
       <button type="button" data-adv="0" class="on">Звичайно</button>
@@ -93,17 +126,11 @@
     </details>
     <p id="opts-hint" class="muted small"></p>
     <div id="roll-groups"></div>
-    <div class="log-head-row">
-      <span class="lbl">Журнал</span>
-      <button id="btn-clear-log" type="button" class="link"></button>
-    </div>
-    <div id="log" class="log"></div>
   </aside>
 
+  </div>
 </div>
 <div id="modal-root"></div>
-<div id="gm-panel" class="gm-panel" hidden></div>
-<div id="npc-panel" class="gm-panel" hidden></div>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

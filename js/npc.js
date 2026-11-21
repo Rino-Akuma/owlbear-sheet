@@ -33,10 +33,9 @@ export function mountNpc(root, api) {
     const focusKey = ae && root.contains(ae) && ae.classList && ae.classList.contains('gm-hp-in') ? ae.dataset.k : null;
     const list = api.list();
     root.replaceChildren(
-      h('div', { class: 'gm-bar' }, h('h2', { text: 'НПС' }), h('div', { class: 'grow' }),
+      h('div', { class: 'gm-bar' }, h('div', { class: 'grow' }),
         h('button', { type: 'button', text: '＋ Вручну', onclick: () => api.createManual() }),
-        h('button', { type: 'button', text: '＋ З бестіарію', onclick: () => api.openBestiary() }),
-        h('button', { type: 'button', text: 'Закрити', onclick: () => api.close() })),
+        h('button', { type: 'button', text: '＋ З бестіарію', onclick: () => api.openBestiary() })),
       list.length ? h('div', { class: 'gm-list' }, list.map(card)) : h('p', { class: 'muted', text: 'НПС ще немає. Створіть вручну або виберіть істоту з бестіарію.' }));
     if (focusKey) { const n = [...root.querySelectorAll('.gm-hp-in')].find((x) => x.dataset.k === focusKey); if (n) n.focus(); }
   }
@@ -57,8 +56,9 @@ export function mountNpc(root, api) {
       await api.setHp(rec, hp, tmp);
     };
     const toggle = (c) => api.setConds(rec, conds.includes(c) ? conds.filter((x) => x !== c) : [...conds, c]);
-    return h('section', { class: `gm-card ${rec.tokenId ? '' : 'npc-free'}` },
+    return h('section', { class: `gm-card ${rec.tokenId ? '' : 'npc-free'} ${api.current && api.current() === `n:${rec.id}` ? 'cur-turn' : ''}` },
       h('div', { class: 'gm-head' },
+        h('label', { class: 'npc-fight', title: 'Бере участь у бою: потрапляє у вкладку «Бій»' }, h('input', { type: 'checkbox', checked: rec.fight ? '' : null, onchange: (e) => api.setFight(rec, e.target.checked) }), 'У бою'),
         h('div', { class: 'gm-init', title: 'Ініціатива', text: s.init === null || s.init === undefined ? '—' : String(s.init) }),
         h('div', { class: 'gm-who' }, h('strong', { text: rec.data.name || 'НПС' }), h('span', { class: 'muted small', text: api.sysName(rec) })),
         h('div', { class: 'gm-ac', title: 'КБ / обладунок' }, h('span', { class: 'gm-ac-n', text: String(s.ac ?? 0) }))),

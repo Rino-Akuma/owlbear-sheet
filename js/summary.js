@@ -9,7 +9,7 @@ const names = (rows) => arr(rows).map((r) => r && r.name).filter(Boolean);
 
 export function buildSummary(rec, get) {
   const d = rec.data || {};
-  const base = { v: 1, sys: rec.templateId, charId: rec.id, name: cut(d.name || 'Безіменний', 40), conds: arr(d.conditions).slice(0, 20), ts: Date.now() };
+  const base = { v: 1, sys: rec.templateId, charId: rec.id, name: cut(d.name || 'Безіменний', 40), conds: arr(d.conditions).slice(0, 20), tok: rec.tokenId || null, ts: Date.now() };
   base.init = d.init_roll === '' || d.init_roll === undefined || d.init_roll === null ? null : num(d.init_roll);
   if (rec.templateId === 'dnd5e') {
     return {

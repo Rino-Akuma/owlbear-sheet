@@ -1,12 +1,14 @@
 import { t } from './i18n.js';
-import { initOwlbear, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, inOwlbear, obrActive, pickSelectedToken, syncHpBar, syncStatusBadge, removeHpBar, publishSummary, isGM, watchTable, sendCmd, myId, getRoomChar, setRoomChar } from './owlbear.js';
-import { setProvider, rollPool, describeGroup } from './engine/dice.js';
+import { initOwlbear, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, inOwlbear, obrActive, pickSelectedToken, syncHpBar, syncStatusBadge, removeHpBar, publishSummary, isGM, watchTable, sendCmd, myId, getRoomChar, setRoomChar, getCombat, setCombat, watchCombat, sendTurn } from './owlbear.js';
+import { setProvider, rollPool, describeGroup, keptVals } from './engine/dice.js';
 import { TEMPLATES, getTemplate } from './templates/index.js';
 import { mountSheet, fmt } from './engine/sheet.js';
 import { buildSummary } from './summary.js';
 import { mountGm } from './gm.js';
 import { openBestiary } from './bestiary.js';
 import { mountNpc, npcSum } from './npc.js';
+import { buildOrder, startState, reconcile, keyOf, npcSkipped, advance } from './combat.js';
+import { mountCombat, renderTurnBar } from './combat-ui.js';
 import { COND_META, condColor } from './conditions.js';
 import { loadIconPack, iconSvg, getCondMode, setCondMode } from './icons.js';
 import {
@@ -92,11 +94,12 @@ function publishNow() {
 function drawRoomBtn() {
   const b = $('#btn-room');
   b.hidden = !inOwlbear() || !active || !!active.npc;
-  if (b.hidden) return;
+  if (b.hidden) { $('#btn-more').classList.remove('attention'); return; }
   const on = getRoomChar() === active.id;
   b.textContent = on ? '✓ Грає в цій кімнаті' : 'Грати цим персонажем у кімнаті';
   b.classList.toggle('on', on);
   b.classList.toggle('attention', !on && !getRoomChar());
+  $('#btn-more').classList.toggle('attention', !on && !getRoomChar());
   b.title = on ? 'ГМ бачить зведення цього персонажа. Натисніть, щоб прибрати' : 'Лише обраний персонаж видимий ГМу в цій кімнаті';
   renderList();
 }
@@ -106,22 +109,116 @@ function onRoomBtn() {
   drawRoomBtn();
   publishNow();
 }
-let gmCtl = null;
-function openGm() {
-  const panel = $('#gm-panel');
-  panel.hidden = false;
-  gmCtl = mountGm(panel, {
-    onTable: (cb) => watchTable(cb),
+// ---------- перегляди: меню (home), лист (sheet), меню ГМа (gm) ----------
+let view = 'home';
+let backTo = 'home';
+const mq = window.matchMedia('(max-width: 900px)');
+function setView(v) {
+  view = v;
+  document.querySelector('.app').dataset.view = v;
+  $('#btn-back').textContent = backTo === 'gm' ? '← Меню ГМа' : '← Меню';
+  if (v === 'gm') { mountGmView(); gmTab(gmTabName); }
+  closeMore();
+}
+function placeLog() { (mq.matches ? $('#rolls') : $('#histcol')).append($('#log-block')); }
+function setDice(on) {
+  document.querySelector('.app').classList.toggle('dice-off', !on);
+  try { localStorage.setItem('owlbear-sheet:dice', on ? 'on' : 'off'); } catch { /* ігноруємо */ }
+}
+function toggleDice() {
+  if (mq.matches) { const r = $('#rolls'); r.classList.toggle('open'); $('#strip-arrow').textContent = r.classList.contains('open') ? '▼' : '▲'; return; }
+  setDice(document.querySelector('.app').classList.contains('dice-off'));
+}
+function closeMore() { const m = $('#more-menu'); if (m) m.hidden = true; }
+
+// ---------- бій: стан у сцені, смужка ходу ----------
+let combat = null;
+let gmFlag = false;
+let tableRows = [];
+let tableReady = false;
+let gmMounted = false;
+let gmTabName = 'players';
+let gmCtl = null, npcCtl = null, combatCtl = null;
+const curKey = () => { const e = combat && combat.on ? combat.order[combat.turn] : null; return e ? keyOf(e) : null; };
+const npcMapNow = () => new Map(characters.filter((c) => c.npc).map((c) => [c.id, c]));
+const skipNow = () => { const m = npcMapNow(); return (e) => e.k === 'n' && npcSkipped(m.get(e.id)); };
+function refreshCombatUi() {
+  renderTurnBar($('#turnbar'), combat, {
+    gm: gmFlag, myId: myId(),
+    endTurn: async (st) => {
+      if (gmFlag) await advance(skipNow(), { turn: st.turn, round: st.round });
+      else await sendTurn({ type: 'end', turn: st.turn, round: st.round });
+    },
+  });
+  if (gmCtl) gmCtl.refresh();
+  if (npcCtl) npcCtl.refresh();
+  if (combatCtl) combatCtl.refresh();
+}
+/** ГМ: підтягує порядок ходів до актуальних ініціатив і HP. */
+async function reconcileCombat() {
+  if (!gmFlag || !gmMounted || !tableReady || !combat || !combat.on) return;
+  const next = reconcile(combat, buildOrder(tableRows, characters.filter((c) => c.npc)));
+  if (next) await setCombat(next);
+}
+const initMod = (rec) => (rec.templateId === 'dnd5e' ? Math.floor(((Number(rec.data.dex) || 10) - 10) / 2) + (Number(rec.data.init_bonus) || 0) : 0);
+/** Один кидок пачки d20 на всіх НПС із галочкою «У бою»: кожному по одному числу плюс його модифікатор. */
+async function rollNpcInit() {
+  const targets = characters.filter((c) => c.npc && c.fight).slice(0, 60);
+  if (!targets.length) return;
+  const pool = await rollPool([{ sides: 20, count: targets.length }], 0, 'Ініціатива НПС');
+  const vals = keptVals(pool.groups[0]);
+  const lines = [];
+  for (let i = 0; i < targets.length; i++) {
+    const rec = targets[i], die = vals[i], mod = initMod(rec), total = die + mod;
+    rec.data.init_roll = total;
+    rec.sum = { ...(rec.sum || {}), init: total };
+    await saveCharacter(rec);
+    lines.push(`${rec.data.name || 'НПС'}: ${die}${mod ? ` ${mod > 0 ? '+' : '−'} ${Math.abs(mod)}` : ''} = ${total}`);
+  }
+  pushLog({ title: 'Ініціатива НПС', lines, success: null, crit: null, headline: null });
+  if (active && active.npc && targets.some((r) => r.id === active.id)) drawSheet();
+  refreshNpc();
+  await reconcileCombat();
+}
+function mountGmView() {
+  if (gmMounted) return;
+  gmMounted = true;
+  gmCtl = mountGm($('#gm-players'), {
+    onTable: (cb) => watchTable((list) => { tableRows = list; tableReady = true; cb(list); reconcileCombat(); if (combatCtl) combatCtl.refresh(); }),
     setConds: (playerId, charId, conds) => sendCmd({ type: 'conds', to: playerId, charId, conds }),
     setHp: (playerId, charId, op, n, max) => sendCmd({ type: 'hp', to: playerId, charId, op, n, max }),
     clearInit: () => sendCmd({ type: 'clear-init' }),
-    openBestiary: () => openBestiary(createNpc),
-    close: closeGm,
+    current: curKey,
+  });
+  openNpc();
+  combatCtl = mountCombat($('#gm-combat'), {
+    state: () => combat,
+    rows: () => tableRows,
+    npcs: () => characters.filter((c) => c.npc),
+    start: async () => {
+      const order = buildOrder(tableRows, characters.filter((c) => c.npc));
+      if (!order.length) return;
+      await setCombat(startState(order, true));
+    },
+    end: async () => { if (combat) await setCombat({ ...combat, on: false, t: Date.now() }); },
+    next: async () => { if (combat) await advance(skipNow(), { turn: combat.turn, round: combat.round }); },
+    setRing: async (v) => { if (combat && combat.on) await setCombat({ ...combat, ring: !!v, t: Date.now() }); },
+    rollInit: rollNpcInit,
+    setInit: async (rec, v) => {
+      const n = v === '' || !Number.isFinite(Number(v)) ? null : Number(v);
+      rec.data.init_roll = n; rec.sum = { ...(rec.sum || {}), init: n };
+      await npcSaved(rec);
+      await reconcileCombat();
+    },
+    setForce: async (rec, v) => { rec.force = !!v; await saveCharacter(rec); await reconcileCombat(); refreshNpc(); },
   });
 }
-function closeGm() {
-  $('#gm-panel').hidden = true;
-  if (gmCtl) { gmCtl.destroy(); gmCtl = null; }
+function gmTab(tab) {
+  gmTabName = tab;
+  document.querySelectorAll('.gm-tab').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
+  for (const k of ['players', 'npcs', 'combat']) $(`#gm-${k}`).hidden = k !== tab;
+  if (tab === 'npcs' && npcCtl) npcCtl.refresh();
+  if (tab === 'combat' && combatCtl) combatCtl.refresh();
 }
 
 // ---------- смужка HP на токені ----------
@@ -181,6 +278,7 @@ function drawTokenBtn() {
   const b = $('#btn-token');
   b.hidden = !obrActive() || !active;
   const nh = $('#npc-opts'); nh.hidden = !(active && active.npc); if (active && active.npc) $('#npc-hide').checked = !!active.hideStatus;
+  const nf = $('#npc-fight-wrap'); nf.hidden = !(active && active.npc); if (active && active.npc) $('#npc-fight').checked = !!active.fight;
   drawLegend();
   drawCondMode();
   if (b.hidden) { $('#bar-color-wrap').hidden = true; return; }
@@ -203,6 +301,7 @@ async function onToken() {
   await saveCharacter(active);
   drawTokenBtn();
   syncToken();
+  publishNow();
 }
 
 function scheduleSave() {
@@ -250,13 +349,14 @@ function renderList() {
   $('#btn-dup').disabled = $('#btn-del').disabled = $('#btn-export').disabled = !active;
 }
 
-async function openCharacter(id) {
+async function openCharacter(id, show = true) {
   await flushSave();
   const c = characters.find((x) => x.id === id);
   active = c || null;
   localStorage.setItem('owlbear-sheet:active', id);
   drawSheet();
   renderList();
+  if (show) { if (!active || !active.npc) backTo = 'home'; setView('sheet'); }
 }
 
 function drawSheet() {
@@ -362,9 +462,9 @@ async function createNpc(templateId, data) {
   const c = { id: newId(), templateId, templateVersion: tpl.version, schemaVersion: SCHEMA_VERSION, data: data || { name: 'НПС' }, npc: true };
   await saveCharacter(c);
   characters.unshift(c);
-  closeGm(); closeNpc();
+  backTo = 'gm';
   await openCharacter(c.id);
-  if (npcCtl) npcCtl.refresh();
+  refreshNpc();
 }
 async function createManualNpc() {
   let tid = TEMPLATES[0].id;
@@ -378,9 +478,8 @@ async function createManualNpc() {
 }
 
 // ---------- меню НПС (ГМ) ----------
-let npcCtl = null;
 const npcRecs = () => characters.filter((c) => c.npc);
-const refreshNpc = () => { if (npcCtl) npcCtl.refresh(); };
+const refreshNpc = () => { if (npcCtl) npcCtl.refresh(); if (combatCtl) combatCtl.refresh(); };
 async function syncRec(rec) {
   if (!rec.tokenId) return;
   const s = npcSum(rec);
@@ -396,15 +495,14 @@ async function npcSaved(rec) {
   refreshNpc();
 }
 function openNpc() {
-  const panel = $('#npc-panel');
-  panel.hidden = false;
-  npcCtl = mountNpc(panel, {
+  npcCtl = mountNpc($('#gm-npcs'), {
+    current: curKey,
+    setFight: async (rec, v) => { rec.fight = !!v; await saveCharacter(rec); refreshNpc(); await reconcileCombat(); },
     list: npcRecs,
     sysName: (rec) => { const tp = getTemplate(rec.templateId); return tp ? tp.name : rec.templateId; },
     createManual: createManualNpc,
     openBestiary: () => openBestiary(createNpc),
-    close: closeNpc,
-    openSheet: async (rec) => { closeNpc(); closeGm(); await openCharacter(rec.id); },
+    openSheet: async (rec) => { backTo = 'gm'; await openCharacter(rec.id); },
     setHp: async (rec, hp, tmp) => { rec.data.hp = hp; if (rec.templateId === 'dnd5e') rec.data.hp_temp = tmp; rec.sum = { ...(rec.sum || {}), ...npcSum({ ...rec, data: rec.data, sum: rec.sum }), hp, tmp }; await npcSaved(rec); },
     setConds: async (rec, conds) => { rec.data.conditions = conds; await npcSaved(rec); },
     setHideStatus: async (rec, v) => { rec.hideStatus = !!v; await npcSaved(rec); },
@@ -438,10 +536,6 @@ function openNpc() {
       renderList(); refreshNpc();
     },
   });
-}
-function closeNpc() {
-  $('#npc-panel').hidden = true;
-  if (npcCtl) { npcCtl.destroy(); npcCtl = null; }
 }
 async function askCount(title) {
   const inp = h('input', { type: 'number', min: '1', max: '20', value: '1' });
@@ -486,8 +580,10 @@ async function onDelete() {
   characters = characters.filter((c) => c.id !== id);
   active = null;
   const nextC = characters.find((c) => !c.npc);
-  if (nextC) await openCharacter(nextC.id);
+  if (nextC) await openCharacter(nextC.id, false);
   else { drawSheet(); renderList(); }
+  backTo = 'home';
+  setView('home');
 }
 
 function download(name, obj) {
@@ -658,8 +754,18 @@ async function init() {
   $('#btn-token').addEventListener('click', onToken);
   $('#btn-condmode').addEventListener('click', onCondMode);
   $('#btn-room').addEventListener('click', onRoomBtn);
-  $('#btn-gm').addEventListener('click', openGm);
-  $('#btn-npc').addEventListener('click', openNpc);
+  $('#btn-gm').addEventListener('click', () => { backTo = 'home'; setView('gm'); });
+  $('#btn-back').addEventListener('click', () => { const to = backTo; backTo = 'home'; setView(to === 'gm' && gmFlag ? 'gm' : 'home'); });
+  $('#btn-gm-back').addEventListener('click', () => { backTo = 'home'; setView('home'); });
+  document.querySelectorAll('.gm-tab').forEach((b) => b.addEventListener('click', () => gmTab(b.dataset.tab)));
+  document.querySelectorAll('.dice-toggle').forEach((b) => b.addEventListener('click', toggleDice));
+  $('#btn-dice-close').addEventListener('click', () => setDice(false));
+  $('#btn-more').addEventListener('click', (e) => { e.stopPropagation(); const m = $('#more-menu'); m.hidden = !m.hidden; });
+  document.addEventListener('click', (e) => { if (!e.target.closest('.more-wrap')) closeMore(); });
+  $('#more-menu').addEventListener('click', (e) => { if (e.target.closest('#btn-export, #btn-dup, #btn-del')) closeMore(); });
+  $('#npc-fight').addEventListener('change', async (e) => { if (!active || !active.npc) return; active.fight = e.target.checked; await saveCharacter(active); refreshNpc(); reconcileCombat(); });
+  placeLog(); mq.addEventListener('change', placeLog);
+  try { if (localStorage.getItem('owlbear-sheet:dice') === 'off') document.querySelector('.app').classList.add('dice-off'); } catch { /* ігноруємо */ }
   $('#npc-hide').addEventListener('change', async (e) => { if (!active || !active.npc) return; active.hideStatus = e.target.checked; await saveCharacter(active); syncToken(); refreshNpc(); });
   // Фонова сторінка змінила лист (стани/ініціатива від ГМа) — підтягуємо зміни у відкритий лист.
   if ('BroadcastChannel' in window) {
@@ -690,16 +796,13 @@ async function init() {
   document.addEventListener('visibilitychange', () => { if (document.hidden && saveTimer) flushSave(); });
 
   // меню та шторка кидків (вузький режим)
-  $('#btn-menu').addEventListener('click', (e) => { e.stopPropagation(); document.querySelector('.side').classList.toggle('menu-open'); });
-  document.addEventListener('click', (e) => { if (!e.target.closest('.side')) document.querySelector('.side').classList.remove('menu-open'); });
-  document.querySelector('.side').addEventListener('click', (e) => { if (e.target.closest('.side-foot button, .row2 button')) document.querySelector('.side').classList.remove('menu-open'); });
   $('#rolls-strip').addEventListener('click', () => {
     const r = $('#rolls'); r.classList.toggle('open');
     $('#strip-arrow').textContent = r.classList.contains('open') ? '▼' : '▲';
   });
   // Інтерфейс Owlbear вмикаємо одразу, не чекаючи SDK: виклики самі дочекаються готовності.
   const hideObr = () => { $('#lbl-vis').hidden = true; $('#win-wrap').hidden = true; document.querySelectorAll('.win-ctl').forEach((e) => { e.hidden = true; }); };
-  initOwlbear().then((ok) => { if (!ok && inOwlbear()) hideObr(); else if (ok) { syncToken(); drawRoomBtn(); publishNow(); isGM().then((gm) => { $('#btn-gm').hidden = !gm; $('#btn-npc').hidden = !gm; }); } });
+  initOwlbear().then((ok) => { if (!ok && inOwlbear()) hideObr(); else if (ok) { syncToken(); drawRoomBtn(); publishNow(); isGM().then((gm) => { gmFlag = gm; $('#btn-gm').hidden = !gm; refreshCombatUi(); }); watchCombat((st) => { combat = st; refreshCombatUi(); }); } });
   if (inOwlbear()) {
     $('#lbl-vis').hidden = false;
     drawTokenBtn(); syncToken();

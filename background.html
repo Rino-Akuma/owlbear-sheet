@@ -3,7 +3,8 @@
 <body>
 <script type="module">
   // Працює завжди, поки аддон увімкнено в кімнаті: показує сповіщення про кидки інших гравців.
-  import { CH_ROLL, rollToastText, whenReady, getObr, onCmd, patchSummary, myId, getRoomChar, syncStatusBadge, syncHpBar } from './js/owlbear.js';
+  import { CH_ROLL, rollToastText, whenReady, getObr, onCmd, patchSummary, myId, getRoomChar, syncStatusBadge, syncHpBar, onTurn, isGM, getCombat } from './js/owlbear.js';
+  import { advance, npcSkipped } from './js/combat.js';
   import { listCharacters, saveCharacter } from './js/storage.js';
   await whenReady(60000);
   const OBR = getObr();
@@ -55,6 +56,19 @@
         patchSummary({ init: null });
         bc && bc.postMessage({ type: 'reload' });
       }
+    } catch (e) { console.warn(e); }
+  });
+
+  // «Кінець ходу»: гравець, чий хід, (або ГМ) просить перейти далі; стан у сцені веде лише клієнт ГМа.
+  onTurn(async (m, sender) => {
+    try {
+      if (m.type !== 'end' || !(await isGM())) return;
+      const st = await getCombat();
+      if (!st || !st.on) return;
+      const cur = st.order[st.turn];
+      if (!sender.gm && !(cur && cur.k === 'p' && cur.id === sender.id)) return;
+      const npcs = new Map((await listCharacters()).filter((c) => c.npc).map((c) => [c.id, c]));
+      await advance((e) => e.k === 'n' && npcSkipped(npcs.get(e.id)), { turn: m.turn, round: m.round });
     } catch (e) { console.warn(e); }
   });
 </script>

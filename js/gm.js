@@ -56,7 +56,7 @@ export function mountGm(root, api) {
       api.setHp(r.id, s.charId, op, n, s.max);
       draw();
     };
-    return h('section', { class: 'gm-card' },
+    return h('section', { class: `gm-card ${api.current && api.current() === `p:${r.id}` ? 'cur-turn' : ''}` },
       h('div', { class: 'gm-head' },
         h('div', { class: 'gm-init', title: 'Ініціатива', text: s.init === null || s.init === undefined ? '—' : String(s.init) }),
         h('div', { class: 'gm-who' },
@@ -100,9 +100,7 @@ export function mountGm(root, api) {
       },
     });
     root.replaceChildren(
-      h('div', { class: 'gm-bar' }, h('h2', { text: 'Меню ГМа' }), h('div', { class: 'grow' }),
-        api.openBestiary ? h('button', { type: 'button', text: 'Бестіарій', onclick: () => api.openBestiary() }) : null, clearBtn,
-        h('button', { type: 'button', text: 'Закрити', onclick: () => api.close() })),
+      h('div', { class: 'gm-bar' }, h('div', { class: 'grow' }), clearBtn),
       sorted.length ? h('div', { class: 'gm-list' }, sorted.map(card))
         : h('p', { class: 'muted', text: 'Поки що немає персонажів. Гравці з’являться тут, щойно відкриють свій лист у цій кімнаті.' }));
     if (focusKey) { const n = [...root.querySelectorAll('.gm-hp-in')].find((x) => x.dataset.k === focusKey); if (n) n.focus(); }
@@ -110,5 +108,5 @@ export function mountGm(root, api) {
 
   const unsubP = api.onTable((list) => { rows = list; draw(); });
   draw();
-  return { destroy: async () => { (await unsubP)(); } };
+  return { refresh: draw, destroy: async () => { (await unsubP)(); } };
 }

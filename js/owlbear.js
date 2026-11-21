@@ -411,3 +411,83 @@ async function _syncStatusBadge(tokenId, conds, modeOverride, hidden = false) {
   if (firstErr) throw new Error(`частину елементів не вдалося створити (${errText(firstErr)})`);
   return 'ok';
 }
+
+// ---------- хід бою: спільний стан у метаданих сцени, кільце на токені, запити «Кінець ходу» ----------
+export const COMBAT_KEY = `${SOURCE}/combat`;
+export const CH_TURN = `${SOURCE}/turn`;
+const RING_KEY = `${SOURCE}/ring`;
+
+/** Поточний стан бою зі сцени (або null). */
+export async function getCombat() {
+  if (!(await whenReady())) return null;
+  try { return (await OBR.scene.getMetadata())[COMBAT_KEY] || null; } catch { return null; }
+}
+/** Записує стан бою (лише ГМ) і переставляє кільце на токен того, чий хід. */
+export async function setCombat(st) {
+  if (!(await whenReady())) return;
+  try { await OBR.scene.setMetadata({ [COMBAT_KEY]: st }); } catch (e) { console.warn('Стан бою:', e.message); }
+  const cur = st && st.on && st.ring !== false ? (st.order || [])[st.turn] : null;
+  await syncRing(cur && cur.tok ? cur.tok : null);
+}
+/** Підписка на стан бою; повертає функцію відписки. */
+export async function watchCombat(cb) {
+  if (!(await whenReady())) return () => {};
+  const subs = [];
+  const run = async () => { try { cb((await OBR.scene.getMetadata())[COMBAT_KEY] || null); } catch { cb(null); } };
+  try { subs.push(OBR.scene.onMetadataChange((m) => cb(m[COMBAT_KEY] || null))); } catch (e) { console.warn(e.message); }
+  try { subs.push(OBR.scene.onReadyChange((r) => { if (r) run(); })); } catch { /* старий SDK */ }
+  run();
+  return () => subs.forEach((u) => { try { u(); } catch { /* ігноруємо */ } });
+}
+export async function sendTurn(msg) {
+  if (!(await whenReady())) return;
+  try { await OBR.broadcast.sendMessage(CH_TURN, msg, { destination: 'ALL' }); } catch (e) { console.warn(e.message); }
+}
+/** Слухає запити ходу; cb(data, { id, gm }) — id гравця-відправника. */
+export async function onTurn(cb) {
+  if (!(await whenReady())) return () => {};
+  return OBR.broadcast.onMessage(CH_TURN, async (ev) => {
+    try {
+      const conn = ev.connectionId;
+      let sender = null;
+      if (conn && conn === (await OBR.player.getConnectionId())) sender = { id: playerInfo.id, gm: (await OBR.player.getRole()) === 'GM' };
+      else { const p = (await OBR.party.getPlayers()).find((x) => x.connectionId === conn); if (p) sender = { id: p.id, gm: p.role === 'GM' }; }
+      if (sender && ev.data) cb(ev.data, sender);
+    } catch (e) { console.warn(e.message); }
+  });
+}
+
+/** Кільце навколо токена, чий зараз хід (null — прибрати всі кільця). */
+export const syncRing = (tokenId) => serial(() => _syncRing(tokenId));
+async function _syncRing(tokenId) {
+  if (!(await whenReady())) return;
+  try {
+    const all = await OBR.scene.items.getItems((i) => i.metadata[RING_KEY]);
+    const [token] = tokenId ? await OBR.scene.items.getItems([tokenId]) : [];
+    const keep = token ? all.filter((i) => i.metadata[RING_KEY].token === tokenId) : [];
+    const geo = token ? await ringGeo(token) : null;
+    const sig = geo ? `${Math.round(geo.cx)}|${Math.round(geo.cy)}|${Math.round(geo.r)}` : '';
+    const fresh = keep.length === 1 && keep[0].metadata[RING_KEY].sig === sig;
+    const drop = all.filter((i) => !(fresh && i.id === keep[0].id)).map((i) => i.id);
+    if (!fresh && token) {
+      const { buildPath } = sdkMod;
+      const k = 0.5523, { cx, cy, r } = geo;
+      const cmds = [[0, cx + r, cy], [4, cx + r, cy + k * r, cx + k * r, cy + r, cx, cy + r], [4, cx - k * r, cy + r, cx - r, cy + k * r, cx - r, cy],
+        [4, cx - r, cy - k * r, cx - k * r, cy - r, cx, cy - r], [4, cx + k * r, cy - r, cx + r, cy - k * r, cx + r, cy], [5]];
+      const item = buildPath().commands(cmds).fillOpacity(0).strokeColor('#f2c14e').strokeOpacity(1).strokeWidth(Math.max(4, r * 0.12))
+        .attachedTo(tokenId).layer('ATTACHMENT').locked(true).disableHit(true).name('Хід')
+        .metadata({ [RING_KEY]: { token: tokenId, sig, run: newRun() } }).build();
+      await OBR.scene.items.addItems([item]);
+    }
+    if (drop.length) await OBR.scene.items.deleteItems(drop);
+  } catch (e) { console.warn('Кільце ходу:', e.message); }
+}
+async function ringGeo(token) {
+  const dpi = await OBR.scene.grid.getDpi();
+  const img = token.image || { width: dpi, height: dpi };
+  const k = dpi / ((token.grid && token.grid.dpi) || dpi);
+  const w = img.width * token.scale.x * k, h = img.height * token.scale.y * k;
+  const off = (token.grid && token.grid.offset) || { x: img.width / 2, y: img.height / 2 };
+  const left = token.position.x - off.x * token.scale.x * k, top = token.position.y - off.y * token.scale.y * k;
+  return { cx: left + w / 2, cy: top + h / 2, r: Math.max(w, h) / 2 + 3 };
+}
