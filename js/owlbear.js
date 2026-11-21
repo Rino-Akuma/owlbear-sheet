@@ -57,7 +57,7 @@ export async function whenReady(ms = 15000) {
   return Promise.race([readyP, sleep(ms).then(() => false)]);
 }
 
-const LIM = { w: [420, 1700], h: [480, 1100] };
+const LIM = { w: [240, 1700], h: [380, 1100] };
 let cur = SIZES.narrow.slice();
 export const currentSize = () => cur.slice();
 export async function applySize(w, h) {

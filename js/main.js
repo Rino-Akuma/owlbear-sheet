@@ -1,5 +1,5 @@
 import { t } from './i18n.js';
-import { initOwlbear, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, inOwlbear, obrActive, pickSelectedToken, syncHpBar, syncStatusBadge, removeHpBar, publishSummary, isGM, watchTable, sendCmd, myId, getRoomChar, setRoomChar, getCombat, setCombat, watchCombat, sendTurn } from './owlbear.js';
+import { initOwlbear, SIZES, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, inOwlbear, obrActive, pickSelectedToken, syncHpBar, syncStatusBadge, removeHpBar, publishSummary, isGM, watchTable, sendCmd, myId, getRoomChar, setRoomChar, getCombat, setCombat, watchCombat, sendTurn } from './owlbear.js';
 import { setProvider, rollPool, describeGroup, keptVals } from './engine/dice.js';
 import { TEMPLATES, getTemplate } from './templates/index.js';
 import { mountSheet, fmt } from './engine/sheet.js';
@@ -112,24 +112,50 @@ function onRoomBtn() {
 // ---------- перегляди: меню (home), лист (sheet), меню ГМа (gm) ----------
 let view = 'home';
 let backTo = 'home';
-const mq = window.matchMedia('(max-width: 900px)');
+let baseSize = SIZES.narrow.slice();   // розмір вікна, обраний користувачем
+const isNarrow = () => (inOwlbear() ? baseSize[0] <= 900 : window.innerWidth <= 900);
 function setView(v) {
   view = v;
   document.querySelector('.app').dataset.view = v;
-  $('#btn-back').textContent = backTo === 'gm' ? '← Меню ГМа' : '← Меню';
+  $('#btn-back').textContent = backTo === 'gm' ? '← Меню ГМа' : backTo === 'chars' ? '← Персонажі' : '← Меню';
   if (v === 'gm') { mountGmView(); gmTab(gmTabName); }
   closeMore();
+  fitWindow();
 }
-function placeLog() { (mq.matches ? $('#rolls') : $('#histcol')).append($('#log-block')); }
+function placeLog() { (isNarrow() ? $('#rolls') : $('#histcol')).append($('#log-block')); }
+/** Вузький режим визначає обраний розмір вікна, а не поточна ширина (на старті вікно стискається до меню). */
+function layout() {
+  document.querySelector('.app').classList.toggle('nm', isNarrow());
+  placeLog();
+  fitWindow();
+}
+/** На стартовому меню вікно стискається до меню й кубиків, щоб не було порожнього поля. */
+function fitWindow() {
+  if (!inOwlbear()) return;
+  const dice = !document.querySelector('.app').classList.contains('dice-off');
+  const [w, hh] = view === 'home' && !isNarrow() ? [dice ? 540 : 260, Math.min(baseSize[1], 640)] : baseSize;
+  const c = currentSize();
+  if (Math.abs(c[0] - w) > 1 || Math.abs(c[1] - hh) > 1) applySize(w, hh);
+}
 function setDice(on) {
   document.querySelector('.app').classList.toggle('dice-off', !on);
   try { localStorage.setItem('owlbear-sheet:dice', on ? 'on' : 'off'); } catch { /* ігноруємо */ }
+  fitWindow();
 }
 function toggleDice() {
-  if (mq.matches) { const r = $('#rolls'); r.classList.toggle('open'); $('#strip-arrow').textContent = r.classList.contains('open') ? '▼' : '▲'; return; }
+  if (isNarrow()) { const r = $('#rolls'); r.classList.toggle('open'); $('#strip-arrow').textContent = r.classList.contains('open') ? '▼' : '▲'; return; }
   setDice(document.querySelector('.app').classList.contains('dice-off'));
 }
 function closeMore() { const m = $('#more-menu'); if (m) m.hidden = true; }
+function toggleMore() {
+  const m = $('#more-menu');
+  if (!m.hidden) { m.hidden = true; return; }
+  m.hidden = false;
+  const r = $('#btn-more').getBoundingClientRect(), w = m.offsetWidth;
+  m.style.top = `${Math.round(r.bottom + 4)}px`;
+  m.style.left = `${Math.round(Math.max(8, Math.min(window.innerWidth - w - 8, r.right - w)))}px`;
+  m.style.maxHeight = `${Math.max(160, window.innerHeight - r.bottom - 16)}px`;
+}
 
 // ---------- бій: стан у сцені, смужка ходу ----------
 let combat = null;
@@ -337,16 +363,15 @@ function renderList() {
     const tpl = getTemplate(c.templateId);
     const sub = [tpl ? tpl.name : c.templateId, c.data?.race, c.data?.level !== undefined ? `рів. ${c.data.level}` : null]
       .filter(Boolean).join(' · ');
-    ul.append(h('li', {},
-      h('button', {
-        type: 'button', class: `char ${active && active.id === c.id ? 'on' : ''}`,
-        onclick: () => openCharacter(c.id),
-      }, h('b', { text: `${inOwlbear() && getRoomChar() === c.id ? '★ ' : ''}${displayName(c)}` }), h('small', { text: sub }))));
+    const room = inOwlbear() && getRoomChar() === c.id;
+    ul.append(h('section', { class: `gm-card ${active && active.id === c.id ? 'cur-turn' : ''}` },
+      h('div', { class: 'gm-head' },
+        h('div', { class: 'gm-who' }, h('strong', { text: `${room ? '★ ' : ''}${displayName(c)}` }), h('small', { class: 'muted', text: sub })),
+        h('button', { type: 'button', class: 'primary', text: 'Відкрити лист', onclick: () => openCharacter(c.id) }))));
   }
   $('#empty').hidden = mine.length > 0;
   $('#btn-dup').disabled = $('#btn-del').disabled = $('#btn-export').disabled = !active;
   $('#btn-export-all').disabled = characters.length === 0;
-  $('#btn-dup').disabled = $('#btn-del').disabled = $('#btn-export').disabled = !active;
 }
 
 async function openCharacter(id, show = true) {
@@ -356,7 +381,7 @@ async function openCharacter(id, show = true) {
   localStorage.setItem('owlbear-sheet:active', id);
   drawSheet();
   renderList();
-  if (show) { if (!active || !active.npc) backTo = 'home'; setView('sheet'); }
+  if (show) { if (!active || !active.npc) backTo = 'chars'; setView('sheet'); }
 }
 
 function drawSheet() {
@@ -583,7 +608,7 @@ async function onDelete() {
   if (nextC) await openCharacter(nextC.id, false);
   else { drawSheet(); renderList(); }
   backTo = 'home';
-  setView('home');
+  setView('chars');
 }
 
 function download(name, obj) {
@@ -656,7 +681,8 @@ async function onImportFile(file) {
 function bindStaticText() {
   document.title = t.appTitle;
   $('#app-title').textContent = t.appTitle;
-  $('#chars-title').textContent = t.characters;
+  $('#btn-chars').textContent = t.characters;
+  $('#chars-tab').textContent = t.characters;
   $('#btn-new').textContent = `+ ${t.newCharacter}`;
   $('#btn-dup').textContent = t.duplicate;
   $('#btn-del').textContent = t.remove;
@@ -755,16 +781,18 @@ async function init() {
   $('#btn-condmode').addEventListener('click', onCondMode);
   $('#btn-room').addEventListener('click', onRoomBtn);
   $('#btn-gm').addEventListener('click', () => { backTo = 'home'; setView('gm'); });
-  $('#btn-back').addEventListener('click', () => { const to = backTo; backTo = 'home'; setView(to === 'gm' && gmFlag ? 'gm' : 'home'); });
+  $('#btn-back').addEventListener('click', () => { const to = backTo; backTo = 'home'; setView(to === 'gm' && gmFlag ? 'gm' : to === 'chars' ? 'chars' : 'home'); });
   $('#btn-gm-back').addEventListener('click', () => { backTo = 'home'; setView('home'); });
   document.querySelectorAll('.gm-tab').forEach((b) => b.addEventListener('click', () => gmTab(b.dataset.tab)));
   document.querySelectorAll('.dice-toggle').forEach((b) => b.addEventListener('click', toggleDice));
   $('#btn-dice-close').addEventListener('click', () => setDice(false));
-  $('#btn-more').addEventListener('click', (e) => { e.stopPropagation(); const m = $('#more-menu'); m.hidden = !m.hidden; });
+  $('#btn-more').addEventListener('click', (e) => { e.stopPropagation(); toggleMore(); });
+  window.addEventListener('resize', () => { closeMore(); if (!inOwlbear()) layout(); });
   document.addEventListener('click', (e) => { if (!e.target.closest('.more-wrap')) closeMore(); });
   $('#more-menu').addEventListener('click', (e) => { if (e.target.closest('#btn-export, #btn-dup, #btn-del')) closeMore(); });
   $('#npc-fight').addEventListener('change', async (e) => { if (!active || !active.npc) return; active.fight = e.target.checked; await saveCharacter(active); refreshNpc(); reconcileCombat(); });
-  placeLog(); mq.addEventListener('change', placeLog);
+  $('#btn-chars').addEventListener('click', () => setView('chars'));
+  $('#btn-chars-back').addEventListener('click', () => { backTo = 'home'; setView('home'); });
   try { if (localStorage.getItem('owlbear-sheet:dice') === 'off') document.querySelector('.app').classList.add('dice-off'); } catch { /* ігноруємо */ }
   $('#npc-hide').addEventListener('change', async (e) => { if (!active || !active.npc) return; active.hideStatus = e.target.checked; await saveCharacter(active); syncToken(); refreshNpc(); });
   // Фонова сторінка змінила лист (стани/ініціатива від ГМа) — підтягуємо зміни у відкритий лист.
@@ -812,16 +840,17 @@ async function init() {
     let saved = 'narrow';
     try { saved = localStorage.getItem('owlbear-sheet:win') || 'narrow'; } catch { /* ігноруємо */ }
     sel.value = saved;
-    sel.addEventListener('change', () => { if (sel.value === 'custom') return; try { localStorage.setItem('owlbear-sheet:win', sel.value); } catch { /* ігноруємо */ } setWindowSize(sel.value); });
+    sel.addEventListener('change', () => { if (sel.value === 'custom') return; try { localStorage.setItem('owlbear-sheet:win', sel.value); } catch { /* ігноруємо */ } baseSize = (SIZES[sel.value] || SIZES.narrow).slice(); layout(); });
     let custom = null;
     try { custom = JSON.parse(localStorage.getItem('owlbear-sheet:wh') || 'null'); } catch { /* ігноруємо */ }
     const remember = (wh) => { try { localStorage.setItem('owlbear-sheet:wh', JSON.stringify(wh)); localStorage.setItem('owlbear-sheet:win', 'custom'); } catch { /* ігноруємо */ } };
     document.querySelectorAll('.win-ctl').forEach((e) => { e.hidden = false; });
-    document.querySelectorAll('.win-grow').forEach((b) => b.addEventListener('click', async () => { remember(await resizeWindow(1.12)); sel.value = 'custom'; }));
-    document.querySelectorAll('.win-shrink').forEach((b) => b.addEventListener('click', async () => { remember(await resizeWindow(1 / 1.12)); sel.value = 'custom'; }));
-    if (saved === 'custom' && Array.isArray(custom)) { sel.value = 'custom'; applySize(custom[0], custom[1]); } else setWindowSize(saved === 'custom' ? 'narrow' : saved);
+    document.querySelectorAll('.win-grow').forEach((b) => b.addEventListener('click', async () => { baseSize = await resizeWindow(1.12); remember(baseSize); sel.value = 'custom'; layout(); }));
+    document.querySelectorAll('.win-shrink').forEach((b) => b.addEventListener('click', async () => { baseSize = await resizeWindow(1 / 1.12); remember(baseSize); sel.value = 'custom'; layout(); }));
+    if (saved === 'custom' && Array.isArray(custom)) { sel.value = 'custom'; baseSize = [custom[0], custom[1]]; } else baseSize = (SIZES[saved === 'custom' ? 'narrow' : saved] || SIZES.narrow).slice();
   }
 
+  layout();
   requestPersistence();
   characters = await listCharacters();
   const last = localStorage.getItem('owlbear-sheet:active');

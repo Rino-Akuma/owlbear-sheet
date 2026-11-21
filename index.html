@@ -24,13 +24,8 @@
     <h1 id="app-title"></h1>
     <div class="side-actions">
       <button id="btn-gm" type="button" class="gm-open" hidden>Меню ГМа</button>
-      <button id="btn-new" class="primary" type="button"></button>
+      <button id="btn-chars" type="button" class="primary"></button>
       <button id="btn-dice-home" type="button" class="dice-toggle">Кубики</button>
-    </div>
-    <h2 id="chars-title" class="lbl"></h2>
-    <ul id="char-list" class="char-list"></ul>
-    <div id="empty" class="empty" hidden>
-      <p id="empty-text"></p>
     </div>
     <div class="side-foot">
       <button id="btn-export-all" type="button"></button>
@@ -80,6 +75,18 @@
     </div>
     <div id="sheet" class="sheet"></div>
   </main>
+
+  <section id="chars-view" class="gm-view">
+    <div class="gm-tabs">
+      <button id="btn-chars-back" type="button" class="mini back-btn">← Меню</button>
+      <button type="button" class="gm-tab on" id="chars-tab"></button>
+      <button id="btn-new" type="button"></button>
+      <span class="grow"></span>
+      <button id="btn-dice-chars" type="button" class="mini dice-toggle">Кубики</button>
+    </div>
+    <div id="char-list" class="gm-list"></div>
+    <div id="empty" class="empty" hidden><p id="empty-text"></p></div>
+  </section>
 
   <section id="gm-view" class="gm-view">
     <div class="gm-tabs">
