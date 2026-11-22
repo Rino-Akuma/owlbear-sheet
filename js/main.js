@@ -1,5 +1,5 @@
 import { t } from './i18n.js';
-import { initOwlbear, SIZES, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, inOwlbear, obrActive, pickSelectedToken, pickAssetImage, selectedTokenImage, syncHpBar, syncStatusBadge, removeHpBar, publishSummary, isGM, watchTable, sendCmd, myId, getRoomChar, setRoomChar, getCombat, setCombat, watchCombat, sendTurn } from './owlbear.js';
+import { initOwlbear, SIZES, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, inOwlbear, obrActive, pickSelectedToken, pickAssetImage, selectedTokenImage, syncHpBar, syncStatusBadge, removeHpBar, publishSummary, isGM, watchTable, sendCmd, myId, getRoomChar, setRoomChar, getCombat, setCombat, watchCombat, sendTurn, focusToken, notify } from './owlbear.js';
 import { setProvider, rollPool, describeGroup, keptVals } from './engine/dice.js';
 import { TEMPLATES, getTemplate } from './templates/index.js';
 import { mountSheet, fmt } from './engine/sheet.js';
@@ -119,7 +119,7 @@ function setView(v) {
   document.querySelector('.app').dataset.view = v;
   $('#btn-back').textContent = backTo === 'gm' ? '← Меню ГМа' : backTo === 'chars' ? '← Персонажі' : '← Меню';
   if (v === 'gm') { mountGmView(); gmTab(gmTabName); }
-  closeMore();
+  closeMore(); closeSize();
   fitWindow();
 }
 function placeLog() { (isNarrow() ? $('#rolls') : $('#histcol')).append($('#log-block')); }
@@ -133,7 +133,7 @@ function layout() {
 function fitWindow() {
   if (!inOwlbear()) return;
   const dice = !document.querySelector('.app').classList.contains('dice-off');
-  const [w, hh] = view === 'home' && !isNarrow() ? [dice ? 540 : 260, Math.min(baseSize[1], 640)] : baseSize;
+  const [w, hh] = view === 'home' ? (isNarrow() ? [Math.min(baseSize[0], 400), Math.min(baseSize[1], 600)] : [dice ? 540 : 260, Math.min(baseSize[1], 640)]) : baseSize;
   const c = currentSize();
   if (Math.abs(c[0] - w) > 1 || Math.abs(c[1] - hh) > 1) applySize(w, hh);
 }
@@ -145,6 +145,18 @@ function setDice(on) {
 function toggleDice() {
   if (isNarrow()) { const r = $('#rolls'); r.classList.toggle('open'); $('#strip-arrow').textContent = r.classList.contains('open') ? '▼' : '▲'; return; }
   setDice(document.querySelector('.app').classList.contains('dice-off'));
+}
+function closeSize() { const m = $('#size-menu'); if (m) m.hidden = true; }
+function toggleSize(btn) {
+  const m = $('#size-menu');
+  if (!m.hidden) { m.hidden = true; return; }
+  closeMore();
+  m.hidden = false;
+  const key = $('#win-size').value;
+  m.querySelectorAll('[data-size]').forEach((b) => b.classList.toggle('on', b.dataset.size === key));
+  const r = btn.getBoundingClientRect(), w = m.offsetWidth;
+  m.style.top = `${Math.round(r.bottom + 4)}px`;
+  m.style.left = `${Math.round(Math.max(8, Math.min(window.innerWidth - w - 8, r.right - w)))}px`;
 }
 function closeMore() { const m = $('#more-menu'); if (m) m.hidden = true; }
 function toggleMore() {
@@ -170,6 +182,11 @@ const npcMapNow = () => new Map(characters.filter((c) => c.npc).map((c) => [c.id
 const skipNow = () => { const m = npcMapNow(); return (e) => e.k === 'n' && npcSkipped(m.get(e.id)); };
 function refreshCombatUi() {
   renderTurnBar($('#turnbar'), combat, {
+    focus: async (cur) => {
+      let tok = cur.tok;
+      if (!tok && cur.k === 'n') { const n = characters.find((c) => c.id === cur.id); tok = n && n.tokenId; }
+      if (!(await focusToken(tok))) notify('Токен цього учасника не знайдено на столі', 'WARNING');
+    },
     gm: gmFlag, myId: myId(),
     endTurn: async (st) => {
       if (gmFlag) await advance(skipNow(), { turn: st.turn, round: st.round });
@@ -867,6 +884,9 @@ async function init() {
     try { custom = JSON.parse(localStorage.getItem('owlbear-sheet:wh') || 'null'); } catch { /* ігноруємо */ }
     const remember = (wh) => { try { localStorage.setItem('owlbear-sheet:wh', JSON.stringify(wh)); localStorage.setItem('owlbear-sheet:win', 'custom'); } catch { /* ігноруємо */ } };
     document.querySelectorAll('.win-ctl').forEach((e) => { e.hidden = false; });
+    document.querySelectorAll('.btn-size').forEach((b) => { b.hidden = false; b.addEventListener('click', (e) => { e.stopPropagation(); toggleSize(b); }); });
+    document.querySelectorAll('#size-menu [data-size]').forEach((b) => b.addEventListener('click', () => { sel.value = b.dataset.size; sel.dispatchEvent(new Event('change')); closeSize(); }));
+    document.addEventListener('click', (e) => { if (!e.target.closest('#size-menu')) closeSize(); });
     document.querySelectorAll('.win-grow').forEach((b) => b.addEventListener('click', async () => { baseSize = await resizeWindow(1.12); remember(baseSize); sel.value = 'custom'; layout(); }));
     document.querySelectorAll('.win-shrink').forEach((b) => b.addEventListener('click', async () => { baseSize = await resizeWindow(1 / 1.12); remember(baseSize); sel.value = 'custom'; layout(); }));
     if (saved === 'custom' && Array.isArray(custom)) { sel.value = 'custom'; baseSize = [custom[0], custom[1]]; } else baseSize = (SIZES[saved === 'custom' ? 'narrow' : saved] || SIZES.narrow).slice();

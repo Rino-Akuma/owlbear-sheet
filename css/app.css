@@ -439,3 +439,8 @@ details.more summary { cursor: pointer; font-size: 12px; color: var(--muted); ma
 .room-btn.attention-menu, #btn-more.attention { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }
 input.cb-init { width: 64px; flex: none; text-align: center; padding: 4px; }
 span.cb-init { display: inline-block; }
+
+.size-presets { display: flex; gap: 6px; }
+.size-presets .mini.on { background: var(--accent, #d4a04a); color: #1a1a1a; }
+.btn-size { white-space: nowrap; }
+.btn-size[hidden] { display: none; }

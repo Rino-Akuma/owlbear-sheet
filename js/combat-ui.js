@@ -26,6 +26,7 @@ export function renderTurnBar(el, st, api) {
     h('span', { class: 'who', text: `Хід: ${cur ? cur.name : '—'}` }),
     h('span', { class: 'muted', text: `Раунд ${st.round}` }),
     h('div', { class: 'turn-order' }, st.order.map((e, i) => h('span', { class: `turn-chip ${i === st.turn ? 'cur' : ''} ${e.skip ? 'skip' : ''}`, text: `${e.init === null || e.init === undefined ? '–' : e.init} ${e.name}` }))),
+    cur && api.focus ? h('button', { type: 'button', text: '◎ До токена', title: 'Навести камеру на того, чий зараз хід', onclick: () => api.focus(cur) }) : null,
     api.gm || mine ? h('button', { type: 'button', class: 'primary', text: api.gm && !mine ? 'Кінець ходу (за поточного)' : 'Кінець ходу', onclick: () => api.endTurn(st) }) : null);
 }
 

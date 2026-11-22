@@ -52,6 +52,7 @@
       <span id="save-status" class="save-status"></span>
       <button id="btn-token" type="button" class="mini token-btn" hidden></button>
       <button id="btn-condmode" type="button" class="mini" hidden></button>
+      <button type="button" class="mini btn-size" title="Розмір вікна" hidden>⤢ Вікно</button>
       <button id="btn-dice" type="button" class="mini dice-toggle">Кубики</button>
       <span class="more-wrap">
         <button id="btn-more" type="button" class="mini" aria-label="Ще">⋯</button>
@@ -60,7 +61,6 @@
           <button id="btn-room" type="button" class="mini room-btn" hidden></button>
           <label id="npc-opts" class="mini npc-opts" hidden><input id="npc-hide" type="checkbox"> Стани лише для ГМа</label>
           <label id="npc-fight-wrap" class="mini npc-opts" hidden><input id="npc-fight" type="checkbox"> Бере участь у бою</label>
-          <span class="win-ctl" hidden><span class="muted small">Вікно</span><button type="button" class="mini win-shrink" title="Зменшити вікно">−</button><button type="button" class="mini win-grow" title="Збільшити вікно">+</button></span>
           <details id="cond-legend" class="cond-legend" hidden><summary>Значки станів на токені</summary><div id="cond-legend-body" class="muted small"></div></details>
           <button id="btn-export" type="button"></button>
           <button id="btn-dup" type="button"></button>
@@ -82,6 +82,7 @@
       <button type="button" class="gm-tab on" id="chars-tab"></button>
       <button id="btn-new" type="button"></button>
       <span class="grow"></span>
+      <button type="button" class="mini btn-size" title="Розмір вікна" hidden>⤢ Вікно</button>
       <button id="btn-dice-chars" type="button" class="mini dice-toggle">Кубики</button>
     </div>
     <div id="char-list" class="gm-list"></div>
@@ -95,6 +96,7 @@
       <button type="button" class="gm-tab" data-tab="npcs">НПС</button>
       <button type="button" class="gm-tab" data-tab="combat">Бій</button>
       <span class="grow"></span>
+      <button type="button" class="mini btn-size" title="Розмір вікна" hidden>⤢ Вікно</button>
       <button id="btn-dice-gm" type="button" class="mini dice-toggle">Кубики</button>
     </div>
     <div id="gm-players" class="gm-pane"></div>
@@ -138,6 +140,11 @@
   </div>
 </div>
 <div id="modal-root"></div>
+<div id="size-menu" class="more-menu" hidden>
+  <span class="muted small">Розмір вікна</span>
+  <div class="size-presets"><button type="button" class="mini" data-size="narrow">Вузьке</button><button type="button" class="mini" data-size="mid">Середнє</button><button type="button" class="mini" data-size="wide">Широке</button></div>
+  <span class="win-ctl" hidden><span class="muted small">Точно</span><button type="button" class="mini win-shrink" title="Зменшити вікно">−</button><button type="button" class="mini win-grow" title="Збільшити вікно">+</button></span>
+</div>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

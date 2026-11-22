@@ -536,6 +536,17 @@ export async function itemExists(id) {
   if (!(await whenReady())) return false;
   try { return (await OBR.scene.items.getItems([id])).length > 0; } catch { return false; }
 }
+/** Плавно наводить камеру на токен (масштаб лишається). Повертає false, якщо токена немає. */
+export async function focusToken(id) {
+  if (!id || !(await whenReady())) return false;
+  try {
+    const [it] = await OBR.scene.items.getItems([id]);
+    if (!it) return false;
+    const [w, h, sc] = await Promise.all([OBR.viewport.getWidth(), OBR.viewport.getHeight(), OBR.viewport.getScale()]);
+    await OBR.viewport.animateTo({ position: { x: w / 2 - it.position.x * sc, y: h / 2 - it.position.y * sc }, scale: sc });
+    return true;
+  } catch { return false; }
+}
 /** Перейменовує елемент на столі (назва токена). */
 export async function renameItem(id, name) {
   if (!(await whenReady())) return;
