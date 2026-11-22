@@ -444,3 +444,5 @@ span.cb-init { display: inline-block; }
 .size-presets .mini.on { background: var(--accent, #d4a04a); color: #1a1a1a; }
 .btn-size { white-space: nowrap; }
 .btn-size[hidden] { display: none; }
+.asset-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.asset-wrap[hidden] { display: none; }

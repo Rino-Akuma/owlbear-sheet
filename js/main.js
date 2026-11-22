@@ -314,7 +314,7 @@ function onCondMode() {
 }
 /** Для НПС тримаємо в записі кеш HP/КБ, щоб меню НПС працювало без відкритого листа. */
 function updateNpcSum() {
-  if (!active || !active.npc || !sheet) return;
+  if (!active || !sheet) return;
   try { const s = buildSummary(active, sheet.get); active.sum = { hp: s.hp, max: s.max, tmp: s.tmp, init: s.init, ac: s.ac }; } catch { /* лишаємо попередній кеш */ }
 }
 function drawTokenBtn() {
@@ -322,6 +322,8 @@ function drawTokenBtn() {
   b.hidden = !obrActive() || !active;
   const nh = $('#npc-opts'); nh.hidden = !(active && active.npc); if (active && active.npc) $('#npc-hide').checked = !!active.hideStatus;
   const nf = $('#npc-fight-wrap'); nf.hidden = !(active && active.npc); if (active && active.npc) $('#npc-fight').checked = !!active.fight;
+  const aw = $('#asset-wrap'); aw.hidden = !(obrActive() && active && !active.npc);
+  if (!aw.hidden) { $('#asset-info').textContent = active.asset ? `«${active.asset.name || 'є'}»` : ''; $('#btn-asset-clear').hidden = !active.asset; }
   drawLegend();
   drawCondMode();
   if (b.hidden) { $('#bar-color-wrap').hidden = true; return; }
@@ -831,10 +833,10 @@ async function init() {
       if (!ev.data || ev.data.type !== 'reload') return;
       if (ev.data.list) {
         // у фоні з’явилися нові листи (копії НПС на столі) — підтягуємо список
-        if (saveTimer) await flushSave();
-        characters = await listCharacters();
-        if (active) active = characters.find((c) => c.id === active.id) || active;
-        renderList(); refreshNpc(); await reconcileCombat();
+        const fresh = await listCharacters();
+        if (active) { const st = fresh.find((c) => c.id === active.id); if (st) { active.tokenId = st.tokenId || null; active.asset = st.asset || null; } }
+        characters = fresh.map((c) => (active && c.id === active.id ? active : c));
+        renderList(); refreshNpc(); drawTokenBtn(); syncToken(); publishNow(); await reconcileCombat();
         return;
       }
       if (!active) return;
@@ -847,6 +849,23 @@ async function init() {
   }
   $('#bar-color').addEventListener('input', async (e) => { if (!active) return; active.barColor = e.target.value; $('#bar-auto').classList.remove('on'); await saveCharacter(active); syncToken(); });
   $('#bar-auto').addEventListener('click', async () => { if (!active) return; active.barColor = null; $('#bar-auto').classList.add('on'); await saveCharacter(active); syncToken(); });
+  const setPlayerAsset = async (a) => {
+    if (!active || active.npc) return;
+    active.asset = a; await saveCharacter(active); drawTokenBtn();
+    if (a && bcOut) bcOut.postMessage({ type: 'asset', id: active.id });
+    setStatus(a ? `Зображення прив’язано: ${a.name || 'без назви'}` : 'Зображення відв’язано', '');
+  };
+  $('#btn-asset-lib').addEventListener('click', async () => {
+    const r = await pickAssetImage();
+    if (!r.ok) { if (r.reason !== 'cancel') setStatus('Не вдалося відкрити бібліотеку. Спробуйте «З токена»', 'err'); return; }
+    await setPlayerAsset({ url: r.url, name: r.name });
+  });
+  $('#btn-asset-tok').addEventListener('click', async () => {
+    const r = await selectedTokenImage();
+    if (!r.ok) { setStatus('Спершу виділіть токен на карті', 'err'); return; }
+    await setPlayerAsset({ url: r.url, name: r.name });
+  });
+  $('#btn-asset-clear').addEventListener('click', () => setPlayerAsset(null));
   $('#btn-first').addEventListener('click', onNew);
   $('#btn-dup').addEventListener('click', onDuplicate);
   $('#btn-del').addEventListener('click', onDelete);

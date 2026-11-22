@@ -76,8 +76,26 @@
   // прив’язується сам шаблон; кожен наступний токен отримує копію листа (Назва 2, 3…).
   let chain = Promise.resolve();
   const sumMax = (c) => Number(c.sum && c.sum.max) || (c.templateId === 'kontynent' ? (Number(c.data.con) || 0) * (Number(c.data.hp_mult) || 2) : Number(c.data.hp_max) || 0);
+  // Лист гравця (не НПС) з прив’язаним зображенням: прив’язується лише до першого токена, дублів не створює.
+  async function bindPlayer(it, all) {
+    const rc = getRoomChar();
+    const cands = all.filter((c) => !c.npc && c.asset && c.asset.url === it.image.url);
+    const rec = cands.find((c) => c.id === rc) || cands[0];
+    if (!rec) return false;
+    if (rec.tokenId && (await itemExists(rec.tokenId))) return true;
+    rec.tokenId = it.id;
+    await saveCharacter(rec);
+    const s = rec.sum;
+    if (s && Number(s.max) > 0) await syncHpBar(it.id, Number(s.hp) || 0, Number(s.max), rec.barColor || null, Number(s.tmp) || 0, false);
+    await syncStatusBadge(it.id, (rec.data && rec.data.conditions) || [], undefined, false);
+    if (bc) bc.postMessage({ type: 'reload', id: rec.id, list: true });
+    await notify(`«${(rec.data && rec.data.name) || 'Персонаж'}» прив’язано до токена`, 'SUCCESS');
+    return true;
+  }
   async function bindItem(it) {
     const all = await listCharacters();
+    if (await bindPlayer(it, all)) return;
+    if (!(await isGM())) return;
     const tpl = all.find((c) => c.npc && c.asset && c.asset.url === it.image.url);
     if (!tpl) return;
     if (!tpl.tokenId || !(await itemExists(tpl.tokenId))) {
@@ -116,7 +134,7 @@
     if (bc) bc.postMessage({ type: 'reload', id: copy.id, list: true });
     await notify(`Створено «${copy.data.name}» і прив’язано до токена`, 'SUCCESS');
   }
-  const queue = (fn) => { chain = chain.then(async () => { try { if (await isGM()) await fn(); } catch (e) { console.warn(e); } }); };
+  const queue = (fn) => { chain = chain.then(async () => { try { await fn(); } catch (e) { console.warn(e); } }); };
   watchNewTokens((items) => queue(async () => { for (const it of items) await bindItem(it); }));
   // Зображення щойно прив’язали до НПС (вікно аддона) — підхоплюємо токени, що вже стоять на столі.
   if (bc) bc.addEventListener('message', (ev) => {
