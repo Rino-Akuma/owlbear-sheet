@@ -446,3 +446,6 @@ span.cb-init { display: inline-block; }
 .btn-size[hidden] { display: none; }
 .asset-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .asset-wrap[hidden] { display: none; }
+.asset-row { padding: 4px 2px 8px; }
+.asset-hint { margin-left: auto; }
+@media (max-width: 700px) { .asset-hint { display: none; } }

@@ -58,7 +58,6 @@
         <button id="btn-more" type="button" class="mini" aria-label="Ще">⋯</button>
         <div id="more-menu" class="more-menu" hidden>
           <span id="bar-color-wrap" class="bar-color" hidden><span class="muted small">Колір смужки HP</span><input id="bar-color" type="color" value="#3fae5a" title="Колір смужки HP"><button id="bar-auto" type="button" class="mini" title="Колір за залишком HP: зелений → жовтий → червоний">Авто</button></span>
-          <span id="asset-wrap" class="asset-wrap" hidden><span class="muted small">Зображення токена</span><span id="asset-info" class="muted small"></span><button id="btn-asset-lib" type="button" class="mini">З бібліотеки</button><button id="btn-asset-tok" type="button" class="mini">З токена</button><button id="btn-asset-clear" type="button" class="mini" hidden>Прибрати</button></span>
           <button id="btn-room" type="button" class="mini room-btn" hidden></button>
           <label id="npc-opts" class="mini npc-opts" hidden><input id="npc-hide" type="checkbox"> Стани лише для ГМа</label>
           <label id="npc-fight-wrap" class="mini npc-opts" hidden><input id="npc-fight" type="checkbox"> Бере участь у бою</label>
@@ -70,6 +69,7 @@
       </span>
       <div id="cond-err" class="cond-err" hidden></div>
     </div>
+    <div id="asset-wrap" class="asset-wrap asset-row" hidden><span class="muted small">Зображення токена:</span><span id="asset-info" class="muted small"></span><button id="btn-asset-lib" type="button" class="mini">З бібліотеки</button><button id="btn-asset-tok" type="button" class="mini">З виділеного токена</button><button id="btn-asset-clear" type="button" class="mini" hidden>✕ Прибрати</button><span class="muted small asset-hint">Токен прив’яжеться сам, щойно з’явиться на столі</span></div>
     <div id="welcome" class="welcome" hidden>
       <p>Створіть персонажа, щоб почати.</p>
       <button id="btn-first" type="button" class="primary"></button>
