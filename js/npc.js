@@ -76,6 +76,9 @@ export function mountNpc(root, api) {
       palette.has(key) ? h('div', { class: 'gm-pal' }, all.map((c) => h('button', { type: 'button', class: `chip-btn ${conds.includes(c) ? 'on' : ''}`, text: c, onclick: () => toggle(c) }))) : null,
       h('div', { class: 'npc-actions' },
         h('button', { type: 'button', class: 'chip-btn', text: rec.tokenId ? 'Токен: прив’язано ✕' : 'Прив’язати до токена', title: rec.tokenId ? 'Відв’язати й прибрати смужку' : 'Спершу виділіть токен на карті', onclick: () => api.toggleToken(rec) }),
+        rec.asset ? h('button', { type: 'button', class: 'chip-btn', text: `Зображення: ${rec.asset.name || 'є'} ✕`, title: 'Прибрати прив’язку до зображення', onclick: () => api.setAsset(rec, null) }) : [
+          h('button', { type: 'button', class: 'chip-btn', text: 'Зображення з бібліотеки', title: 'Коли таке зображення з’явиться на столі, аддон це помітить', onclick: () => api.pickAsset(rec) }),
+          h('button', { type: 'button', class: 'chip-btn', text: 'Зображення з токена', title: 'Спершу виділіть токен на карті', onclick: () => api.assetFromToken(rec) })],
         h('label', { class: 'npc-hide' }, h('input', { type: 'checkbox', checked: rec.hideStatus ? '' : null, onchange: (e) => api.setHideStatus(rec, e.target.checked) }), ' Стани лише для ГМа'),
         h('span', { class: 'grow' }),
         h('button', { type: 'button', class: 'chip-btn', text: 'Лист', onclick: () => api.openSheet(rec) }),

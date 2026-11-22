@@ -1,5 +1,5 @@
 import { t } from './i18n.js';
-import { initOwlbear, SIZES, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, inOwlbear, obrActive, pickSelectedToken, syncHpBar, syncStatusBadge, removeHpBar, publishSummary, isGM, watchTable, sendCmd, myId, getRoomChar, setRoomChar, getCombat, setCombat, watchCombat, sendTurn } from './owlbear.js';
+import { initOwlbear, SIZES, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, inOwlbear, obrActive, pickSelectedToken, pickAssetImage, selectedTokenImage, syncHpBar, syncStatusBadge, removeHpBar, publishSummary, isGM, watchTable, sendCmd, myId, getRoomChar, setRoomChar, getCombat, setCombat, watchCombat, sendTurn } from './owlbear.js';
 import { setProvider, rollPool, describeGroup, keptVals } from './engine/dice.js';
 import { TEMPLATES, getTemplate } from './templates/index.js';
 import { mountSheet, fmt } from './engine/sheet.js';
@@ -519,6 +519,7 @@ async function npcSaved(rec) {
   await syncRec(rec);
   refreshNpc();
 }
+async function api_setAsset(rec, a) { rec.asset = a; await saveCharacter(rec); refreshNpc(); setStatus(`Зображення прив’язано: ${a.name || 'без назви'}`, ''); }
 function openNpc() {
   npcCtl = mountNpc($('#gm-npcs'), {
     current: curKey,
@@ -539,13 +540,24 @@ function openNpc() {
       if (other) { setStatus(`Цей токен уже прив’язаний до «${displayName(other)}»`, 'err'); return; }
       rec.tokenId = r.id; await npcSaved(rec);
     },
+    setAsset: async (rec, a) => { rec.asset = a; await saveCharacter(rec); refreshNpc(); },
+    pickAsset: async (rec) => {
+      const r = await pickAssetImage();
+      if (!r.ok) { if (r.reason !== 'cancel') setStatus(`Не вдалося відкрити бібліотеку${r.message ? `: ${r.message}` : ''}. Спробуйте «Зображення з токена»`, 'err'); return; }
+      await api_setAsset(rec, { url: r.url, name: r.name });
+    },
+    assetFromToken: async (rec) => {
+      const r = await selectedTokenImage();
+      if (!r.ok) { setStatus('Спершу виділіть токен на карті', 'err'); return; }
+      await api_setAsset(rec, { url: r.url, name: r.name });
+    },
     duplicate: async (rec) => {
       const n = await askCount('Скільки копій створити?');
       if (!n) return;
       const base = displayName(rec).replace(/\s+\d+$/, '');
       for (let i = 0; i < n; i++) {
         const copy = JSON.parse(JSON.stringify(rec));
-        copy.id = newId(); copy.tokenId = null;
+        copy.id = newId(); copy.tokenId = null; copy.asset = null;
         copy.data.name = `${base} ${i + 2}`;
         await saveCharacter(copy); characters.unshift(copy);
       }
@@ -583,7 +595,7 @@ async function onDuplicate() {
   await flushSave();
   const copy = JSON.parse(JSON.stringify(active));
   copy.id = newId();
-  copy.tokenId = null; // копія не має ділити токен з оригіналом
+  copy.tokenId = null; copy.asset = null; // копія не має ділити токен з оригіналом
   copy.data.name = `${displayName(active)} ${t.copySuffix}`;
   await saveCharacter(copy);
   characters.unshift(copy);

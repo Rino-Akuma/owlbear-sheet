@@ -491,3 +491,42 @@ async function ringGeo(token) {
   const left = token.position.x - off.x * token.scale.x * k, top = token.position.y - off.y * token.scale.y * k;
   return { cx: left + w / 2, cy: top + h / 2, r: Math.max(w, h) / 2 + 3 };
 }
+
+// ---------- зображення токена: прив’язка до картинки з бібліотеки, діагностика появи на столі ----------
+/** Адреса зображення виділеного на карті токена. */
+export async function selectedTokenImage() {
+  if (!(await whenReady())) return { ok: false, reason: 'no-obr' };
+  const sel = (await OBR.player.getSelection()) || [];
+  const items = sel.length ? await OBR.scene.items.getItems(sel) : [];
+  const it = items.find((i) => i.type === 'IMAGE' && i.image && i.image.url);
+  return it ? { ok: true, url: it.image.url, name: it.name || '' } : { ok: false, reason: 'no-selection' };
+}
+/** Вікно вибору зображення з бібліотеки Assets (вкладка «Characters»). */
+export async function pickAssetImage() {
+  if (!(await whenReady())) return { ok: false, reason: 'no-obr' };
+  try {
+    const res = await OBR.assets.downloadImages(false, undefined, 'CHARACTER');
+    const a = res && res[0];
+    const url = a && a.image && a.image.url;
+    return url ? { ok: true, url, name: a.name || '' } : { ok: false, reason: 'cancel' };
+  } catch (e) { return { ok: false, reason: 'error', message: e.message }; }
+}
+/** Викликає cb(нові IMAGE-елементи) щоразу, коли на сцені з’являються нові токени-зображення. */
+export async function watchNewTokens(cb) {
+  if (!(await whenReady())) return () => {};
+  let seen = null;
+  const handle = (items) => {
+    const ids = new Set(items.map((i) => i.id));
+    if (seen) {
+      const fresh = items.filter((i) => !seen.has(i.id) && i.type === 'IMAGE' && i.image && !i.metadata[BAR_KEY] && !i.metadata[STATUS_KEY]);
+      if (fresh.length) cb(fresh);
+    }
+    seen = ids;
+  };
+  try { handle(await OBR.scene.items.getItems()); } catch { /* сцена ще не готова */ }
+  return OBR.scene.items.onChange(handle);
+}
+export async function notify(text, kind = 'INFO') {
+  if (!(await whenReady())) return;
+  try { await OBR.notification.show(text, kind); } catch { /* ігноруємо */ }
+}

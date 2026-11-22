@@ -3,7 +3,7 @@
 <body>
 <script type="module">
   // Працює завжди, поки аддон увімкнено в кімнаті: показує сповіщення про кидки інших гравців.
-  import { CH_ROLL, rollToastText, whenReady, getObr, onCmd, patchSummary, myId, getRoomChar, syncStatusBadge, syncHpBar, onTurn, isGM, getCombat } from './js/owlbear.js';
+  import { CH_ROLL, rollToastText, whenReady, getObr, onCmd, patchSummary, myId, getRoomChar, syncStatusBadge, syncHpBar, onTurn, isGM, getCombat, watchNewTokens, notify } from './js/owlbear.js';
   import { advance, npcSkipped } from './js/combat.js';
   import { listCharacters, saveCharacter } from './js/storage.js';
   await whenReady(60000);
@@ -69,6 +69,18 @@
       if (!sender.gm && !(cur && cur.k === 'p' && cur.id === sender.id)) return;
       const npcs = new Map((await listCharacters()).filter((c) => c.npc).map((c) => [c.id, c]));
       await advance((e) => e.k === 'n' && npcSkipped(npcs.get(e.id)), { turn: m.turn, round: m.round });
+    } catch (e) { console.warn(e); }
+  });
+
+  // Діагностика: на столі з’явився токен із зображенням, прив’язаним до НПС (поки без копіювання).
+  watchNewTokens(async (items) => {
+    try {
+      if (!(await isGM())) return;
+      const npcs = (await listCharacters()).filter((c) => c.npc && c.asset && c.asset.url);
+      for (const it of items) {
+        const rec = npcs.find((c) => c.asset.url === it.image.url);
+        if (rec) await notify(`Знайдено токен для «${(rec.data && rec.data.name) || 'НПС'}» (${it.name || 'без назви'})`, 'SUCCESS');
+      }
     } catch (e) { console.warn(e); }
   });
 </script>
