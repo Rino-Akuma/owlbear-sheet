@@ -526,6 +526,16 @@ export async function watchNewTokens(cb) {
   try { handle(await OBR.scene.items.getItems()); } catch { /* сцена ще не готова */ }
   return OBR.scene.items.onChange(handle);
 }
+/** Токени-зображення на столі з цим url, які ще не прив’язані до жодного листа. */
+export async function freeTokens(url) {
+  if (!(await whenReady())) return [];
+  try { return (await OBR.scene.items.getItems((i) => i.type === 'IMAGE' && i.image && i.image.url === url && !i.metadata[BAR_KEY] && !i.metadata[STATUS_KEY])); } catch { return []; }
+}
+/** Чи існує ще елемент на столі. */
+export async function itemExists(id) {
+  if (!(await whenReady())) return false;
+  try { return (await OBR.scene.items.getItems([id])).length > 0; } catch { return false; }
+}
 /** Перейменовує елемент на столі (назва токена). */
 export async function renameItem(id, name) {
   if (!(await whenReady())) return;

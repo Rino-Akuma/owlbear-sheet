@@ -519,7 +519,8 @@ async function npcSaved(rec) {
   await syncRec(rec);
   refreshNpc();
 }
-async function api_setAsset(rec, a) { rec.asset = a; await saveCharacter(rec); refreshNpc(); setStatus(`Зображення прив’язано: ${a.name || 'без назви'}`, ''); }
+const bcOut = 'BroadcastChannel' in window ? new BroadcastChannel('owlbear-sheet') : null;
+async function api_setAsset(rec, a) { rec.asset = a; await saveCharacter(rec); if (a && bcOut) bcOut.postMessage({ type: 'asset', id: rec.id }); refreshNpc(); setStatus(`Зображення прив’язано: ${a.name || 'без назви'}`, ''); }
 function openNpc() {
   npcCtl = mountNpc($('#gm-npcs'), {
     current: curKey,
