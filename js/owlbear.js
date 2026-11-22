@@ -526,6 +526,11 @@ export async function watchNewTokens(cb) {
   try { handle(await OBR.scene.items.getItems()); } catch { /* сцена ще не готова */ }
   return OBR.scene.items.onChange(handle);
 }
+/** Перейменовує елемент на столі (назва токена). */
+export async function renameItem(id, name) {
+  if (!(await whenReady())) return;
+  try { await OBR.scene.items.updateItems([id], (items) => { for (const it of items) it.name = name; }); } catch (e) { console.warn(e); }
+}
 export async function notify(text, kind = 'INFO') {
   if (!(await whenReady())) return;
   try { await OBR.notification.show(text, kind); } catch { /* ігноруємо */ }

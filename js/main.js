@@ -810,7 +810,16 @@ async function init() {
   // Фонова сторінка змінила лист (стани/ініціатива від ГМа) — підтягуємо зміни у відкритий лист.
   if ('BroadcastChannel' in window) {
     new BroadcastChannel('owlbear-sheet').onmessage = async (ev) => {
-      if (!ev.data || ev.data.type !== 'reload' || !active) return;
+      if (!ev.data || ev.data.type !== 'reload') return;
+      if (ev.data.list) {
+        // у фоні з’явилися нові листи (копії НПС на столі) — підтягуємо список
+        if (saveTimer) await flushSave();
+        characters = await listCharacters();
+        if (active) active = characters.find((c) => c.id === active.id) || active;
+        renderList(); refreshNpc(); await reconcileCombat();
+        return;
+      }
+      if (!active) return;
       const rec = (await listCharacters()).find((c) => c.id === active.id);
       if (!rec) return;
       active.data.conditions = rec.data.conditions || [];

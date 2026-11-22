@@ -3,9 +3,9 @@
 <body>
 <script type="module">
   // Працює завжди, поки аддон увімкнено в кімнаті: показує сповіщення про кидки інших гравців.
-  import { CH_ROLL, rollToastText, whenReady, getObr, onCmd, patchSummary, myId, getRoomChar, syncStatusBadge, syncHpBar, onTurn, isGM, getCombat, watchNewTokens, notify } from './js/owlbear.js';
+  import { CH_ROLL, rollToastText, whenReady, getObr, onCmd, patchSummary, myId, getRoomChar, syncStatusBadge, syncHpBar, onTurn, isGM, getCombat, watchNewTokens, notify, renameItem } from './js/owlbear.js';
   import { advance, npcSkipped } from './js/combat.js';
-  import { listCharacters, saveCharacter } from './js/storage.js';
+  import { listCharacters, saveCharacter, newId } from './js/storage.js';
   await whenReady(60000);
   const OBR = getObr();
   if (OBR) OBR.onReady(() => {
@@ -72,16 +72,44 @@
     } catch (e) { console.warn(e); }
   });
 
-  // Діагностика: на столі з’явився токен із зображенням, прив’язаним до НПС (поки без копіювання).
-  watchNewTokens(async (items) => {
-    try {
-      if (!(await isGM())) return;
-      const npcs = (await listCharacters()).filter((c) => c.npc && c.asset && c.asset.url);
-      for (const it of items) {
-        const rec = npcs.find((c) => c.asset.url === it.image.url);
-        if (rec) await notify(`Знайдено токен для «${(rec.data && rec.data.name) || 'НПС'}» (${it.name || 'без назви'})`, 'SUCCESS');
-      }
-    } catch (e) { console.warn(e); }
+  // Автоприв’язка: щойно на столі з’являється токен із зображенням НПС-шаблону, ГМ-клієнт
+  // створює копію листа (Назва 1, 2, 3…), прив’язує її до токена й одразу показує смужку HP/стани.
+  let chain = Promise.resolve();
+  watchNewTokens((items) => {
+    chain = chain.then(async () => {
+      try {
+        if (!(await isGM())) return;
+        for (const it of items) {
+          const all = await listCharacters();
+          const tpl = all.find((c) => c.npc && c.asset && c.asset.url === it.image.url);
+          if (!tpl) continue;
+          const base = (tpl.data && tpl.data.name) || 'НПС';
+          let n = 0;
+          for (const c of all) {
+            if (c.fromTemplate !== tpl.id) continue;
+            const m = String((c.data && c.data.name) || '').match(/(\d+)\s*$/);
+            n = Math.max(n, m ? Number(m[1]) : 0);
+          }
+          const copy = JSON.parse(JSON.stringify(tpl));
+          copy.id = newId();
+          copy.fromTemplate = tpl.id;
+          copy.asset = null;
+          copy.tokenId = it.id;
+          copy.data.name = `${base} ${n + 1}`;
+          delete copy.data.hp;
+          copy.data.conditions = [];
+          copy.data.init_roll = null;
+          if (copy.sum) copy.sum.init = null;
+          await saveCharacter(copy);
+          const max = Number(copy.sum && copy.sum.max) || (copy.templateId === 'kontynent' ? (Number(copy.data.con) || 0) * (Number(copy.data.hp_mult) || 2) : Number(copy.data.hp_max) || 0);
+          await syncHpBar(it.id, max, max, copy.barColor || null, 0, true);
+          await syncStatusBadge(it.id, [], undefined, !!copy.hideStatus);
+          await renameItem(it.id, copy.data.name);
+          if (bc) bc.postMessage({ type: 'reload', id: copy.id, list: true });
+          await notify(`Створено «${copy.data.name}» і прив’язано до токена`, 'SUCCESS');
+        }
+      } catch (e) { console.warn(e); }
+    });
   });
 </script>
 </body></html>
