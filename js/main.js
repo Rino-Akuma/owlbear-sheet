@@ -254,6 +254,34 @@ function mountGmView() {
       await reconcileCombat();
     },
     setForce: async (rec, v) => { rec.force = !!v; await saveCharacter(rec); await reconcileCombat(); refreshNpc(); },
+    hpInfo: (e) => {
+      if (e.k === 'n') { const r = characters.find((c) => c.id === e.id); if (!r) return null; const s = npcSum(r); return { hp: s.hp, max: s.max, tmp: s.tmp, ac: s.ac }; }
+      const row = tableRows.find((r) => r.id === e.id);
+      return row ? { hp: row.sum.hp, max: row.sum.max, tmp: row.sum.tmp || 0, ac: row.sum.ac } : null;
+    },
+    hpOp: async (e, op, n) => {
+      if (e.k === 'n') {
+        const rec = characters.find((c) => c.id === e.id);
+        if (!rec) return;
+        const s = npcSum(rec), hasTemp = rec.templateId === 'dnd5e';
+        let { hp, tmp } = s;
+        if (op === 'dmg') { const ab = hasTemp ? Math.min(tmp, n) : 0; tmp -= ab; hp = Math.max(0, hp - (n - ab)); }
+        else hp = s.max > 0 ? Math.min(s.max, hp + n) : hp + n;
+        rec.data.hp = hp; if (hasTemp) rec.data.hp_temp = tmp;
+        rec.sum = { ...(rec.sum || {}), hp, tmp };
+        await npcSaved(rec);
+        await reconcileCombat();
+        return;
+      }
+      const row = tableRows.find((r) => r.id === e.id);
+      if (!row) return;
+      const s = row.sum, hasTemp = s.sys === 'dnd5e';
+      if (op === 'dmg') { const ab = hasTemp ? Math.min(s.tmp || 0, n) : 0; s.tmp = (s.tmp || 0) - ab; s.hp = Math.max(0, s.hp - (n - ab)); }
+      else s.hp = s.max > 0 ? Math.min(s.max, s.hp + n) : s.hp + n;
+      sendCmd({ type: 'hp', to: row.id, charId: s.charId, op, n, max: s.max });
+      combatCtl.refresh();
+      if (gmCtl) gmCtl.refresh();
+    },
   });
 }
 function gmTab(tab) {

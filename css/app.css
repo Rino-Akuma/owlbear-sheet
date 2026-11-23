@@ -449,3 +449,8 @@ span.cb-init { display: inline-block; }
 .asset-row { padding: 4px 2px 8px; }
 .asset-hint { margin-left: auto; }
 @media (max-width: 700px) { .asset-hint { display: none; } }
+.cb-row { flex-wrap: wrap; }
+.cb-ac { font-weight: 700; white-space: nowrap; }
+.cb-hp { color: var(--muted, #aaa); font-size: 13px; white-space: nowrap; }
+.cb-hpedit { display: inline-flex; gap: 4px; align-items: center; }
+input.cb-amt { width: 58px; flex: none; text-align: center; padding: 4px; }
