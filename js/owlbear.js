@@ -565,8 +565,8 @@ export async function registerFightMenu(onPick) {
     await OBR.contextMenu.create({
       id: `${SOURCE}/fight`,
       icons: [
-        { icon: svgIcon('M12 5v14M5 12h14'), label: 'Додати в бій', filter: { roles: ['GM'], every: [{ key: 'type', value: 'IMAGE' }, { key: ['metadata', FLAG_KEY], operator: '!=', value: 'in' }] } },
-        { icon: svgIcon('M5 12h14'), label: 'Прибрати з бою', filter: { roles: ['GM'], every: [{ key: ['metadata', FLAG_KEY], value: 'in' }] } },
+        { icon: new URL('../icons/fight-add.svg', import.meta.url).href, label: 'Додати в бій', filter: { roles: ['GM'], every: [{ key: 'type', value: 'IMAGE' }, { key: ['metadata', FLAG_KEY], operator: '!=', value: 'in' }] } },
+        { icon: new URL('../icons/fight-remove.svg', import.meta.url).href, label: 'Прибрати з бою', filter: { roles: ['GM'], every: [{ key: ['metadata', FLAG_KEY], value: 'in' }] } },
       ],
       onClick(context) {
         const items = context.items || [];
@@ -575,7 +575,7 @@ export async function registerFightMenu(onPick) {
         onPick(items.map((i) => i.id), want);
       },
     });
-  } catch (e) { console.warn('Меню бою:', e); }
+  } catch (e) { console.warn('Меню бою:', e); try { await OBR.notification.show(`Меню бою не зареєстровано: ${(e && e.message) || e}`, 'ERROR'); } catch { /* ігноруємо */ } }
 }
 /** Перейменовує елемент на столі (назва токена). */
 export async function renameItem(id, name) {
