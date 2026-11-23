@@ -1,5 +1,5 @@
 import { t } from './i18n.js';
-import { initOwlbear, SIZES, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, inOwlbear, obrActive, pickSelectedToken, pickAssetImage, selectedTokenImage, syncHpBar, syncStatusBadge, removeHpBar, publishSummary, isGM, watchTable, sendCmd, myId, getRoomChar, setRoomChar, getCombat, setCombat, watchCombat, sendTurn, focusToken, notify } from './owlbear.js';
+import { initOwlbear, SIZES, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, inOwlbear, obrActive, pickSelectedToken, pickAssetImage, selectedTokenImage, syncHpBar, syncStatusBadge, removeHpBar, publishSummary, isGM, watchTable, sendCmd, myId, getRoomChar, setRoomChar, getCombat, setCombat, watchCombat, sendTurn, focusToken, notify, setFightFlag } from './owlbear.js';
 import { setProvider, rollPool, describeGroup, keptVals } from './engine/dice.js';
 import { TEMPLATES, getTemplate } from './templates/index.js';
 import { mountSheet, fmt } from './engine/sheet.js';
@@ -556,6 +556,7 @@ async function syncRec(rec) {
   if (!rec.tokenId) return;
   const s = npcSum(rec);
   try {
+    setFightFlag(rec.tokenId, rec.fight ? 'in' : 'out');
     if ((await syncHpBar(rec.tokenId, s.hp, s.max, rec.barColor || null, s.tmp, true)) === 'missing') { rec.tokenId = null; await saveCharacter(rec); return; }
     await syncStatusBadge(rec.tokenId, rec.data.conditions, undefined, !!rec.hideStatus);
   } catch (e) { console.warn('Токен НПС:', e); }
@@ -571,7 +572,7 @@ async function api_setAsset(rec, a) { rec.asset = a; await saveCharacter(rec); i
 function openNpc() {
   npcCtl = mountNpc($('#gm-npcs'), {
     current: curKey,
-    setFight: async (rec, v) => { rec.fight = !!v; await saveCharacter(rec); refreshNpc(); await reconcileCombat(); },
+    setFight: async (rec, v) => { rec.fight = !!v; await saveCharacter(rec); if (rec.tokenId) setFightFlag(rec.tokenId, rec.fight ? 'in' : 'out'); refreshNpc(); await reconcileCombat(); },
     list: npcRecs,
     sysName: (rec) => { const tp = getTemplate(rec.templateId); return tp ? tp.name : rec.templateId; },
     createManual: createManualNpc,
@@ -581,7 +582,7 @@ function openNpc() {
     setConds: async (rec, conds) => { rec.data.conditions = conds; await npcSaved(rec); },
     setHideStatus: async (rec, v) => { rec.hideStatus = !!v; await npcSaved(rec); },
     toggleToken: async (rec) => {
-      if (rec.tokenId) { await removeHpBar(rec.tokenId); rec.tokenId = null; await saveCharacter(rec); refreshNpc(); return; }
+      if (rec.tokenId) { await removeHpBar(rec.tokenId); setFightFlag(rec.tokenId, null); rec.tokenId = null; await saveCharacter(rec); refreshNpc(); return; }
       const r = await pickSelectedToken();
       if (!r.ok) { setStatus('Спершу виділіть токен на карті', 'err'); return; }
       const other = characters.find((c) => c.tokenId === r.id && c.id !== rec.id);
@@ -862,7 +863,7 @@ async function init() {
       if (ev.data.list) {
         // у фоні з’явилися нові листи (копії НПС на столі) — підтягуємо список
         const fresh = await listCharacters();
-        if (active) { const st = fresh.find((c) => c.id === active.id); if (st) { active.tokenId = st.tokenId || null; active.asset = st.asset || null; } }
+        if (active) { const st = fresh.find((c) => c.id === active.id); if (st) { active.tokenId = st.tokenId || null; active.asset = st.asset || null; active.fight = !!st.fight; } }
         characters = fresh.map((c) => (active && c.id === active.id ? active : c));
         renderList(); refreshNpc(); drawTokenBtn(); syncToken(); publishNow(); await reconcileCombat();
         return;

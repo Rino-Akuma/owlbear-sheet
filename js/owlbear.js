@@ -547,6 +547,36 @@ export async function focusToken(id) {
     return true;
   } catch { return false; }
 }
+// ---------- меню правої кнопки: «Додати в бій» / «Прибрати з бою» ----------
+const FLAG_KEY = `${SOURCE}/fightflag`;
+export async function getTableRows() { if (!(await whenReady())) return []; try { return await getTable(); } catch { return []; } }
+/** Позначка на токені НПС: 'in' — у бою, 'out' — не в бою, null — прибрати (токен не прив’язаний). */
+export async function setFightFlag(tokenId, state) {
+  if (!tokenId || !(await whenReady())) return;
+  try {
+    await OBR.scene.items.updateItems([tokenId], (items) => { for (const it of items) { if (state) it.metadata[FLAG_KEY] = state; else delete it.metadata[FLAG_KEY]; } });
+  } catch (e) { console.warn(e); }
+}
+const svgIcon = (d) => `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="${d}"/></svg>`)}`;
+/** Додає в меню токена пункти бою (лише ГМу, лише для токенів, прив’язаних до НПС). onPick(ids, want) */
+export async function registerFightMenu(onPick) {
+  if (!(await whenReady())) return;
+  try {
+    await OBR.contextMenu.create({
+      id: `${SOURCE}/fight`,
+      icons: [
+        { icon: svgIcon('M12 5v14M5 12h14'), label: 'Додати в бій', filter: { roles: ['GM'], every: [{ key: ['metadata', FLAG_KEY], value: 'out' }] } },
+        { icon: svgIcon('M5 12h14'), label: 'Прибрати з бою', filter: { roles: ['GM'], every: [{ key: ['metadata', FLAG_KEY], value: 'in' }] } },
+      ],
+      onClick(context) {
+        const items = context.items || [];
+        if (!items.length) return;
+        const want = items[0].metadata[FLAG_KEY] === 'out';
+        onPick(items.map((i) => i.id), want);
+      },
+    });
+  } catch (e) { console.warn('Меню бою:', e); }
+}
 /** Перейменовує елемент на столі (назва токена). */
 export async function renameItem(id, name) {
   if (!(await whenReady())) return;

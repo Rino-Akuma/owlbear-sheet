@@ -3,8 +3,8 @@
 <body>
 <script type="module">
   // Працює завжди, поки аддон увімкнено в кімнаті: показує сповіщення про кидки інших гравців.
-  import { CH_ROLL, rollToastText, whenReady, getObr, onCmd, patchSummary, myId, getRoomChar, syncStatusBadge, syncHpBar, onTurn, isGM, getCombat, watchNewTokens, notify, renameItem, freeTokens, itemExists } from './js/owlbear.js';
-  import { advance, npcSkipped } from './js/combat.js';
+  import { CH_ROLL, rollToastText, whenReady, getObr, onCmd, patchSummary, myId, getRoomChar, syncStatusBadge, syncHpBar, onTurn, isGM, getCombat, watchNewTokens, notify, renameItem, freeTokens, itemExists, registerFightMenu, setFightFlag, getTableRows, setCombat } from './js/owlbear.js';
+  import { advance, npcSkipped, buildOrder, reconcile } from './js/combat.js';
   import { listCharacters, saveCharacter, newId } from './js/storage.js';
   await whenReady(60000);
   const OBR = getObr();
@@ -105,6 +105,7 @@
       const hp = d.hp === undefined || d.hp === null ? mx : Number(d.hp) || 0;
       await syncHpBar(it.id, hp, mx, tpl.barColor || null, tpl.templateId === 'dnd5e' ? Number(d.hp_temp) || 0 : 0, true);
       await syncStatusBadge(it.id, d.conditions || [], undefined, !!tpl.hideStatus);
+      await setFightFlag(it.id, tpl.fight ? 'in' : 'out');
       if (bc) bc.postMessage({ type: 'reload', id: tpl.id, list: true });
       await notify(`«${d.name || 'НПС'}» прив’язано до токена`, 'SUCCESS');
       return;
@@ -131,6 +132,7 @@
     await syncHpBar(it.id, max, max, copy.barColor || null, 0, true);
     await syncStatusBadge(it.id, [], undefined, !!copy.hideStatus);
     await renameItem(it.id, copy.data.name);
+    await setFightFlag(it.id, copy.fight ? 'in' : 'out');
     if (bc) bc.postMessage({ type: 'reload', id: copy.id, list: true });
     await notify(`Створено «${copy.data.name}» і прив’язано до токена`, 'SUCCESS');
   }
@@ -146,5 +148,28 @@
       for (const it of await freeTokens(tpl.asset.url)) await bindItem(it);
     });
   });
+
+  // Меню правої кнопки на токенах НПС: додати в бій / прибрати з бою.
+  const syncCombatOrder = async () => {
+    const st = await getCombat();
+    if (!st || !st.on) return;
+    const next = reconcile(st, buildOrder(await getTableRows(), (await listCharacters()).filter((c) => c.npc)));
+    if (next) await setCombat(next);
+  };
+  isGM().then((gm) => { if (!gm) return; registerFightMenu((ids, want) => queue(async () => {
+    const all = await listCharacters();
+    let n = 0;
+    for (const rec of all) {
+      if (!rec.npc || !rec.tokenId || !ids.includes(rec.tokenId) || !!rec.fight === want) continue;
+      rec.fight = want;
+      await saveCharacter(rec);
+      await setFightFlag(rec.tokenId, want ? 'in' : 'out');
+      n++;
+    }
+    if (!n) return;
+    await syncCombatOrder();
+    if (bc) bc.postMessage({ type: 'reload', list: true });
+    await notify(want ? `У бій додано: ${n}` : `З бою прибрано: ${n}`, 'SUCCESS');
+  })); });
 </script>
 </body></html>
