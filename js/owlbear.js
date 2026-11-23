@@ -565,13 +565,13 @@ export async function registerFightMenu(onPick) {
     await OBR.contextMenu.create({
       id: `${SOURCE}/fight`,
       icons: [
-        { icon: svgIcon('M12 5v14M5 12h14'), label: 'Додати в бій', filter: { roles: ['GM'], every: [{ key: ['metadata', FLAG_KEY], value: 'out' }] } },
+        { icon: svgIcon('M12 5v14M5 12h14'), label: 'Додати в бій', filter: { roles: ['GM'], every: [{ key: 'type', value: 'IMAGE' }, { key: ['metadata', FLAG_KEY], operator: '!=', value: 'in' }] } },
         { icon: svgIcon('M5 12h14'), label: 'Прибрати з бою', filter: { roles: ['GM'], every: [{ key: ['metadata', FLAG_KEY], value: 'in' }] } },
       ],
       onClick(context) {
         const items = context.items || [];
         if (!items.length) return;
-        const want = items[0].metadata[FLAG_KEY] === 'out';
+        const want = items[0].metadata[FLAG_KEY] !== 'in';
         onPick(items.map((i) => i.id), want);
       },
     });

@@ -166,10 +166,18 @@
       await setFightFlag(rec.tokenId, want ? 'in' : 'out');
       n++;
     }
-    if (!n) return;
+    if (!n) { if (!all.some((r) => r.npc && r.tokenId && ids.includes(r.tokenId))) await notify('Виділені токени не прив’язані до НПС', 'WARNING'); return; }
     await syncCombatOrder();
     if (bc) bc.postMessage({ type: 'reload', list: true });
     await notify(want ? `У бій додано: ${n}` : `З бою прибрано: ${n}`, 'SUCCESS');
   })); });
+
+  // Позначки «у бою / не в бою» на токенах НПС (за ними меню показує потрібний пункт): синхронізуємо зі сховищем.
+  const syncFlags = () => queue(async () => {
+    for (const r of (await listCharacters()).filter((c) => c.npc && c.tokenId)) await setFightFlag(r.tokenId, r.fight ? 'in' : 'out');
+  });
+  syncFlags();
+  if (OBR) { OBR.onReady(() => { try { OBR.scene.onReadyChange((ready) => { if (ready) syncFlags(); }); } catch { /* ігноруємо */ } }); }
+  if (bc) bc.addEventListener('message', (ev) => { if (ev.data && (ev.data.type === 'reload' || ev.data.type === 'asset')) syncFlags(); });
 </script>
 </body></html>
