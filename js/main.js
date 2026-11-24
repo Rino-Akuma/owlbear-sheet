@@ -257,6 +257,7 @@ function mountGmView() {
     },
     setForce: async (rec, v) => { rec.force = !!v; await saveCharacter(rec); await reconcileCombat(); refreshNpc(); },
     selected: () => selIds,
+    openSheet: async (rec) => { backTo = 'gm'; await openCharacter(rec.id); },
     hpInfo: (e) => {
       if (e.k === 'n') { const r = characters.find((c) => c.id === e.id); if (!r) return null; const s = npcSum(r); return { hp: s.hp, max: s.max, tmp: s.tmp, ac: s.ac }; }
       const row = tableRows.find((r) => r.id === e.id);

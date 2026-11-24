@@ -456,3 +456,12 @@ span.cb-init { display: inline-block; }
 input.cb-amt { width: 58px; flex: none; text-align: center; padding: 4px; }
 .cb-row.sel, .turn-chip.sel { background: rgba(214,69,60,.28); border-color: #d6453c; box-shadow: 0 0 0 1px #d6453c inset; }
 .cb-row.sel.cur { border-color: #d6453c; }
+
+.cb-row { flex-direction: column; align-items: stretch; gap: 6px; }
+.cb-top, .cb-bot { display: flex; align-items: center; gap: 8px; width: 100%; }
+.cb-mark { width: 14px; flex: none; text-align: center; }
+.cb-top .cb-init { width: 64px; flex: none; text-align: center; }
+span.cb-init { display: inline-block; padding: 6px 0; }
+.cb-name { font-weight: 600; }
+.cb-top .cb-ac { min-width: 52px; text-align: right; }
+.cb-top .cb-hp { min-width: 92px; text-align: right; }

@@ -65,20 +65,24 @@ export function mountCombat(root, api) {
         const rec = e.k === 'n' ? npcMap.get(e.id) : null;
         const hs = api.hpInfo(e) || { hp: 0, max: 0, tmp: 0, ac: 0 };
         return h('div', { class: `cb-row ${keyOf(e) === curKey ? 'cur' : ''} ${e.skip ? 'skip' : ''} ${isSel(e, rec) ? 'sel' : ''}` },
-          keyOf(e) === curKey ? h('b', { text: '▶' }) : null,
-          rec ? h('input', { type: 'number', class: 'cb-init', 'data-k': e.id, value: e.init === null ? '' : e.init, placeholder: '—', title: 'Ініціатива (можна виправити)', onchange: (ev) => api.setInit(rec, ev.target.value) })
-            : h('span', { class: 'cb-init', text: e.init === null ? '—' : String(e.init), title: 'Ініціатива гравця береться з його листа' }),
-          h('span', { text: e.name }),
-          h('span', { class: 'muted small', text: e.k === 'p' ? 'гравець' : 'НПС' }),
-          h('span', { class: 'grow' }),
-          h('span', { class: 'cb-ac', title: 'Клас броні', text: `КБ ${hs.ac ?? 0}` }),
-          h('span', { class: 'cb-hp', text: `HP ${hs.hp}/${hs.max}${hs.tmp ? ` (+${hs.tmp})` : ''}` }),
-          h('span', { class: 'cb-hpedit' },
-            h('input', { type: 'number', min: '0', class: 'cb-amt', 'data-k': keyOf(e), placeholder: '0', value: amt.get(keyOf(e)) ?? '', oninput: (ev) => amt.set(keyOf(e), ev.target.value), onkeydown: (ev) => { if (ev.key === 'Enter') hpOp(e, 'dmg'); } }),
-            h('button', { type: 'button', class: 'chip-btn', text: 'Шкода', onclick: () => hpOp(e, 'dmg') }),
-            h('button', { type: 'button', class: 'chip-btn', text: 'Лікув.', onclick: () => hpOp(e, 'heal') })),
-          rec && e.skip ? h('button', { type: 'button', class: 'chip-btn', text: 'Повернути', title: 'Не пропускати, хоч HP 0', onclick: () => api.setForce(rec, true) }) : null,
-          rec && rec.force ? h('button', { type: 'button', class: 'chip-btn', text: 'Знову пропускати', onclick: () => api.setForce(rec, false) }) : null);
+          h('div', { class: 'cb-top' },
+            h('span', { class: 'cb-mark', text: keyOf(e) === curKey ? '▶' : '' }),
+            rec ? h('input', { type: 'number', class: 'cb-init', 'data-k': e.id, value: e.init === null ? '' : e.init, placeholder: '—', title: 'Ініціатива (можна виправити)', onchange: (ev) => api.setInit(rec, ev.target.value) })
+              : h('span', { class: 'cb-init', text: e.init === null ? '—' : String(e.init), title: 'Ініціатива гравця береться з його листа' }),
+            h('span', { class: 'cb-name', text: e.name }),
+            h('span', { class: 'muted small', text: e.k === 'p' ? 'гравець' : 'НПС' }),
+            h('span', { class: 'grow' }),
+            h('span', { class: 'cb-ac', title: 'Клас броні', text: `КБ ${hs.ac ?? 0}` }),
+            h('span', { class: 'cb-hp', text: `HP ${hs.hp}/${hs.max}${hs.tmp ? ` (+${hs.tmp})` : ''}` })),
+          h('div', { class: 'cb-bot' },
+            h('span', { class: 'cb-hpedit' },
+              h('input', { type: 'number', min: '0', class: 'cb-amt', 'data-k': keyOf(e), placeholder: '0', value: amt.get(keyOf(e)) ?? '', oninput: (ev) => amt.set(keyOf(e), ev.target.value), onkeydown: (ev) => { if (ev.key === 'Enter') hpOp(e, 'dmg'); } }),
+              h('button', { type: 'button', class: 'chip-btn', text: 'Шкода', onclick: () => hpOp(e, 'dmg') }),
+              h('button', { type: 'button', class: 'chip-btn', text: 'Лікув.', onclick: () => hpOp(e, 'heal') })),
+            h('span', { class: 'grow' }),
+            rec && e.skip ? h('button', { type: 'button', class: 'chip-btn', text: 'Повернути', title: 'Не пропускати, хоч HP 0', onclick: () => api.setForce(rec, true) }) : null,
+            rec && rec.force ? h('button', { type: 'button', class: 'chip-btn', text: 'Знову пропускати', onclick: () => api.setForce(rec, false) }) : null,
+            rec ? h('button', { type: 'button', class: 'chip-btn', text: 'Лист', title: 'Відкрити лист НПС для редагування', onclick: () => api.openSheet(rec) }) : null));
       }) : [h('p', { class: 'muted', text: 'Тут з’являться гравці та НПС з галочкою «У бою» (вкладка «НПС»).' })]));
     if (focusId) { const n = [...root.querySelectorAll(`.${focusCls}`)].find((x) => x.dataset.k === focusId); if (n) n.focus(); }
   }
