@@ -3,7 +3,7 @@
 <body>
 <script type="module">
   // Працює завжди, поки аддон увімкнено в кімнаті: показує сповіщення про кидки інших гравців.
-  import { CH_ROLL, rollToastText, whenReady, getObr, onCmd, patchSummary, myId, getRoomChar, syncStatusBadge, syncHpBar, onTurn, isGM, getCombat, watchNewTokens, notify, renameItem, freeTokens, itemExists, registerFightMenu, setFightFlag, getTableRows, setCombat } from './js/owlbear.js';
+  import { CH_ROLL, rollToastText, whenReady, getObr, onCmd, patchSummary, myId, getRoomChar, syncStatusBadge, syncHpBar, onTurn, isGM, getCombat, watchNewTokens, notify, renameItem, freeTokens, itemExists, registerFightMenu, guardGmOnly, setFightFlag, getTableRows, setCombat } from './js/owlbear.js';
   import { advance, npcSkipped, buildOrder, reconcile } from './js/combat.js';
   import { listCharacters, saveCharacter, newId } from './js/storage.js';
   await whenReady(60000);
@@ -156,6 +156,7 @@
     const next = reconcile(st, buildOrder(await getTableRows(), (await listCharacters()).filter((c) => c.npc)));
     if (next) await setCombat(next);
   };
+  isGM().then((gm) => { if (gm) guardGmOnly(); });
   isGM().then((gm) => { if (!gm) return; registerFightMenu((ids, want) => queue(async () => {
     const all = await listCharacters();
     let n = 0;

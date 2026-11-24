@@ -212,7 +212,7 @@ async function _syncHpBar(tokenId, hp, max, fixedColor = null, tmp = 0, hidden =
   const mkTemp = (run) => buildShape().shapeType('RECTANGLE').width(tmpGeo.w).height(th).position({ x: tmpGeo.x, y: tmpGeo.y })
     .fillColor('#4aa3e8').fillOpacity(1).strokeColor('#000000').strokeOpacity(0.9).strokeWidth(1)
     .attachedTo(tokenId).layer('ATTACHMENT').locked(true).disableHit(true).visible(!hidden).name('Тимчасові HP')
-    .metadata({ [BAR_KEY]: { token: tokenId, kind: 'temp', run } }).build();
+    .metadata({ [BAR_KEY]: { token: tokenId, kind: 'temp', run, gm: !!hidden } }).build();
 
   const existing = await OBR.scene.items.getItems((i) => i.metadata[BAR_KEY] && i.metadata[BAR_KEY].token === tokenId);
   if (existing.length >= 2) {
@@ -222,6 +222,7 @@ async function _syncHpBar(tokenId, hp, max, fixedColor = null, tmp = 0, hidden =
     await OBR.scene.items.updateItems(existing, (drafts) => {
       for (const d of drafts) {
         d.visible = !hidden;
+        d.metadata[BAR_KEY].gm = !!hidden;
         const kd = d.metadata[BAR_KEY].kind;
         if (kd === 'temp') { d.position = { x: tmpGeo.x, y: tmpGeo.y }; d.width = tmpGeo.w; d.height = th; continue; }
         const g = geo[kd]; if (!g) continue;
@@ -240,7 +241,7 @@ async function _syncHpBar(tokenId, hp, max, fixedColor = null, tmp = 0, hidden =
     .fillColor(fill).fillOpacity(opacity).strokeColor('#000000').strokeOpacity(kind === 'bg' ? 0.9 : 0).strokeWidth(kind === 'bg' ? 2 : 0)
     .attachedTo(tokenId).layer('ATTACHMENT').locked(true).disableHit(true).visible(!hidden)
     .name(kind === 'bg' ? 'HP (фон)' : 'HP')
-    .metadata({ [BAR_KEY]: { token: tokenId, kind, run } }).build();
+    .metadata({ [BAR_KEY]: { token: tokenId, kind, run, gm: !!hidden } }).build();
   const run = newRun();
   await OBR.scene.items.addItems([mk('bg', '#1a1a1a', 0.8), mk('fill', color, 1), ...(tmpN > 0 ? [mkTemp(run)] : [])]);
   await dedupeRuns(BAR_KEY, tokenId);
@@ -375,7 +376,7 @@ async function _syncStatusBadge(tokenId, conds, modeOverride, hidden = false) {
   const bx = left + w / 2 - bw / 2, by = top - bh - Math.round(S * 0.18);
 
   const { buildShape, buildPath } = sdkMod;
-  const meta = { [STATUS_KEY]: { token: tokenId, sig, run: newRun() } };
+  const meta = { [STATUS_KEY]: { token: tokenId, sig, run: newRun(), gm: !!hidden } };
   const common = (b) => b.attachedTo(tokenId).layer('ATTACHMENT').locked(true).disableHit(true).visible(!hidden).metadata(meta);
   const makers = [() => { const it = common(buildShape().shapeType('RECTANGLE').width(bw).height(bh).position({ x: bx, y: by })
     .fillColor('#111111').fillOpacity(0.88).strokeColor('#000000').strokeOpacity(0.9).strokeWidth(2).name('Стани (фон)')).build(); it.zIndex = 1; return it; }];
@@ -552,6 +553,34 @@ export async function watchSelection(cb) {
   if (!(await whenReady())) return () => {};
   try { cb((await OBR.player.getSelection()) || []); } catch { /* ігноруємо */ }
   try { return OBR.player.onChange((p) => cb((p && p.selection) || [])); } catch { return () => {}; }
+}
+
+/**
+ * Коли ГМ ховає токен і знову показує його, Owlbear робить видимими й усі прикріплені до нього смужки.
+ * Для смужок «лише для ГМа» (позначка gm) повертаємо приховану видимість.
+ */
+export async function guardGmOnly() {
+  if (!(await whenReady())) return () => {};
+  let busy = false;
+  const fix = async (items) => {
+    if (busy) return;
+    // Старі смужки без позначки: прихована смужка при видимому токені — це «лише для ГМа».
+    const vis = new Map(items.filter((i) => i.type === 'IMAGE').map((i) => [i.id, i.visible]));
+    const mig = items.filter((i) => { const m = i.metadata[BAR_KEY] || i.metadata[STATUS_KEY]; return m && !m.gm && !i.visible && vis.get(m.token) === true; });
+    if (mig.length) {
+      busy = true;
+      try { await OBR.scene.items.updateItems(mig.map((i) => i.id), (drafts) => { for (const d of drafts) { const k = d.metadata[BAR_KEY] ? BAR_KEY : STATUS_KEY; d.metadata[k] = { ...d.metadata[k], gm: true }; } }); } catch (e) { console.warn(e); }
+      busy = false;
+      return fix(await OBR.scene.items.getItems());
+    }
+    const bad = items.filter((i) => i.visible && ((i.metadata[BAR_KEY] && i.metadata[BAR_KEY].gm) || (i.metadata[STATUS_KEY] && i.metadata[STATUS_KEY].gm)));
+    if (!bad.length) return;
+    busy = true;
+    try { await OBR.scene.items.updateItems(bad.map((i) => i.id), (drafts) => { for (const d of drafts) d.visible = false; }); } catch (e) { console.warn(e); }
+    busy = false;
+  };
+  try { fix(await OBR.scene.items.getItems()); } catch { /* сцена ще не готова */ }
+  return OBR.scene.items.onChange(fix);
 }
 
 // ---------- меню правої кнопки: «Додати в бій» / «Прибрати з бою» ----------
