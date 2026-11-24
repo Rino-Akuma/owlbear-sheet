@@ -1,5 +1,5 @@
 import { t } from './i18n.js';
-import { initOwlbear, SIZES, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, inOwlbear, obrActive, pickSelectedToken, pickAssetImage, selectedTokenImage, syncHpBar, syncStatusBadge, removeHpBar, publishSummary, isGM, watchTable, sendCmd, myId, getRoomChar, setRoomChar, getCombat, setCombat, watchCombat, sendTurn, focusToken, notify, setFightFlag } from './owlbear.js';
+import { initOwlbear, SIZES, setWindowSize, applySize, resizeWindow, currentSize, makeDiceProvider, announceRoll, dicePlusReady, inOwlbear, obrActive, pickSelectedToken, pickAssetImage, selectedTokenImage, syncHpBar, syncStatusBadge, removeHpBar, publishSummary, isGM, watchTable, sendCmd, myId, getRoomChar, setRoomChar, getCombat, setCombat, watchCombat, sendTurn, focusToken, notify, setFightFlag, watchSelection } from './owlbear.js';
 import { setProvider, rollPool, describeGroup, keptVals } from './engine/dice.js';
 import { TEMPLATES, getTemplate } from './templates/index.js';
 import { mountSheet, fmt } from './engine/sheet.js';
@@ -180,8 +180,10 @@ let gmCtl = null, npcCtl = null, combatCtl = null;
 const curKey = () => { const e = combat && combat.on ? combat.order[combat.turn] : null; return e ? keyOf(e) : null; };
 const npcMapNow = () => new Map(characters.filter((c) => c.npc).map((c) => [c.id, c]));
 const skipNow = () => { const m = npcMapNow(); return (e) => e.k === 'n' && npcSkipped(m.get(e.id)); };
+let selIds = new Set();
 function refreshCombatUi() {
   renderTurnBar($('#turnbar'), combat, {
+    selected: () => selIds,
     focus: async (cur) => {
       let tok = cur.tok;
       if (!tok && cur.k === 'n') { const n = characters.find((c) => c.id === cur.id); tok = n && n.tokenId; }
@@ -254,6 +256,7 @@ function mountGmView() {
       await reconcileCombat();
     },
     setForce: async (rec, v) => { rec.force = !!v; await saveCharacter(rec); await reconcileCombat(); refreshNpc(); },
+    selected: () => selIds,
     hpInfo: (e) => {
       if (e.k === 'n') { const r = characters.find((c) => c.id === e.id); if (!r) return null; const s = npcSum(r); return { hp: s.hp, max: s.max, tmp: s.tmp, ac: s.ac }; }
       const row = tableRows.find((r) => r.id === e.id);
@@ -917,7 +920,7 @@ async function init() {
   });
   // Інтерфейс Owlbear вмикаємо одразу, не чекаючи SDK: виклики самі дочекаються готовності.
   const hideObr = () => { $('#lbl-vis').hidden = true; $('#win-wrap').hidden = true; document.querySelectorAll('.win-ctl').forEach((e) => { e.hidden = true; }); };
-  initOwlbear().then((ok) => { if (!ok && inOwlbear()) hideObr(); else if (ok) { syncToken(); drawRoomBtn(); publishNow(); isGM().then((gm) => { gmFlag = gm; $('#btn-gm').hidden = !gm; refreshCombatUi(); }); watchCombat((st) => { combat = st; refreshCombatUi(); }); } });
+  initOwlbear().then((ok) => { if (!ok && inOwlbear()) hideObr(); else if (ok) { syncToken(); drawRoomBtn(); publishNow(); isGM().then((gm) => { gmFlag = gm; $('#btn-gm').hidden = !gm; refreshCombatUi(); }); watchCombat((st) => { combat = st; refreshCombatUi(); }); watchSelection((ids) => { selIds = new Set(ids); refreshCombatUi(); if (combatCtl) combatCtl.refresh(); }); } });
   if (inOwlbear()) {
     $('#lbl-vis').hidden = false;
     drawTokenBtn(); syncToken();

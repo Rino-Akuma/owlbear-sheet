@@ -25,7 +25,7 @@ export function renderTurnBar(el, st, api) {
   el.replaceChildren(
     h('span', { class: 'who', text: `Хід: ${cur ? cur.name : '—'}` }),
     h('span', { class: 'muted', text: `Раунд ${st.round}` }),
-    h('div', { class: 'turn-order' }, st.order.map((e, i) => h('span', { class: `turn-chip ${i === st.turn ? 'cur' : ''} ${e.skip ? 'skip' : ''}`, text: `${e.init === null || e.init === undefined ? '–' : e.init} ${e.name}` }))),
+    h('div', { class: 'turn-order' }, st.order.map((e, i) => h('span', { class: `turn-chip ${i === st.turn ? 'cur' : ''} ${e.skip ? 'skip' : ''} ${e.tok && api.selected && api.selected().has(e.tok) ? 'sel' : ''}`, text: `${e.init === null || e.init === undefined ? '–' : e.init} ${e.name}` }))),
     cur && api.focus ? h('button', { type: 'button', text: '◎ До токена', title: 'Навести камеру на того, чий зараз хід', onclick: () => api.focus(cur) }) : null,
     api.gm || mine ? h('button', { type: 'button', class: 'primary', text: api.gm && !mine ? 'Кінець ходу (за поточного)' : 'Кінець ходу', onclick: () => api.endTurn(st) }) : null);
 }
@@ -41,6 +41,7 @@ export function mountCombat(root, api) {
     amt.delete(k);
     api.hpOp(e, op, n);
   };
+  const isSel = (e, rec) => { const sel = api.selected ? api.selected() : null; const t = e.tok || (rec && rec.tokenId); return !!(sel && t && sel.has(t)); };
   function draw() {
     const ae = document.activeElement;
     const focusCls = ae && root.contains(ae) && ae.classList ? (ae.classList.contains('cb-init') ? 'cb-init' : ae.classList.contains('cb-amt') ? 'cb-amt' : null) : null;
@@ -63,7 +64,7 @@ export function mountCombat(root, api) {
       ...(order.length ? order.map((e) => {
         const rec = e.k === 'n' ? npcMap.get(e.id) : null;
         const hs = api.hpInfo(e) || { hp: 0, max: 0, tmp: 0, ac: 0 };
-        return h('div', { class: `cb-row ${keyOf(e) === curKey ? 'cur' : ''} ${e.skip ? 'skip' : ''}` },
+        return h('div', { class: `cb-row ${keyOf(e) === curKey ? 'cur' : ''} ${e.skip ? 'skip' : ''} ${isSel(e, rec) ? 'sel' : ''}` },
           keyOf(e) === curKey ? h('b', { text: '▶' }) : null,
           rec ? h('input', { type: 'number', class: 'cb-init', 'data-k': e.id, value: e.init === null ? '' : e.init, placeholder: '—', title: 'Ініціатива (можна виправити)', onchange: (ev) => api.setInit(rec, ev.target.value) })
             : h('span', { class: 'cb-init', text: e.init === null ? '—' : String(e.init), title: 'Ініціатива гравця береться з його листа' }),

@@ -454,3 +454,5 @@ span.cb-init { display: inline-block; }
 .cb-hp { color: var(--muted, #aaa); font-size: 13px; white-space: nowrap; }
 .cb-hpedit { display: inline-flex; gap: 4px; align-items: center; }
 input.cb-amt { width: 58px; flex: none; text-align: center; padding: 4px; }
+.cb-row.sel, .turn-chip.sel { background: rgba(214,69,60,.28); border-color: #d6453c; box-shadow: 0 0 0 1px #d6453c inset; }
+.cb-row.sel.cur { border-color: #d6453c; }

@@ -547,6 +547,13 @@ export async function focusToken(id) {
     return true;
   } catch { return false; }
 }
+/** Стежить за виділенням токенів на столі: cb(ids). Повертає функцію відписки. */
+export async function watchSelection(cb) {
+  if (!(await whenReady())) return () => {};
+  try { cb((await OBR.player.getSelection()) || []); } catch { /* ігноруємо */ }
+  try { return OBR.player.onChange((p) => cb((p && p.selection) || [])); } catch { return () => {}; }
+}
+
 // ---------- меню правої кнопки: «Додати в бій» / «Прибрати з бою» ----------
 const FLAG_KEY = `${SOURCE}/fightflag`;
 export async function getTableRows() { if (!(await whenReady())) return []; try { return await getTable(); } catch { return []; } }
