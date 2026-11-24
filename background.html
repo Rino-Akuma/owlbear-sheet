@@ -111,18 +111,24 @@
       return;
     }
     const base = (tpl.data && tpl.data.name) || 'НПС';
-    let n = 1;
-    for (const c of all) {
-      if (c.fromTemplate !== tpl.id) continue;
-      const m = String((c.data && c.data.name) || '').match(/(\d+)\s*$/);
-      n = Math.max(n, m ? Number(m[1]) : 0);
+    const num = (c) => { const m = String((c.data && c.data.name) || '').match(/(\d+)\s*$/); return m ? Number(m[1]) : 0; };
+    const kids = all.filter((c) => c.fromTemplate === tpl.id);
+    // Копії, чиї токени зникли зі столу: беремо найменший номер і прив’язуємо новий токен до цього листа.
+    const orphans = [];
+    for (const c of kids) if (!c.tokenId || !(await itemExists(c.tokenId))) orphans.push(c);
+    orphans.sort((x, y) => num(x) - num(y));
+    let copy = orphans[0], fresh = false;
+    if (!copy) {
+      const used = new Set(kids.map(num));
+      let n = 2; while (used.has(n)) n++;
+      copy = JSON.parse(JSON.stringify(tpl));
+      copy.id = newId();
+      copy.fromTemplate = tpl.id;
+      copy.asset = null;
+      copy.data.name = `${base} ${n}`;
+      fresh = true;
     }
-    const copy = JSON.parse(JSON.stringify(tpl));
-    copy.id = newId();
-    copy.fromTemplate = tpl.id;
-    copy.asset = null;
     copy.tokenId = it.id;
-    copy.data.name = `${base} ${n + 1}`;
     delete copy.data.hp;
     copy.data.conditions = [];
     copy.data.init_roll = null;
@@ -134,7 +140,7 @@
     await renameItem(it.id, copy.data.name);
     await setFightFlag(it.id, copy.fight ? 'in' : 'out');
     if (bc) bc.postMessage({ type: 'reload', id: copy.id, list: true });
-    await notify(`Створено «${copy.data.name}» і прив’язано до токена`, 'SUCCESS');
+    await notify(`${fresh ? 'Створено' : 'Відновлено'} «${copy.data.name}» і прив’язано до токена`, 'SUCCESS');
   }
   const queue = (fn) => { chain = chain.then(async () => { try { await fn(); } catch (e) { console.warn(e); } }); };
   watchNewTokens((items) => queue(async () => { for (const it of items) await bindItem(it); }));
